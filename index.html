@@ -242,6 +242,7 @@ body { padding-top: max(12px, env(safe-area-inset-top)); padding-bottom: max(48p
       <label class="switch"><input type="checkbox" id="sound" checked> Töne vorspielen</label>
     </div>
     <div class="tempo"><span class="small muted">Tempo</span><input type="range" id="tempo" min="40" max="100" step="5" value="70" aria-label="Tempo in Prozent"><output id="tempo-o">70 %</output></div>
+    <p class="small muted" id="tutti-hint" hidden>Alle Stimmen zusammen mit Schlagzeug. Die Noten oben zeigen die Melodie (Trompete 1. Stimme).</p>
     <p class="small muted">Die App zählt einen Takt vor. Sobald eure Aufnahmen da sind, läuft hier die echte Aufnahme statt der Computertöne.</p>
   </div>
 
@@ -265,8 +266,9 @@ body { padding-top: max(12px, env(safe-area-inset-top)); padding-bottom: max(48p
 const INSTR = [
   { id: "trp", name: "Trompete", sub: "Ventile 1–3", kind: "valve", transpose: -2 },
   { id: "pos", name: "Posaune", sub: "Zugpositionen 1–7", kind: "slide", transpose: 0 },
-  { id: "eup", name: "Euphonium", sub: "Ventile 1–3", kind: "valve", transpose: -14 },
-  { id: "sou", name: "Sousaphon", sub: "Ventile 1–3", kind: "valve", transpose: -14 }
+  { id: "eup", name: "Euphi", sub: "Ventile 1–3", kind: "valve", transpose: -14 },
+  { id: "sou", name: "Susi", sub: "Ventile 1–3", kind: "valve", transpose: -26 },
+  { id: "tutti", name: "Tutti", sub: "Alle Stimmen mit Schlagzeug", kind: "tutti", transpose: 0 }
 ];
 // Griffe für B-Instrumente im Violinschlüssel (geschriebene Tonhöhe, MIDI)
 const VALVE = {52:"1+2+3",53:"1+3",54:"1+2+3",55:"1+3",56:"2+3",57:"1+2",58:"1",59:"2",60:"0",61:"1+2+3",62:"1+3",63:"2+3",64:"1+2",65:"1",66:"2",67:"0",68:"2+3",69:"1+2",70:"1",71:"2",72:"0",73:"1+2",74:"1",75:"2",76:"0",77:"1",78:"2",79:"0",80:"2+3",81:"1+2",82:"1",83:"2",84:"0"};
@@ -274,13 +276,14 @@ const VALVE = {52:"1+2+3",53:"1+3",54:"1+2+3",55:"1+3",56:"2+3",57:"1+2",58:"1",
 const SLIDE = {40:"7",41:"6",42:"5",43:"4",44:"3",45:"2",46:"1",47:"7",48:"6",49:"5",50:"4",51:"3",52:"2",53:"1",54:"5",55:"4",56:"3",57:"2",58:"1",59:"4",60:"3",61:"2",62:"1",63:"3",64:"2",65:"1",66:"3",67:"2",68:"3",69:"2",70:"1"};
 
 const SONGS = [
-  { id: "demo", title: "Güüger-Marsch", sub: "Beispiellied zum Ausprobieren", qpm: 120,
+  { id: "demo", title: "Güüger-Marsch", sub: "Beispiellied zum Ausprobieren", qpm: 116,
     parts: [
-      { id: "trp1", instr: "trp", name: "Trompete 1. Stimme", abc: "X:1\nM:4/4\nL:1/4\nK:C\n|: !mf! C E G G | A G E2 | F A G E | D2 z2 | C E G c | B G A F | E D G B | C3 z :|" },
-      { id: "trp2", instr: "trp", name: "Trompete 2. Stimme", abc: "X:1\nM:4/4\nL:1/4\nK:C\n|: !mf! E G E E | F E C2 | D F D C | B,2 z2 | E G E G | G E F D | C B, D D | E3 z :|" },
-      { id: "pos", instr: "pos", name: "Posaune", abc: "X:1\nM:4/4\nL:1/4\nK:Bb clef=bass\n|: !mf! D,2 F,2 | E,2 D,2 | C,2 E,2 | F,2 z2 | D,2 F,2 | F,2 E,2 | C,2 F,2 | B,,3 z :|" },
-      { id: "eup", instr: "eup", name: "Euphonium", abc: "X:1\nM:4/4\nL:1/4\nK:C\n|: !mf! E G E E | F E C2 | D F D C | B,2 z2 | E G E G | G E F D | C B, D D | E3 z :|" },
-      { id: "sou", instr: "sou", name: "Sousaphon", abc: "X:1\nM:4/4\nL:1/4\nK:C\n|: !mf! C2 G,2 | A,2 C2 | A,2 B,2 | G,2 z2 | C2 E2 | G,2 A,2 | G,2 G,2 | C3 z :|" }
+      { id: "trp1", instr: "trp", name: "Trompete 1. Stimme", abc: "X:1\nM:4/4\nL:1/8\nK:C\n|: !f! G2 GA G2 E2 | c2 c2 B2 A2 | G2 GA GE CE | D4 z4 | G2 GA G2 E2 | c2 cd e2 c2 | d2 B2 G2 B2 | c4 z2 G2 :| !ff! e2 e2 dc d2 | c2 c2 BA B2 | A2 AB c2 A2 | G6 z2 | e2 ed c2 A2 | G2 GA c2 e2 | d2 d2 B2 G2 | c4 z4 |]" },
+      { id: "trp2", instr: "trp", name: "Trompete 2. Stimme", abc: "X:1\nM:4/4\nL:1/8\nK:C\n|: !f! E2 EF E2 C2 | A2 A2 G2 F2 | E2 EF EC CC | B,4 z4 | E2 EF E2 C2 | E2 EF G2 E2 | B2 G2 D2 G2 | E4 z2 E2 :| !ff! c2 c2 BA B2 | A2 A2 GF G2 | F2 FG A2 F2 | E6 z2 | c2 cB A2 F2 | E2 EF A2 c2 | B2 B2 G2 D2 | E4 z4 |]" },
+      { id: "pos", instr: "pos", name: "Posaune", abc: "X:1\nM:4/4\nL:1/8\nK:Bb clef=bass\n|: !f! z2 D,2 z2 D,2 | z2 E,2 z2 E,2 | z2 D,2 z2 D,2 | z2 A,2 z2 A,2 | z2 D,2 z2 D,2 | z2 D,2 z2 D,2 | z2 A,2 z2 A,2 | z2 D,2 z4 :| !ff! z2 D,2 z2 D,2 | z2 A,2 z2 A,2 | z2 E,2 z2 E,2 | z2 D,2 z2 D,2 | z2 B,2 z2 B,2 | z2 D,2 z2 D,2 | z2 A,2 z2 A,2 | z2 D,2 z4 |]" },
+      { id: "eup", instr: "eup", name: "Euphi", abc: "X:1\nM:4/4\nL:1/8\nK:C\n|: !f! z4 C2 E2 | F2 A2 F2 C2 | E2 G2 E2 C2 | B,2 D2 G2 F2 | E4 C2 E2 | G2 E2 C2 E2 | F2 D2 B,2 D2 | C2 G,2 C2 z2 :| !ff! G2 E2 G2 c2 | B2 G2 D2 G2 | A2 F2 C2 F2 | E2 G2 c2 z2 | c2 A2 E2 C2 | E2 G2 c2 G2 | B2 G2 D2 B,2 | C4 z4 |]" },
+      { id: "sou", instr: "sou", name: "Susi", abc: "X:1\nM:4/4\nL:1/8\nK:C\n|: !f! C2 z2 G,2 z2 | F2 z2 C2 z2 | C2 z2 G,2 z2 | G,2 z2 D2 z2 | C2 z2 G,2 z2 | C2 z2 G,2 z2 | G,2 z2 D2 z2 | C2 G,2 C2 z2 :| !ff! C2 z2 G,2 z2 | G,2 z2 D2 z2 | F2 z2 C2 z2 | C2 z2 G,2 z2 | A,2 z2 E2 z2 | C2 z2 G,2 z2 | G,2 z2 D2 z2 | C2 G,2 C2 z2 |]" },
+      { id: "tutti", instr: "tutti", name: "Tutti", abc: "X:1\nM:4/4\nL:1/8\nK:C\n|: !f! G2 GA G2 E2 | c2 c2 B2 A2 | G2 GA GE CE | D4 z4 | G2 GA G2 E2 | c2 cd e2 c2 | d2 B2 G2 B2 | c4 z2 G2 :| !ff! e2 e2 dc d2 | c2 c2 BA B2 | A2 AB c2 A2 | G6 z2 | e2 ed c2 A2 | G2 GA c2 e2 | d2 d2 B2 G2 | c4 z4 |]" }
     ] }
 ];
 
@@ -518,7 +521,10 @@ function openPart() {
   const ins = instrObj();
   $("sg-title").textContent = cur.song.title; $("sg-crumb").textContent = curPart.name;
   $("showv-l").textContent = ins.kind === "slide" ? "Zugpositionen zeigen" : "Ventilzahlen zeigen";
-  go("song"); setMode(store.get("mode", "play"));
+  const tutti = ins.kind === "tutti";
+  $("m-learn").hidden = tutti; $("showv").parentElement.hidden = tutti; $("sound").parentElement.hidden = tutti;
+  $("tutti-hint").hidden = !tutti;
+  go("song"); setMode(tutti ? "play" : store.get("mode", "play"));
 }
 function buildAbc(withLabels) {
   const base = partAbc(); const key = keyOf(base), bass = bassClef(base);
@@ -530,7 +536,7 @@ function buildAbc(withLabels) {
   return abc;
 }
 function renderScore() {
-  const showLabels = cur.mode === "play" && $("showv").checked;
+  const showLabels = cur.mode === "play" && $("showv").checked && instrObj().kind !== "tutti";
   const abc = buildAbc(showLabels);
   const tune = ABCJS.renderAbc("paper", abc, { add_classes: true, scale: 1.5, staffwidth: Math.max(520, cur.labels.length * (showLabels ? 62 : 44) + 140),
     foregroundColor: fgColor(), paddingleft: 6, paddingright: 16, paddingbottom: 8,
@@ -543,7 +549,7 @@ function renderScore() {
 }
 function hint(el) {}
 function setMode(m) {
-  stopAll(); cur.mode = m; store.set("mode", m);
+  stopAll(); cur.mode = m; if (instrObj().kind !== "tutti") store.set("mode", m);
   $("m-play").setAttribute("aria-pressed", m === "play"); $("m-learn").setAttribute("aria-pressed", m === "learn");
   $("p-play").hidden = m !== "play"; $("p-learn").hidden = m !== "learn";
   renderScore();
@@ -564,13 +570,31 @@ let actx = null, timer = null, playing = false, lastEls = [], countT = [];
 function ctx() { if (!actx) { const C = window.AudioContext || window.webkitAudioContext; if (C) actx = new C(); } if (actx && actx.state === "suspended") actx.resume(); return actx; }
 function tone(midi, sec, vol, type) {
   const a = ctx(); if (!a) return; const t = a.currentTime;
-  const o = a.createOscillator(), g = a.createGain(); o.type = type || "triangle";
-  o.frequency.value = 440 * Math.pow(2, (midi - 69) / 12);
-  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + 0.02); g.gain.setValueAtTime(vol, t + Math.max(0.03, sec - 0.06)); g.gain.linearRampToValueAtTime(0, t + sec);
-  o.connect(g).connect(a.destination); o.start(t); o.stop(t + sec + 0.05);
+  const o = a.createOscillator(), g = a.createGain(); o.type = type || "sawtooth";
+  const f = 440 * Math.pow(2, (midi - 69) / 12); o.frequency.value = f;
+  const lp = a.createBiquadFilter(); lp.type = "lowpass"; lp.Q.value = 0.7;
+  lp.frequency.setValueAtTime(Math.min(8000, f * 2), t); lp.frequency.linearRampToValueAtTime(Math.min(9000, f * 6), t + 0.06);
+  const v = type === "square" ? vol : vol * 0.55;
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(v, t + 0.03); g.gain.setValueAtTime(v * 0.85, t + Math.max(0.04, sec - 0.06)); g.gain.linearRampToValueAtTime(0, t + sec);
+  o.connect(lp).connect(g).connect(a.destination); o.start(t); o.stop(t + sec + 0.05);
 }
+let noiseBuf = null;
+function drum(kind) {
+  const a = ctx(); if (!a) return; const t = a.currentTime;
+  if (kind === "kick") {
+    const o = a.createOscillator(), g = a.createGain(); o.frequency.setValueAtTime(120, t); o.frequency.exponentialRampToValueAtTime(45, t + 0.12);
+    g.gain.setValueAtTime(0.9, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.25); o.connect(g).connect(a.destination); o.start(t); o.stop(t + 0.3); return;
+  }
+  if (!noiseBuf) { noiseBuf = a.createBuffer(1, a.sampleRate * 0.3, a.sampleRate); const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; }
+  const n = a.createBufferSource(); n.buffer = noiseBuf; const f = a.createBiquadFilter(), g = a.createGain();
+  if (kind === "snare") { f.type = "bandpass"; f.frequency.value = 1800; g.gain.setValueAtTime(0.5, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.18); }
+  else { f.type = "highpass"; f.frequency.value = 7000; g.gain.setValueAtTime(kind === "hatA" ? 0.18 : 0.09, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.05); }
+  n.connect(f).connect(g).connect(a.destination); n.start(t); n.stop(t + 0.25);
+}
+let extraTimers = [], drumIv = null;
 function stopAll() {
   playing = false; if (timer) { try { timer.stop(); } catch (e) {} timer = null; }
+  extraTimers.forEach(x => { try { x.stop(); } catch (e) {} }); extraTimers = []; if (drumIv) { clearInterval(drumIv); drumIv = null; }
   countT.forEach(clearTimeout); countT = []; mark(lastEls, false); lastEls = [];
   if ($("play")) $("play").textContent = "▶ Abspielen";
 }
@@ -585,12 +609,30 @@ $("play").onclick = () => {
   for (let b = 0; b < beats; b++) countT.push(setTimeout(() => { if (playing) tone(b === 0 ? 96 : 89, 0.05, 0.25, "square"); }, b * beat));
   countT.push(setTimeout(() => {
     if (!playing) return;
+    const tutti = instrObj().kind === "tutti";
+    const dur = p => Math.max(0.08, p.duration * 4 * beat / 1000 * 0.9);
     timer = new ABCJS.TimingCallbacks(cur.tune, { qpm, eventCallback: ev => {
       mark(lastEls, false);
       if (!ev) { stopAll(); return; }
       lastEls = (ev.elements || []).flat(); mark(lastEls, true); scrollToEl(lastEls[0]);
-      if ($("sound").checked && ev.midiPitches) ev.midiPitches.forEach(p => tone(p.pitch + tr + (instrObj().kind === "slide" ? 0 : 0), Math.max(0.08, p.duration * 4 * beat / 1000 * 0.92), 0.22));
+      if (!tutti && $("sound").checked && ev.midiPitches) ev.midiPitches.forEach(p => tone(p.pitch + tr, dur(p), 0.22));
+      if (tutti && ev.midiPitches) ev.midiPitches.forEach(p => tone(p.pitch - 2, dur(p), 0.16));
     } });
+    if (tutti) {
+      cur.song.parts.filter(pt => pt.instr !== "tutti" && pt.id !== "trp1").forEach(pt => {
+        const ins = INSTR.find(i => i.id === pt.instr), t = ABCJS.parseOnly(pt.abc)[0];
+        try { t.setUpAudio(); } catch (e) {}
+        const vol = { trp: 0.12, pos: 0.16, eup: 0.15, sou: 0.24 }[pt.instr] || 0.14;
+        const x = new ABCJS.TimingCallbacks(t, { qpm, eventCallback: ev => { if (ev && ev.midiPitches) ev.midiPitches.forEach(p => tone(p.pitch + ins.transpose, dur(p), vol)); } });
+        extraTimers.push(x);
+      });
+      let step = 0; const eighth = beat / 2;
+      const hit = () => { if (!playing) return; const pos = step % 8;
+        if (pos === 0 || pos === 4) drum("kick"); if (pos === 2 || pos === 6) drum("snare"); if (pos === 7) drum("snare");
+        drum(pos % 2 === 0 ? "hatA" : "hatB"); step++; };
+      hit(); drumIv = setInterval(hit, eighth);
+      extraTimers.forEach(x => x.start());
+    }
     timer.start();
   }, beats * beat));
 };
