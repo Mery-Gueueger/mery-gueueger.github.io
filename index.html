@@ -146,17 +146,18 @@ html { -webkit-text-size-adjust: 100% }
 body { padding-top: max(12px, env(safe-area-inset-top)); padding-bottom: max(48px, env(safe-area-inset-bottom)) }
 </style>
 <style>
-#splash { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; overflow: hidden; pointer-events: auto; transition: opacity .3s ease }
+#splash { position: fixed; inset: 0; z-index: 1000; background: #000; display: grid; place-items: center; overflow: hidden; pointer-events: auto; transition: opacity .3s ease }
 #splash img { width: min(72vw, 380px); height: auto; box-shadow: 0 0 0 300vmax #000000; background: transparent; transform-origin: 66.2% 46.3%; transform: scale(.92); opacity: 0; animation: splash-in .5s ease-out forwards }
 #splash.zoom img { opacity: 1; animation: splash-zoom 1.1s cubic-bezier(.78,0,1,.25) forwards }
 @keyframes splash-zoom { from { transform: scale(1) } to { transform: scale(220) } }
+#splash.zoom { background: transparent }
 #splash.out { opacity: 0 }
 @keyframes splash-in { to { opacity: 1; transform: scale(1) } }
 @media (prefers-reduced-motion: reduce) { #splash img { animation: none; opacity: 1; transform: none } }
 </style>
 </head>
 <body>
-<div id="splash" aria-hidden="true"><img src="splash-logo.png" alt=""></div>
+<div id="splash" aria-hidden="true"><img src="splash-logo-w.png" alt=""></div>
 <div class="app">
 <header class="brand"><button type="button" id="logo-home" aria-label="Zum Startbildschirm"><img src="logo.png" alt="Mery-Güüger Merenschwand"></button></header>
 
@@ -241,7 +242,7 @@ body { padding-top: max(12px, env(safe-area-inset-top)); padding-bottom: max(48p
       <label class="switch"><input type="checkbox" id="showv" checked> <span id="showv-l">Ventilzahlen zeigen</span></label>
       <label class="switch"><input type="checkbox" id="sound" checked> Töne vorspielen</label>
     </div>
-    <div class="tempo"><span class="small muted">Tempo</span><input type="range" id="tempo" min="40" max="100" step="5" value="70" aria-label="Tempo in Prozent"><output id="tempo-o">70 %</output></div>
+    <div class="tempo"><span class="small muted">Tempo</span><input type="range" id="tempo" min="40" max="120" step="5" value="100" aria-label="Tempo in Prozent"><output id="tempo-o">100 %</output></div>
     <p class="small muted" id="tutti-hint" hidden>Alle Stimmen zusammen mit Schlagzeug. Die Noten oben zeigen die Melodie (Trompete 1. Stimme).</p>
     <p class="small muted">Die App zählt einen Takt vor. Sobald eure Aufnahmen da sind, läuft hier die echte Aufnahme statt der Computertöne.</p>
   </div>
@@ -276,7 +277,7 @@ const VALVE = {52:"1+2+3",53:"1+3",54:"1+2+3",55:"1+3",56:"2+3",57:"1+2",58:"1",
 const SLIDE = {40:"7",41:"6",42:"5",43:"4",44:"3",45:"2",46:"1",47:"7",48:"6",49:"5",50:"4",51:"3",52:"2",53:"1",54:"5",55:"4",56:"3",57:"2",58:"1",59:"4",60:"3",61:"2",62:"1",63:"3",64:"2",65:"1",66:"3",67:"2",68:"3",69:"2",70:"1"};
 
 const SONGS = [
-  { id: "demo", title: "Güüger-Marsch", sub: "Beispiellied zum Ausprobieren", qpm: 116,
+  { id: "demo", title: "Mery-Marsch", sub: "Beispiellied zum Ausprobieren", qpm: 116,
     parts: [
       { id: "trp1", instr: "trp", name: "Trompete 1. Stimme", abc: "X:1\nM:4/4\nL:1/8\nK:C\n|: !f! G2 GA G2 E2 | c2 c2 B2 A2 | G2 GA GE CE | D4 z4 | G2 GA G2 E2 | c2 cd e2 c2 | d2 B2 G2 B2 | c4 z2 G2 :| !ff! e2 e2 dc d2 | c2 c2 BA B2 | A2 AB c2 A2 | G6 z2 | e2 ed c2 A2 | G2 GA c2 e2 | d2 d2 B2 G2 | c4 z4 |]" },
       { id: "trp2", instr: "trp", name: "Trompete 2. Stimme", abc: "X:1\nM:4/4\nL:1/8\nK:C\n|: !f! E2 EF E2 C2 | A2 A2 G2 F2 | E2 EF EC CC | B,4 z4 | E2 EF E2 C2 | E2 EF G2 E2 | B2 G2 D2 G2 | E4 z2 E2 :| !ff! c2 c2 BA B2 | A2 A2 GF G2 | F2 FG A2 F2 | E6 z2 | c2 cB A2 F2 | E2 EF A2 c2 | B2 B2 G2 D2 | E4 z4 |]" },
@@ -620,7 +621,10 @@ $("play").onclick = () => {
     } });
     if (tutti) {
       cur.song.parts.filter(pt => pt.instr !== "tutti" && pt.id !== "trp1").forEach(pt => {
-        const ins = INSTR.find(i => i.id === pt.instr), t = ABCJS.parseOnly(pt.abc)[0];
+        const ins = INSTR.find(i => i.id === pt.instr);
+        let hid = document.getElementById("hid-" + pt.id);
+        if (!hid) { hid = document.createElement("div"); hid.id = "hid-" + pt.id; hid.style.cssText = "position:absolute;left:-9999px;top:0;width:600px;visibility:hidden"; document.body.appendChild(hid); }
+        const t = ABCJS.renderAbc(hid, pt.abc, {})[0];
         try { t.setUpAudio(); } catch (e) {}
         const vol = { trp: 0.12, pos: 0.16, eup: 0.15, sou: 0.24 }[pt.instr] || 0.14;
         const x = new ABCJS.TimingCallbacks(t, { qpm, eventCallback: ev => { if (ev && ev.midiPitches) ev.midiPitches.forEach(p => tone(p.pitch + ins.transpose, dur(p), vol)); } });
