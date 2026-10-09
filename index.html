@@ -144,8 +144,18 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
 html { -webkit-text-size-adjust: 100% }
 body { padding-top: max(12px, env(safe-area-inset-top)); padding-bottom: max(48px, env(safe-area-inset-bottom)) }
 </style>
+<style>
+#splash { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; overflow: hidden; pointer-events: auto; transition: opacity .3s ease }
+#splash img { width: min(72vw, 380px); height: auto; box-shadow: 0 0 0 300vmax #FFFFFF; background: transparent; transform-origin: 66.2% 46.3%; transform: scale(.92); opacity: 0; animation: splash-in .5s ease-out forwards }
+#splash.zoom img { opacity: 1; animation: splash-zoom 1.2s cubic-bezier(.75,0,.95,.6) forwards }
+@keyframes splash-zoom { from { transform: scale(1) } to { transform: scale(220) } }
+#splash.out { opacity: 0 }
+@keyframes splash-in { to { opacity: 1; transform: scale(1) } }
+@media (prefers-reduced-motion: reduce) { #splash img { animation: none; opacity: 1; transform: none } }
+</style>
 </head>
 <body>
+<div id="splash" aria-hidden="true"><img src="splash-logo.png" alt=""></div>
 <div class="app">
 <header class="brand"><button type="button" id="logo-home" aria-label="Zum Startbildschirm"><img src="logo.png" alt="Mery-Güüger Merenschwand"></button></header>
 
@@ -158,7 +168,7 @@ body { padding-top: max(12px, env(safe-area-inset-top)); padding-bottom: max(48p
     <button class="tile red" id="go-songs"><div><b>Lieder üben</b><span>Mitspielen, Ventile lernen, auswendig üben</span></div><i>›</i></button>
     <button class="tile" id="go-theory"><div><b>Musiktheorie</b><span>Notenwerte, Pausen, Zeichen – mit Quiz</span></div><i>›</i></button>
   </div>
-  <p class="foot" style="margin-top:20px">Tipp: Lege die App als Symbol auf deinen Startbildschirm.<br>iPhone: Teilen › „Zum Home-Bildschirm“. Android: Menü › „Zum Startbildschirm hinzufügen“.</p>
+
 </section>
 
 <!-- INSTRUMENT -->
@@ -646,6 +656,14 @@ boot();
 document.addEventListener("visibilitychange", () => { if (document.hidden) stopAll(); });
 </script>
 <script>
+(function () {
+  const sp = document.getElementById("splash"); if (!sp) return;
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let done = false;
+  const finish = () => { if (done) return; done = true; sp.classList.add("out"); setTimeout(() => sp.remove(), 380); };
+  sp.addEventListener("click", finish);
+  setTimeout(() => { if (done) return; if (reduce) { finish(); return; } sp.classList.add("zoom"); setTimeout(finish, 1150); }, 1000);
+})();
 if ("serviceWorker" in navigator) { window.addEventListener("load", () => { navigator.serviceWorker.register("sw.js").catch(() => {}); }); }
 </script>
 </body>
