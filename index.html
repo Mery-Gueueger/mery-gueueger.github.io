@@ -1,0 +1,652 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#C4161C">
+<meta name="description" content="Übungs-App der Guggenmusik Mery-Güüger Merenschwand: Musiktheorie mit Quiz und Lieder üben.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Mery-Güüger">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>Mery-Güüger Übungs-App</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Rubik:wght@500;800;900&display=swap">
+<style>
+/* Layout: App mit Bildschirmen (Start, Theorie, Lieder). Schwarz-weiss wie das Logo, ein kräftiges Guggen-Rot als Akzent. */
+:root {
+  --bg: #F3F1EC; --card: #FFFFFF; --fg: #141414; --muted: #5E5A55; --line: #DCD7CF;
+  --accent: #C4161C; --accent-soft: #FBE3E1; --accent-fg: #FFFFFF;
+  --ok: #1E7A4C; --ok-soft: #DDF2E6; --bad: #B4322A; --bad-soft: #F9E0DD;
+  --brass: #C9A13B; --brass-2: #8E6B16; --pearl: #FBF8F0; --pearl-edge: #CFC6AE;
+  --logo-filter: none;
+  --f-display: "Rubik", "Arial Black", system-ui, sans-serif;
+  --f-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #121212; --card: #1D1D1D; --fg: #F2F0EC; --muted: #A9A49D; --line: #34312D;
+  --accent: #FF5A52; --accent-soft: #3B1715; --accent-fg: #1A0605;
+  --ok: #5FD39A; --ok-soft: #173426; --bad: #F08A80; --bad-soft: #3D1D1A;
+  --brass: #B88F2C; --brass-2: #6E5310; --pearl: #E9E3D3; --pearl-edge: #8F866E;
+  --logo-filter: invert(1); color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #121212; --card: #1D1D1D; --fg: #F2F0EC; --muted: #A9A49D; --line: #34312D;
+  --accent: #FF5A52; --accent-soft: #3B1715; --accent-fg: #1A0605;
+  --ok: #5FD39A; --ok-soft: #173426; --bad: #F08A80; --bad-soft: #3D1D1A;
+  --brass: #B88F2C; --brass-2: #6E5310; --pearl: #E9E3D3; --pearl-edge: #8F866E;
+  --logo-filter: invert(1); color-scheme: dark }
+* { box-sizing: border-box }
+[hidden] { display: none !important }
+body { background: var(--bg); color: var(--fg); font-family: var(--f-body); font-size: 16px; line-height: 1.5; margin: 0; padding-inline: 16px; padding-block: 12px 48px }
+.app { max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px }
+h1, h2, h3 { font-family: var(--f-display); margin: 0; line-height: 1.1; text-wrap: balance }
+h2 { font-weight: 900; font-size: 1.5rem }
+h3 { font-weight: 800; font-size: 1.15rem }
+p { margin: 0 }
+button { font: inherit; color: inherit }
+button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px }
+.top { display: flex; align-items: center; gap: 10px; min-height: 44px }
+.back { border: 0; background: none; font-weight: 700; font-size: 1rem; padding: 8px 4px; cursor: pointer; color: var(--accent) }
+.top .crumb { color: var(--muted); font-size: .9rem; margin-left: auto; text-align: right }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 12px; min-width: 0 }
+.muted { color: var(--muted) }
+.small { font-size: .88rem }
+/* Start */
+.brand { display: flex; justify-content: center; padding-block: 2px }
+.brand button { border: 0; background: none; padding: 4px; cursor: pointer; border-radius: 12px }
+.brand img { display: block; width: 76px; height: auto; filter: var(--logo-filter) }
+.hero { text-align: center; padding-block: 2px 6px }
+.hero h1 { font-weight: 900; font-size: clamp(1.6rem, 7vw, 2.2rem); letter-spacing: -.01em }
+.hero h1 span { display: block; font-weight: 500; font-family: var(--f-body); font-size: .95rem; color: var(--muted); letter-spacing: 0; margin-top: 4px }
+.label { font-size: .78rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 700 }
+.instr { display: grid; grid-template-columns: 1fr; gap: 8px }
+.chip { border: 2px solid var(--line); background: var(--card); border-radius: 14px; padding: 14px 16px; font-size: 1.1rem; font-family: var(--f-display); font-weight: 800; cursor: pointer; text-align: left; font-weight: 700 }
+.chip small { display: block; font-family: var(--f-body); font-weight: 400; color: var(--muted); font-size: .8rem }
+.chip[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft) }
+.tiles { display: grid; gap: 10px }
+.tile { border: 0; border-radius: 18px; padding: 18px; text-align: left; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 12px; background: var(--fg); color: var(--bg) }
+.tile.red { background: var(--accent); color: var(--accent-fg) }
+.tile b { font-family: var(--f-display); font-weight: 900; font-size: 1.35rem; display: block }
+.tile span { opacity: .85; font-size: .92rem }
+.tile i { font-style: normal; font-size: 1.8rem; font-weight: 900 }
+/* Lists */
+.list { display: flex; flex-direction: column; gap: 8px }
+.row { display: flex; align-items: center; gap: 12px; border: 1px solid var(--line); background: var(--card); border-radius: 14px; padding: 12px 14px; cursor: pointer; text-align: left; width: 100% }
+.row .num { font-family: var(--f-display); font-weight: 900; font-size: 1.1rem; width: 28px; color: var(--accent) }
+.row .txt { flex: 1; min-width: 0 }
+.row .txt b { display: block }
+.row .txt small { color: var(--muted) }
+.badge { font-size: .75rem; font-weight: 700; border-radius: 999px; padding: 3px 9px; background: var(--ok-soft); color: var(--ok); white-space: nowrap }
+.badge.gray { background: var(--bg); color: var(--muted) }
+/* Lesson */
+.lesson p + p { margin-top: 8px }
+.ex { overflow-x: auto; color: var(--fg); background: var(--bg); border-radius: 12px; padding: 6px 4px }
+.ex svg { display: block; margin: 0 }
+.tbl { width: 100%; border-collapse: collapse; font-size: .95rem }
+.tbl td { padding: 6px 4px; border-bottom: 1px solid var(--line); vertical-align: middle }
+.tbl td:last-child { text-align: right; font-variant-numeric: tabular-nums; font-weight: 700 }
+.main { font: inherit; font-family: var(--f-display); font-weight: 800; font-size: 1.05rem; border: 0; border-radius: 12px; padding: 14px; background: var(--accent); color: var(--accent-fg); cursor: pointer; width: 100% }
+.main:disabled { opacity: .45; cursor: default }
+.ghost { font: inherit; font-weight: 700; border: 1.5px solid var(--line); background: var(--card); border-radius: 12px; padding: 12px 14px; cursor: pointer }
+/* Quiz */
+.qhead { display: flex; justify-content: space-between; align-items: center; gap: 10px }
+.bar { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden }
+.bar div { height: 100%; background: var(--accent); width: 0; transition: width .2s }
+.opts { display: grid; gap: 8px }
+.opt { border: 2px solid var(--line); background: var(--card); border-radius: 12px; padding: 12px 14px; text-align: left; cursor: pointer; font-weight: 700 }
+.opt.right { border-color: var(--ok); background: var(--ok-soft); color: var(--ok) }
+.opt.wrong { border-color: var(--bad); background: var(--bad-soft); color: var(--bad) }
+.opt:disabled { cursor: default }
+.fb { border-radius: 12px; padding: 12px 14px }
+.fb.ok { background: var(--ok-soft); color: var(--ok) }
+.fb.no { background: var(--bad-soft); color: var(--bad) }
+/* Song */
+.modes { display: flex; gap: 6px }
+.modes button { flex: 1 1 0; min-width: 0; border: 2px solid var(--line); background: var(--card); border-radius: 10px; padding: 9px 4px; font-weight: 700; cursor: pointer; font-size: .92rem }
+.modes button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft) }
+.scorecard { padding: 12px 0 8px }
+.scroller { max-width: 100%; overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; color: var(--fg); padding: 0 8px; scroll-behavior: smooth }
+.scroller svg { display: block }
+.abcjs-cursor-on { fill: var(--accent) !important; color: var(--accent) !important }
+.abcjs-lyric { fill: var(--accent) !important; font-weight: 700 }
+.ctrl { display: flex; flex-wrap: wrap; gap: 8px; align-items: center }
+.ctrl .main { width: auto; flex: 1 1 140px }
+.switch { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 700; user-select: none }
+.switch input { width: 20px; height: 20px; accent-color: var(--accent) }
+.tempo { display: flex; align-items: center; gap: 10px }
+.tempo input { flex: 1; accent-color: var(--accent) }
+.tempo output { font-variant-numeric: tabular-nums; font-weight: 700; min-width: 64px; text-align: right }
+/* Valves */
+.valves { display: flex; flex-direction: column-reverse; align-items: center; gap: 18px; padding-block: 4px; touch-action: manipulation; user-select: none; -webkit-user-select: none }
+.valve { position: relative; width: min(100%, 300px); height: 78px; border: 0; padding: 0; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent; color: #18202E }
+.valve .casing { position: absolute; left: 0; top: 50%; width: 96px; height: 52px; transform: translateY(-50%); background: var(--brass); border: 2px solid var(--brass-2); border-radius: 12px 8px 8px 12px }
+.valve .casing::before { content: ""; position: absolute; top: -6px; bottom: -6px; right: 8px; width: 7px; background: var(--brass); border: 2px solid var(--brass-2); border-radius: 4px }
+.valve .top { position: absolute; top: 0; bottom: 0; left: 80px; right: 0; transition: transform 70ms ease-out }
+.valve .stem { position: absolute; top: 50%; left: 0; width: 60px; height: 10px; transform: translateY(-50%); background: var(--brass-2); border-radius: 3px }
+.valve .cap { position: absolute; top: 50%; left: 56px; width: calc(100% - 56px); max-width: 160px; height: 72px; transform: translateY(-50%); background: var(--pearl); border: 3px solid var(--pearl-edge); border-radius: 36px; display: grid; place-items: center; font-family: var(--f-display); font-weight: 900; font-size: 1.6rem }
+.valve.down .top { transform: translateX(-38px) }
+.valve.down .cap { background: var(--accent); border-color: var(--accent); color: var(--accent-fg) }
+.valve.should .cap { box-shadow: 0 0 0 4px var(--ok) }
+@media (prefers-reduced-motion: reduce) { .valve .top, .bar div { transition: none } .scroller { scroll-behavior: auto } }
+.slide { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px }
+.slide button { border: 2px solid var(--line); background: var(--card); border-radius: 10px; padding: 16px 0; font-family: var(--f-display); font-weight: 900; font-size: 1.3rem; cursor: pointer }
+.slide button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent); color: var(--accent-fg) }
+.slide button.should { box-shadow: 0 0 0 3px var(--ok) }
+.stat { display: flex; justify-content: space-between; font-size: .92rem; color: var(--muted); font-variant-numeric: tabular-nums }
+.stat b { color: var(--fg) }
+.err { color: var(--bad); font-size: .88rem; min-height: 1.2em }
+.foot { text-align: center; font-size: .8rem; color: var(--muted) }
+</style>
+<style>
+html { -webkit-text-size-adjust: 100% }
+body { padding-top: max(12px, env(safe-area-inset-top)); padding-bottom: max(48px, env(safe-area-inset-bottom)) }
+</style>
+</head>
+<body>
+<div class="app">
+<header class="brand"><button type="button" id="logo-home" aria-label="Zum Startbildschirm"><img src="logo.png" alt="Mery-Güüger Merenschwand"></button></header>
+
+<!-- START -->
+<section id="s-home">
+  <div class="hero">
+    <h1>Mery-Güüger<span>Übungs-App für Noten, Ventile und Lieder</span></h1>
+  </div>
+  <div class="tiles" style="margin-top:14px">
+    <button class="tile red" id="go-songs"><div><b>Lieder üben</b><span>Mitspielen, Ventile lernen, auswendig üben</span></div><i>›</i></button>
+    <button class="tile" id="go-theory"><div><b>Musiktheorie</b><span>Notenwerte, Pausen, Zeichen – mit Quiz</span></div><i>›</i></button>
+  </div>
+  <p class="foot" style="margin-top:20px">Tipp: Lege die App als Symbol auf deinen Startbildschirm.<br>iPhone: Teilen › „Zum Home-Bildschirm“. Android: Menü › „Zum Startbildschirm hinzufügen“.</p>
+</section>
+
+<!-- INSTRUMENT -->
+<section id="s-instr" hidden>
+  <div class="top"><button class="back" data-go="songs">‹ Lieder</button><span class="crumb" id="vi-crumb"></span></div>
+  <h2>Welche Stimme spielst du?</h2>
+  <p class="muted" style="margin:6px 0 12px">Die App merkt sich deine Stimme für jedes Lied einzeln.</p>
+  <div class="instr" id="instr"></div>
+</section>
+
+<!-- THEORIE: Übersicht -->
+<section id="s-theory" hidden>
+  <div class="top"><button class="back" data-go="home">‹ Start</button><span class="crumb">Musiktheorie</span></div>
+  <h2>Musiktheorie</h2>
+  <p class="muted" style="margin:6px 0 12px">Jede Lektion erklärt ein Thema kurz und fragt es danach ab.</p>
+  <div class="list" id="lessons"></div>
+  <button class="main" id="quiz-all" style="margin-top:12px">Gemischtes Quiz über alles</button>
+</section>
+
+<!-- THEORIE: Lektion -->
+<section id="s-lesson" hidden>
+  <div class="top"><button class="back" data-go="theory">‹ Übersicht</button><span class="crumb" id="l-crumb"></span></div>
+  <div class="card lesson" id="l-body"></div>
+  <button class="main" id="l-quiz" style="margin-top:12px">Quiz zu diesem Thema</button>
+</section>
+
+<!-- QUIZ -->
+<section id="s-quiz" hidden>
+  <div class="top"><button class="back" id="q-back">‹ Zurück</button><span class="crumb" id="q-crumb"></span></div>
+  <div class="card" id="q-card">
+    <div class="qhead"><span class="label" id="q-count"></span><span class="label" id="q-score"></span></div>
+    <div class="bar"><div id="q-bar"></div></div>
+    <h3 id="q-text"></h3>
+    <div class="ex" id="q-ex"></div>
+    <div class="opts" id="q-opts"></div>
+    <div id="q-fb" hidden></div>
+    <button class="main" id="q-next" hidden>Weiter</button>
+  </div>
+  <div class="card" id="q-done" hidden></div>
+</section>
+
+<!-- LIEDER: Liste -->
+<section id="s-songs" hidden>
+  <div class="top"><button class="back" data-go="home">‹ Start</button><span class="crumb" id="sl-crumb">Lieder üben</span></div>
+  <h2>Lieder</h2>
+  <p class="muted" style="margin:6px 0 12px">Bisher nur ein Beispiellied. Eure Lieder kommen dazu, sobald die Noten da sind.</p>
+  <div class="list" id="songlist"></div>
+</section>
+
+<!-- LIED -->
+<section id="s-song" hidden>
+  <div class="top"><button class="back" data-go="instr">‹ Stimme</button><span class="crumb" id="sg-crumb"></span></div>
+  <h2 id="sg-title"></h2>
+  <div class="modes" role="group" aria-label="Übungsart" style="margin-top:10px">
+    <button type="button" id="m-play" aria-pressed="true">Mitspielen</button>
+    <button type="button" id="m-learn" aria-pressed="false">Auswendig lernen</button>
+  </div>
+
+  <div class="card scorecard" style="margin-top:10px">
+    <div class="scroller" id="scroller"><div id="paper"></div></div>
+  </div>
+
+  <div id="p-play" class="card" style="margin-top:10px">
+    <div class="ctrl">
+      <button class="main" id="play">▶ Abspielen</button>
+      <button class="ghost" id="stop">■ Stopp</button>
+    </div>
+    <div class="ctrl">
+      <label class="switch"><input type="checkbox" id="showv" checked> <span id="showv-l">Ventilzahlen zeigen</span></label>
+      <label class="switch"><input type="checkbox" id="sound" checked> Töne vorspielen</label>
+    </div>
+    <div class="tempo"><span class="small muted">Tempo</span><input type="range" id="tempo" min="40" max="100" step="5" value="70" aria-label="Tempo in Prozent"><output id="tempo-o">70 %</output></div>
+    <p class="small muted">Die App zählt einen Takt vor. Sobald eure Aufnahmen da sind, läuft hier die echte Aufnahme statt der Computertöne.</p>
+  </div>
+
+  <div id="p-learn" class="card" style="margin-top:10px" hidden>
+    <div class="stat"><span>Note <b id="ln-pos">1</b> von <b id="ln-tot">0</b></span><span>Fehler <b id="ln-err">0</b></span></div>
+    <p class="small muted" id="ln-help"></p>
+    <div id="ln-input"></div>
+    <p class="err" id="ln-msg" aria-live="polite"></p>
+    <div class="ctrl">
+      <button class="main" id="ln-check">Prüfen</button>
+      <button class="ghost" id="ln-restart">Von vorn</button>
+    </div>
+  </div>
+</section>
+
+</div>
+
+<script src="abcjs-basic-min.js"></script>
+<script>
+/* ---------- Daten ---------- */
+const INSTR = [
+  { id: "trp", name: "Trompete", sub: "Ventile 1–3", kind: "valve", transpose: -2 },
+  { id: "pos", name: "Posaune", sub: "Zugpositionen 1–7", kind: "slide", transpose: 0 },
+  { id: "eup", name: "Euphonium", sub: "Ventile 1–3", kind: "valve", transpose: -14 },
+  { id: "sou", name: "Sousaphon", sub: "Ventile 1–3", kind: "valve", transpose: -14 }
+];
+// Griffe für B-Instrumente im Violinschlüssel (geschriebene Tonhöhe, MIDI)
+const VALVE = {52:"1+2+3",53:"1+3",54:"1+2+3",55:"1+3",56:"2+3",57:"1+2",58:"1",59:"2",60:"0",61:"1+2+3",62:"1+3",63:"2+3",64:"1+2",65:"1",66:"2",67:"0",68:"2+3",69:"1+2",70:"1",71:"2",72:"0",73:"1+2",74:"1",75:"2",76:"0",77:"1",78:"2",79:"0",80:"2+3",81:"1+2",82:"1",83:"2",84:"0"};
+// Zugpositionen Posaune (klingend, Bassschlüssel)
+const SLIDE = {40:"7",41:"6",42:"5",43:"4",44:"3",45:"2",46:"1",47:"7",48:"6",49:"5",50:"4",51:"3",52:"2",53:"1",54:"5",55:"4",56:"3",57:"2",58:"1",59:"4",60:"3",61:"2",62:"1",63:"3",64:"2",65:"1",66:"3",67:"2",68:"3",69:"2",70:"1"};
+
+const SONGS = [
+  { id: "demo", title: "Güüger-Marsch", sub: "Beispiellied zum Ausprobieren", qpm: 120,
+    parts: [
+      { id: "trp1", instr: "trp", name: "Trompete 1. Stimme", abc: "X:1\nM:4/4\nL:1/4\nK:C\n|: !mf! C E G G | A G E2 | F A G E | D2 z2 | C E G c | B G A F | E D G B | C3 z :|" },
+      { id: "trp2", instr: "trp", name: "Trompete 2. Stimme", abc: "X:1\nM:4/4\nL:1/4\nK:C\n|: !mf! E G E E | F E C2 | D F D C | B,2 z2 | E G E G | G E F D | C B, D D | E3 z :|" },
+      { id: "pos", instr: "pos", name: "Posaune", abc: "X:1\nM:4/4\nL:1/4\nK:Bb clef=bass\n|: !mf! D,2 F,2 | E,2 D,2 | C,2 E,2 | F,2 z2 | D,2 F,2 | F,2 E,2 | C,2 F,2 | B,,3 z :|" },
+      { id: "eup", instr: "eup", name: "Euphonium", abc: "X:1\nM:4/4\nL:1/4\nK:C\n|: !mf! E G E E | F E C2 | D F D C | B,2 z2 | E G E G | G E F D | C B, D D | E3 z :|" },
+      { id: "sou", instr: "sou", name: "Sousaphon", abc: "X:1\nM:4/4\nL:1/4\nK:C\n|: !mf! C2 G,2 | A,2 C2 | A,2 B,2 | G,2 z2 | C2 E2 | G,2 A,2 | G,2 G,2 | C3 z :|" }
+    ] }
+];
+
+/* ---------- Theorie ---------- */
+const L = (abc) => `X:1\nL:1/4\n${abc}`;
+const LESSONS = [
+  { id: "werte", t: "Notenwerte", s: "Wie lange klingt eine Note?",
+    html: `<p>Die Form der Note sagt dir, wie lange du sie hältst. Gezählt wird in <b>Schlägen</b>, so wie du mit dem Fuss mitwippst.</p>
+<div class="ex" data-abc="M:none\nK:C clef=treble\nB4 | B2 | B | B/ | B/4 |]"></div>
+<table class="tbl"><tr><td>Ganze Note: leerer Kopf, kein Hals</td><td>4 Schläge</td></tr><tr><td>Halbe Note: leerer Kopf mit Hals</td><td>2 Schläge</td></tr><tr><td>Viertelnote: voller Kopf mit Hals</td><td>1 Schlag</td></tr><tr><td>Achtelnote: mit Fähnchen oder Balken</td><td>½ Schlag</td></tr><tr><td>Sechzehntel: zwei Fähnchen oder Balken</td><td>¼ Schlag</td></tr></table>
+<p>Mehrere Achtel werden mit einem <b>Balken</b> verbunden statt mit einzelnen Fähnchen. Das ändert nichts an der Länge, es ist nur leichter zu lesen.</p>
+<div class="ex" data-abc="M:4/4\nK:C\nB/B/B/B/ B/B/B/B/ | B/4B/4B/4B/4 B/4B/4B/4B/4 B2 |]"></div>`,
+    q: [
+      { t: "Wie viele Schläge dauert diese Note?", abc: "M:none\nK:C\nB2 |]", o: ["1", "2", "4", "½"], a: 1, e: "Leerer Kopf mit Hals ist eine halbe Note: 2 Schläge." },
+      { t: "Wie viele Schläge dauert diese Note?", abc: "M:none\nK:C\nB4 |]", o: ["4", "2", "3", "1"], a: 0, e: "Ganze Note, leerer Kopf ohne Hals: 4 Schläge." },
+      { t: "Was ist das?", abc: "M:none\nK:C\nB/ |]", o: ["Viertelnote", "Achtelnote", "Halbe Note", "Sechzehntel"], a: 1, e: "Ein Fähnchen bedeutet Achtel: ½ Schlag." },
+      { t: "Wie viele Achtel passen in eine Viertel?", o: ["1", "2", "4", "8"], a: 1, e: "Eine Achtel ist halb so lang wie eine Viertel, also passen 2 hinein." },
+      { t: "Wie viele Schläge dauern diese vier Noten zusammen?", abc: "M:none\nK:C\nB/4B/4B/4B/4 |]", o: ["1", "2", "4", "½"], a: 0, e: "Vier Sechzehntel ergeben zusammen einen Schlag." }
+    ] },
+  { id: "punkt", t: "Punkte und Haltebogen", s: "Noten verlängern",
+    html: `<p>Ein <b>Punkt</b> hinter der Note macht sie um die Hälfte länger.</p>
+<div class="ex" data-abc="M:none\nK:C\nB3 | B3/ B/ |]"></div>
+<table class="tbl"><tr><td>Halbe mit Punkt: 2 + 1</td><td>3 Schläge</td></tr><tr><td>Viertel mit Punkt: 1 + ½</td><td>1½ Schläge</td></tr><tr><td>Achtel mit Punkt: ½ + ¼</td><td>¾ Schlag</td></tr></table>
+<p>Ein <b>Haltebogen</b> verbindet zwei <b>gleiche</b> Töne. Du spielst nur den ersten und hältst ihn einfach weiter, ohne neu anzustossen.</p>
+<div class="ex" data-abc="M:4/4\nK:C\nz2 B2- | B4 |]"></div>
+<p>Ein <b>Bindebogen</b> verbindet <b>verschiedene</b> Töne. Die spielst du weich nacheinander, ohne dazwischen neu anzustossen.</p>
+<div class="ex" data-abc="M:4/4\nK:C\n(G A B c) |]"></div>`,
+    q: [
+      { t: "Wie viele Schläge dauert diese Note?", abc: "M:none\nK:C\nB3 |]", o: ["2", "3", "4", "2½"], a: 1, e: "Halbe (2) plus Punkt (die Hälfte davon, 1) ergibt 3 Schläge." },
+      { t: "Wie viele Schläge dauert eine Viertel mit Punkt?", abc: "M:none\nK:C\nB3/ |]", o: ["1", "1½", "2", "¾"], a: 1, e: "Viertel (1) plus die Hälfte (½) ergibt 1½ Schläge." },
+      { t: "Zwei gleiche Töne sind mit einem Bogen verbunden. Was machst du?", abc: "M:4/4\nK:C\nz2 B2- | B4 |]", o: ["Zweimal anstossen", "Einmal anstossen und durchhalten", "Den zweiten weglassen", "Lauter werden"], a: 1, e: "Das ist ein Haltebogen: einmal spielen und durchhalten. Hier sind es 2 + 4 = 6 Schläge." },
+      { t: "Wie heisst ein Bogen über verschiedenen Tönen?", abc: "M:none\nK:C\n(G A B) |]", o: ["Haltebogen", "Bindebogen", "Wiederholung", "Fermate"], a: 1, e: "Über verschiedenen Tönen ist es ein Bindebogen: weich verbunden spielen." }
+    ] },
+  { id: "pausen", t: "Pausen", s: "Wann man nicht spielt",
+    html: `<p>Pausen haben die gleichen Längen wie Noten. Während einer Pause zählst du weiter, spielst aber nicht.</p>
+<div class="ex" data-abc="M:none\nK:C\nz4 | z2 | z | z/ | z/4 |]"></div>
+<table class="tbl"><tr><td>Ganze Pause: Balken hängt <b>unter</b> der Linie</td><td>4 Schläge (oder ein ganzer Takt)</td></tr><tr><td>Halbe Pause: Balken liegt <b>auf</b> der Linie</td><td>2 Schläge</td></tr><tr><td>Viertelpause: Zickzack</td><td>1 Schlag</td></tr><tr><td>Achtelpause: wie eine 7</td><td>½ Schlag</td></tr><tr><td>Sechzehntelpause: 7 mit zwei Häkchen</td><td>¼ Schlag</td></tr></table>
+<p>Merkhilfe: Die ganze Pause ist schwer und <b>hängt</b> unten, die halbe ist leicht und <b>sitzt</b> obendrauf wie ein Hut.</p>
+<p>Ein dicker Balken mit einer Zahl darüber ist eine <b>Mehrtaktpause</b>. Die Zahl sagt, wie viele Takte du Pause hast.</p>
+<div class="ex" data-abc="M:4/4\nK:C\nZ3 | B4 |]"></div>`,
+    q: [
+      { t: "Was bedeutet dieses Zeichen?", abc: "M:none\nK:C\nz |]", o: ["Viertelpause, 1 Schlag", "Achtelpause, ½ Schlag", "Halbe Pause, 2 Schläge", "Atemzeichen"], a: 0, e: "Das Zickzack ist die Viertelpause: 1 Schlag." },
+      { t: "Hängt unter der Linie oder liegt darauf: Welche Pause ist das?", abc: "M:none\nK:C\nz2 |]", o: ["Ganze Pause", "Halbe Pause", "Viertelpause", "Mehrtaktpause"], a: 1, e: "Der Balken liegt auf der Linie wie ein Hut: halbe Pause, 2 Schläge." },
+      { t: "Was bedeutet die Zahl über dem dicken Balken?", abc: "M:4/4\nK:C\nZ3 |]", o: ["3 Schläge Pause", "3 Takte Pause", "Dreimal spielen", "Dritte Stimme"], a: 1, e: "Das ist eine Mehrtaktpause: 3 ganze Takte nicht spielen und mitzählen." },
+      { t: "Was ist das für eine Pause?", abc: "M:none\nK:C\nz/ |]", o: ["Viertelpause", "Achtelpause", "Ganze Pause", "Sechzehntelpause"], a: 1, e: "Sieht aus wie eine 7: Achtelpause, ½ Schlag." }
+    ] },
+  { id: "takt", t: "Takt und Tempo", s: "Zählen und Taktarten",
+    html: `<p>Die Noten sind in <b>Takte</b> eingeteilt. Die senkrechten Striche heissen <b>Taktstriche</b>. Ein doppelter Strich mit dickem Ende ist der <b>Schlussstrich</b>: Hier ist das Lied fertig.</p>
+<p>Am Anfang steht die <b>Taktart</b>. Die obere Zahl sagt, wie viele Schläge ein Takt hat, die untere, welcher Notenwert ein Schlag ist.</p>
+<div class="ex" data-abc="M:4/4\nK:C\nB B B B | B2 B2 |]"></div>
+<table class="tbl"><tr><td>4/4 oder <b>C</b>: 4 Viertel pro Takt</td><td>1 2 3 4</td></tr><tr><td>3/4: 3 Viertel, wie ein Walzer</td><td>1 2 3</td></tr><tr><td>2/4: 2 Viertel, wie ein Marsch</td><td>1 2</td></tr><tr><td>Durchgestrichenes C (alla breve): in Halben zählen</td><td>1 2</td></tr><tr><td>6/8: 6 Achtel, gezählt in zwei Gruppen</td><td>1 2 3 4 5 6</td></tr></table>
+<p><b>♩ = 130</b> oben auf dem Blatt ist das Tempo: 130 Viertel pro Minute. Je grösser die Zahl, desto schneller.</p>
+<p>Beginnt ein Lied mit einem unvollständigen Takt, heisst das <b>Auftakt</b>. Die fehlenden Schläge stehen meist im letzten Takt.</p>`,
+    q: [
+      { t: "Wie viele Viertel hat ein Takt in dieser Taktart?", abc: "M:3/4\nK:C\nB B B |]", o: ["2", "3", "4", "6"], a: 1, e: "3/4: drei Viertel pro Takt." },
+      { t: "Was bedeutet ♩ = 130?", o: ["130 Takte im Lied", "130 Viertel pro Minute", "Lautstärke 130", "Takt Nummer 130"], a: 1, e: "Das ist das Tempo: 130 Viertelschläge pro Minute." },
+      { t: "Was bedeutet das C am Anfang?", abc: "M:C\nK:C\nB B B B |]", o: ["Tonart C-Dur", "4/4-Takt", "Crescendo", "Coda"], a: 1, e: "Das C steht hier für den 4/4-Takt." },
+      { t: "Was ist ein Auftakt?", o: ["Der erste volle Takt", "Ein unvollständiger Takt am Anfang", "Ein lauter Einsatz", "Eine Pause am Anfang"], a: 1, e: "Ein Auftakt ist ein unvollständiger Takt vor dem ersten vollen Takt." }
+    ] },
+  { id: "wdh", t: "Wiederholungen", s: "Springen im Notenblatt",
+    html: `<p><b>Wiederholungszeichen</b> sind Doppelstriche mit zwei Punkten. Zwischen ihnen spielst du alles zweimal.</p>
+<div class="ex" data-abc="M:4/4\nK:C\n|: B B B B | B2 B2 :|"></div>
+<p>Stehen am Ende <b>Klammern 1. und 2.</b>: Beim ersten Mal spielst du die Klammer 1 und springst zurück. Beim zweiten Mal überspringst du Klammer 1 und spielst gleich Klammer 2.</p>
+<div class="ex" data-abc="M:4/4\nK:C\n|: B B B B |1 B4 :|2 c4 |]"></div>
+<p><b>D.C. al Fine</b> heisst: zurück zum Anfang und spielen bis zum Wort <b>Fine</b>. Dort ist Schluss.</p>
+<p>Eine <b>Zahl im Kreis</b> über dem Takt ist ein Studierzeichen, meist die Taktnummer. Damit sagt der Dirigent: „Wir fangen bei 27 an.“</p>`,
+    q: [] },
+  { id: "dyn", t: "Lautstärke", s: "Leise und laut",
+    html: `<p>Die Buchstaben unter den Noten sagen, wie laut du spielst. Sie kommen aus dem Italienischen.</p>
+<table class="tbl"><tr><td><b>pp</b> pianissimo</td><td>sehr leise</td></tr><tr><td><b>p</b> piano</td><td>leise</td></tr><tr><td><b>mp</b> mezzopiano</td><td>mittelleise</td></tr><tr><td><b>mf</b> mezzoforte</td><td>mittellaut</td></tr><tr><td><b>f</b> forte</td><td>laut</td></tr><tr><td><b>ff</b> fortissimo</td><td>sehr laut</td></tr></table>
+<p>Eine <b>Gabel</b>, die aufgeht (&lt;), heisst crescendo: lauter werden. Eine Gabel, die zugeht (&gt;), heisst decrescendo: leiser werden.</p>
+<div class="ex" data-abc="M:4/4\nK:C\n!p! !<(! B B c d !<)! | !f! e4 | !>(! d c B A !>)! | !p! G4 |]"></div>`,
+    q: [
+      { t: "Was bedeutet ff?", o: ["sehr leise", "sehr laut", "schnell", "zweimal spielen"], a: 1, e: "ff = fortissimo, sehr laut." },
+      { t: "Was bedeutet mf?", o: ["mittellaut", "mittelleise", "laut", "leise"], a: 0, e: "mf = mezzoforte, mittellaut." },
+      { t: "Was bedeutet diese aufgehende Gabel?", abc: "M:4/4\nK:C\n!<(! B B c d !<)! |]", o: ["Lauter werden", "Leiser werden", "Schneller werden", "Langsamer werden"], a: 0, e: "Die Gabel geht auf: crescendo, also lauter werden." },
+      { t: "Was ist leiser: p oder mp?", o: ["p", "mp", "gleich laut"], a: 0, e: "p (piano) ist leiser als mp (mezzopiano)." }
+    ] },
+  { id: "zeichen", t: "Spielzeichen", s: "Akzent, Fermate und Co.",
+    html: `<p>Kleine Zeichen über oder unter der Note sagen, <b>wie</b> du sie spielst.</p>
+<div class="ex" data-abc="M:none\nK:C\n!>!B | .B | !tenuto!B | !fermata!B | B !breath! |]"></div>
+<table class="tbl"><tr><td><b>&gt;</b> Akzent</td><td>betont, kräftig anstossen</td></tr><tr><td><b>Punkt</b> Staccato</td><td>kurz und getrennt</td></tr><tr><td><b>Strich</b> Tenuto</td><td>voll aushalten</td></tr><tr><td><b>Fermate</b> (Bogen mit Punkt)</td><td>länger halten, auf den Dirigenten schauen</td></tr><tr><td><b>Komma</b> oder Häkchen oben</td><td>Atemzeichen: hier atmen</td></tr></table>
+<p>Zwei Noten übereinander heissen <b>Doppelgriff</b>. In der Gugge spielen dann meist die einen die obere und die anderen die untere Note.</p>`,
+    q: [
+      { t: "Was bedeutet dieses Zeichen über der Note?", abc: "M:none\nK:C\n!fermata!B |]", o: ["Kurz spielen", "Länger halten", "Atmen", "Lauter werden"], a: 1, e: "Das ist eine Fermate: länger halten und auf den Dirigenten schauen." },
+      { t: "Wie spielst du eine Note mit Punkt darüber oder darunter?", abc: "M:none\nK:C\n.B .B .B |]", o: ["Kurz und getrennt", "Länger halten", "Lauter", "Gebunden"], a: 0, e: "Ein Punkt am Notenkopf (nicht dahinter) heisst Staccato: kurz und getrennt." },
+      { t: "Was bedeutet das kleine Komma oben?", abc: "M:none\nK:C\nB !breath! B |]", o: ["Atemzeichen", "Akzent", "Pause von 1 Schlag", "Wiederholung"], a: 0, e: "Das ist ein Atemzeichen: hier atmen." },
+      { t: "Was bedeutet &gt; über einer Note?", abc: "M:none\nK:C\n!>!B !>!B |]", o: ["Leiser werden", "Akzent: betont spielen", "Kürzer spielen", "Höher spielen"], a: 1, e: "Das ist ein Akzent: die Note betont anstossen." }
+    ] }
+];
+// Wiederholungen: Fragen separat (mit Text statt eines leeren Platzhalters)
+LESSONS[4].q = [
+  { t: "Was bedeuten diese Zeichen?", abc: "M:4/4\nK:C\n|: B B B B | B2 B2 :|", o: ["Den Teil zweimal spielen", "Lauter spielen", "Pause machen", "Ende des Lieds"], a: 0, e: "Zwischen den Wiederholungszeichen spielst du alles zweimal." },
+  { t: "Was spielst du beim zweiten Durchgang?", abc: "M:4/4\nK:C\n|: B B B B |1 B4 :|2 c4 |]", o: ["Klammer 1", "Klammer 2", "Beide Klammern", "Nichts mehr"], a: 1, e: "Beim zweiten Mal springst du über Klammer 1 direkt zu Klammer 2." },
+  { t: "Was heisst D.C. al Fine?", o: ["Bis zum Ende weiterspielen", "Zurück zum Anfang und bis Fine spielen", "Leiser werden bis zum Schluss", "Den Schluss wiederholen"], a: 1, e: "D.C. (da capo) heisst „vom Anfang“, al Fine „bis zum Fine“." },
+  { t: "Was ist eine Zahl in einem Kreis über dem Takt?", o: ["Tempoangabe", "Studierzeichen: eine Stelle zum Einsetzen", "Anzahl Wiederholungen", "Lautstärke"], a: 1, e: "Studierzeichen markieren Stellen, damit alle am gleichen Ort einsetzen." }
+];
+
+/* ---------- Hilfen ---------- */
+const $ = id => document.getElementById(id);
+const store = { get(k, d) { try { const v = localStorage.getItem("mg-" + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem("mg-" + k, JSON.stringify(v)); } catch (e) {} } };
+let curPart = null;
+let cur = { song: null, tune: null, notes: [], mode: "play" };
+const instrObj = () => INSTR.find(i => curPart && i.id === curPart.instr) || INSTR[0];
+const fgColor = () => getComputedStyle(document.body).color;
+function drawAbc(el, abc, scale) {
+  el.innerHTML = "";
+  if (!window.ABCJS) return;
+  const sc = scale || 1.3, inner = document.createElement("div"); el.appendChild(inner);
+  const avail = (el.clientWidth || 320) / sc - 24;
+  ABCJS.renderAbc(inner, abc, { scale: sc, staffwidth: Math.max(160, Math.min(avail, 520)), foregroundColor: fgColor(), paddingtop: 4, paddingbottom: 6, paddingleft: 4, paddingright: 4 });
+  const sv = inner.querySelector("svg");
+  if (sv) { const r = sv.getBoundingClientRect(); let hh = r.height; try { const bb = sv.getBBox(); if (bb.height > 0) hh = Math.min(hh, (bb.y + bb.height) * sc + 8); } catch (e) {} inner.style.height = Math.ceil(hh) + "px"; inner.style.width = Math.ceil(r.width) + "px"; inner.style.overflow = "visible"; inner.style.margin = "0 auto"; }
+}
+
+/* ---------- Navigation ---------- */
+const SCREENS = ["home", "instr", "theory", "lesson", "quiz", "songs", "song"];
+function go(s) {
+  if (s !== "song") stopAll();
+  SCREENS.forEach(n => $("s-" + n).hidden = n !== s);
+  window.scrollTo(0, 0);
+  if (s === "theory") renderLessons();
+  if (s === "songs") renderSongs();
+  if (s === "instr") renderInstr();
+}
+document.querySelectorAll("[data-go]").forEach(b => b.onclick = () => go(b.dataset.go));
+
+/* ---------- Start ---------- */
+function renderInstr() {
+  if (!cur.song) return;
+  $("vi-crumb").textContent = cur.song.title;
+  const last = store.get("part-" + cur.song.id, null);
+  $("instr").innerHTML = "";
+  cur.song.parts.forEach(pt => { const ins = INSTR.find(i => i.id === pt.instr); const b = document.createElement("button"); b.type = "button"; b.className = "chip"; b.setAttribute("aria-pressed", pt.id === last);
+    b.innerHTML = `${pt.name}<small>${ins.sub}${pt.id === last ? " · zuletzt gespielt" : ""}</small>`;
+    b.onclick = () => { curPart = pt; store.set("part-" + cur.song.id, pt.id); openPart(); }; $("instr").appendChild(b); });
+}
+$("go-theory").onclick = () => go("theory");
+$("logo-home").onclick = () => go("home");
+$("go-songs").onclick = () => go("songs");
+
+/* ---------- Theorie ---------- */
+function renderLessons() {
+  const best = store.get("best", {});
+  $("lessons").innerHTML = "";
+  LESSONS.forEach((l, i) => {
+    const b = document.createElement("button"); b.className = "row"; b.type = "button";
+    const r = best[l.id];
+    b.innerHTML = `<span class="num">${i + 1}</span><span class="txt"><b>${l.t}</b><small>${l.s}</small></span>` +
+      (r != null ? `<span class="badge${r < l.q.length ? " gray" : ""}">${r} / ${l.q.length}</span>` : "");
+    b.onclick = () => openLesson(i); $("lessons").appendChild(b);
+  });
+}
+let curLesson = 0;
+function openLesson(i) {
+  curLesson = i; const l = LESSONS[i];
+  $("l-crumb").textContent = `Lektion ${i + 1} von ${LESSONS.length}`;
+  $("l-body").innerHTML = `<h2>${l.t}</h2>` + l.html;
+  go("lesson");
+  $("l-body").querySelectorAll("[data-abc]").forEach(d => drawAbc(d, L(d.dataset.abc.replace(/\\n/g, "\n")), 1.25));
+}
+$("l-quiz").onclick = () => startQuiz(LESSONS[curLesson].q.map(q => ({ ...q, lesson: LESSONS[curLesson].id })), LESSONS[curLesson].t, "lesson");
+$("quiz-all").onclick = () => { const all = LESSONS.flatMap(l => l.q.map(q => ({ ...q, lesson: l.id }))); startQuiz(shuffle(all).slice(0, 10), "Gemischtes Quiz", "theory"); };
+function shuffle(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+
+let Q = { list: [], i: 0, right: 0, title: "", back: "theory", answered: false };
+function startQuiz(list, title, back) { Q = { list, i: 0, right: 0, title, back, answered: false }; $("q-crumb").textContent = title; go("quiz"); $("q-card").hidden = false; $("q-done").hidden = true; showQ(); }
+$("q-back").onclick = () => go(Q.back === "lesson" ? "lesson" : "theory");
+function showQ() {
+  const q = Q.list[Q.i]; Q.answered = false;
+  $("q-count").textContent = `Frage ${Q.i + 1} von ${Q.list.length}`; $("q-score").textContent = `${Q.right} richtig`;
+  $("q-bar").style.width = (Q.i / Q.list.length * 100) + "%";
+  $("q-text").innerHTML = q.t;
+  $("q-ex").hidden = !q.abc; if (q.abc) drawAbc($("q-ex"), L(q.abc), 1.5);
+  const order = shuffle(q.o.map((t, k) => ({ t, k })));
+  $("q-opts").innerHTML = "";
+  order.forEach(o => { const b = document.createElement("button"); b.className = "opt"; b.type = "button"; b.innerHTML = o.t; b.dataset.k = o.k;
+    b.onclick = () => answer(o.k); $("q-opts").appendChild(b); });
+  $("q-fb").hidden = true; $("q-next").hidden = true;
+}
+function answer(k) {
+  if (Q.answered) return; Q.answered = true;
+  const q = Q.list[Q.i], ok = k === q.a; if (ok) Q.right++;
+  [...$("q-opts").children].forEach(b => { b.disabled = true; const bk = +b.dataset.k; if (bk === q.a) b.classList.add("right"); else if (bk === k) b.classList.add("wrong"); });
+  $("q-fb").hidden = false; $("q-fb").className = "fb " + (ok ? "ok" : "no");
+  $("q-fb").innerHTML = `<b>${ok ? "Richtig!" : "Nicht ganz."}</b> ${q.e}`;
+  $("q-score").textContent = `${Q.right} richtig`;
+  $("q-next").hidden = false; $("q-next").textContent = Q.i < Q.list.length - 1 ? "Weiter" : "Auswertung";
+  $("q-next").focus();
+}
+$("q-next").onclick = () => {
+  if (Q.i < Q.list.length - 1) { Q.i++; showQ(); return; }
+  $("q-bar").style.width = "100%";
+  if (Q.back === "lesson") { const best = store.get("best", {}); const id = LESSONS[curLesson].id; best[id] = Math.max(best[id] || 0, Q.right); store.set("best", best); }
+  $("q-card").hidden = true; $("q-done").hidden = false;
+  const all = Q.right === Q.list.length;
+  $("q-done").innerHTML = `<h2>${all ? "Alles richtig!" : "Geschafft"}</h2><p>${Q.right} von ${Q.list.length} Fragen richtig.</p>
+    <button class="main" id="q-again">Nochmal</button><button class="ghost" id="q-home">Zur Übersicht</button>`;
+  $("q-again").onclick = () => startQuiz(Q.back === "lesson" ? Q.list : shuffle(LESSONS.flatMap(l => l.q)).slice(0, 10), Q.title, Q.back);
+  $("q-home").onclick = () => go("theory");
+};
+
+/* ---------- Lieder ---------- */
+function renderSongs() {
+  $("songlist").innerHTML = "";
+  SONGS.forEach((s, i) => { const b = document.createElement("button"); b.className = "row"; b.type = "button";
+    b.innerHTML = `<span class="num">${i + 1}</span><span class="txt"><b>${s.title}</b><small>${s.sub}</small></span><span class="num">›</span>`;
+    b.onclick = () => { cur.song = SONGS[i]; go("instr"); }; $("songlist").appendChild(b); });
+}
+const LET = ["C","D","E","F","G","A","B"], SEMI = [0,2,4,5,7,9,11];
+const KEYACC = { C: {}, F: { B: -1 }, Bb: { B: -1, E: -1 }, Eb: { B: -1, E: -1, A: -1 }, G: { F: 1 }, D: { F: 1, C: 1 } };
+function keyOf(abc) { const m = abc.match(/\nK:\s*([A-G][b#]?)/); return m ? m[1] : "C"; }
+function bassClef(abc) { return /clef=bass/.test(abc); }
+// MIDI-Tonhöhe jeder Note ausrechnen (Tonart, Versetzungszeichen im Takt, Bassschlüssel)
+function notePitches(tune, key, bass) {
+  const out = [];
+  tune.lines.forEach(line => { if (!line.staff) return; const v = line.staff[0].voices[0]; let bar = {};
+    v.forEach(el => {
+      if (el.el_type === "bar") { bar = {}; return; }
+      if (el.el_type !== "note" || !el.pitches || el.rest) return;
+      const mids = el.pitches.map(pt => {
+        let p = pt.pitch; if (pt.accidental) bar[p] = pt.accidental === "sharp" ? 1 : pt.accidental === "flat" ? -1 : 0;
+        const L = LET[((p % 7) + 7) % 7]; const acc = p in bar ? bar[p] : (KEYACC[key] && KEYACC[key][L]) || 0;
+        const oct = 4 + Math.floor(p / 7); let midi = 12 * (oct + 1) + SEMI[LET.indexOf(L)] + acc;
+        if (bass) midi -= 0; return midi; });
+      out.push({ el, mids });
+    }); });
+  return out;
+}
+const fingOf = (midi) => instrObj().kind === "slide" ? (SLIDE[midi] || "?") : (VALVE[midi] || "?");
+function partAbc() { return curPart.abc; }
+
+function openPart() {
+  const ins = instrObj();
+  $("sg-title").textContent = cur.song.title; $("sg-crumb").textContent = curPart.name;
+  $("showv-l").textContent = ins.kind === "slide" ? "Zugpositionen zeigen" : "Ventilzahlen zeigen";
+  go("song"); setMode(store.get("mode", "play"));
+}
+function buildAbc(withLabels) {
+  const base = partAbc(); const key = keyOf(base), bass = bassClef(base);
+  const tune = ABCJS.parseOnly(base)[0];
+  const ps = notePitches(tune, key, bass);
+  cur.labels = ps.map(n => fingOf(Math.max(...n.mids)));
+  let abc = base.replace("\nK:", "\n%%vocalfont Helvetica 12 bold\nK:");
+  if (withLabels) abc += "\nw: " + cur.labels.join(" ");
+  return abc;
+}
+function renderScore() {
+  const showLabels = cur.mode === "play" && $("showv").checked;
+  const abc = buildAbc(showLabels);
+  const tune = ABCJS.renderAbc("paper", abc, { add_classes: true, scale: 1.5, staffwidth: Math.max(520, cur.labels.length * (showLabels ? 62 : 44) + 140),
+    foregroundColor: fgColor(), paddingleft: 6, paddingright: 16, paddingbottom: 8,
+    clickListener: (el) => { if (cur.mode === "play") hint(el); } })[0];
+  cur.tune = tune;
+  const pa = $("paper"), sv = pa.querySelector("svg");
+  if (sv) { pa.style.width = Math.ceil(sv.getAttribute("width") * 1.5) + "px"; pa.style.overflow = "visible"; }
+  cur.notes = [...pa.querySelectorAll(".abcjs-note")];
+  $("scroller").scrollLeft = 0;
+}
+function hint(el) {}
+function setMode(m) {
+  stopAll(); cur.mode = m; store.set("mode", m);
+  $("m-play").setAttribute("aria-pressed", m === "play"); $("m-learn").setAttribute("aria-pressed", m === "learn");
+  $("p-play").hidden = m !== "play"; $("p-learn").hidden = m !== "learn";
+  renderScore();
+  if (m === "learn") startLearn();
+}
+$("m-play").onclick = () => setMode("play");
+$("m-learn").onclick = () => setMode("learn");
+$("showv").onchange = () => { stopAll(); renderScore(); };
+
+function scrollToEl(el) {
+  if (!el) return; const sc = $("scroller"); const r = el.getBoundingClientRect(), sr = sc.getBoundingClientRect();
+  const x = r.left - sr.left + sc.scrollLeft; sc.scrollLeft = Math.max(0, x - sc.clientWidth * 0.3);
+}
+function mark(els, on) { els.forEach(e => e.classList.toggle("abcjs-cursor-on", on)); }
+
+/* Abspielen */
+let actx = null, timer = null, playing = false, lastEls = [], countT = [];
+function ctx() { if (!actx) { const C = window.AudioContext || window.webkitAudioContext; if (C) actx = new C(); } if (actx && actx.state === "suspended") actx.resume(); return actx; }
+function tone(midi, sec, vol, type) {
+  const a = ctx(); if (!a) return; const t = a.currentTime;
+  const o = a.createOscillator(), g = a.createGain(); o.type = type || "triangle";
+  o.frequency.value = 440 * Math.pow(2, (midi - 69) / 12);
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + 0.02); g.gain.setValueAtTime(vol, t + Math.max(0.03, sec - 0.06)); g.gain.linearRampToValueAtTime(0, t + sec);
+  o.connect(g).connect(a.destination); o.start(t); o.stop(t + sec + 0.05);
+}
+function stopAll() {
+  playing = false; if (timer) { try { timer.stop(); } catch (e) {} timer = null; }
+  countT.forEach(clearTimeout); countT = []; mark(lastEls, false); lastEls = [];
+  if ($("play")) $("play").textContent = "▶ Abspielen";
+}
+$("stop").onclick = () => { stopAll(); $("scroller").scrollLeft = 0; };
+$("tempo").oninput = () => { $("tempo-o").textContent = $("tempo").value + " %"; };
+$("play").onclick = () => {
+  if (playing) { stopAll(); return; }
+  ctx(); playing = true; $("play").textContent = "❚❚ Pause";
+  const qpm = Math.round(cur.song.qpm * $("tempo").value / 100), beat = 60000 / qpm;
+  const tr = instrObj().transpose, beats = 4;
+  try { cur.tune.setUpAudio(); } catch (e) {}
+  for (let b = 0; b < beats; b++) countT.push(setTimeout(() => { if (playing) tone(b === 0 ? 96 : 89, 0.05, 0.25, "square"); }, b * beat));
+  countT.push(setTimeout(() => {
+    if (!playing) return;
+    timer = new ABCJS.TimingCallbacks(cur.tune, { qpm, eventCallback: ev => {
+      mark(lastEls, false);
+      if (!ev) { stopAll(); return; }
+      lastEls = (ev.elements || []).flat(); mark(lastEls, true); scrollToEl(lastEls[0]);
+      if ($("sound").checked && ev.midiPitches) ev.midiPitches.forEach(p => tone(p.pitch + tr + (instrObj().kind === "slide" ? 0 : 0), Math.max(0.08, p.duration * 4 * beat / 1000 * 0.92), 0.22));
+    } });
+    timer.start();
+  }, beats * beat));
+};
+
+/* Auswendig lernen */
+let LN = { list: [], i: 0, err: 0, sel: new Set(), pos: null, wrongOnce: false };
+function startLearn() {
+  const base = partAbc(); const tune = ABCJS.parseOnly(base)[0];
+  const ps = notePitches(tune, keyOf(base), bassClef(base));
+  LN = { list: ps.map((n, k) => ({ fing: fingOf(Math.max(...n.mids)), el: cur.notes[k] })), i: 0, err: 0, sel: new Set(), pos: null, wrongOnce: false };
+  $("ln-tot").textContent = LN.list.length; $("ln-err").textContent = 0;
+  const ins = instrObj();
+  $("ln-help").textContent = ins.kind === "slide" ? "Wähle die Zugposition für die rote Note und tippe auf Prüfen." : "Drücke die Ventile für die rote Note (antippen = drücken, nochmals = loslassen). Bei 0 drückst du keines. Dann Prüfen.";
+  const box = $("ln-input"); box.innerHTML = "";
+  if (ins.kind === "slide") {
+    const s = document.createElement("div"); s.className = "slide";
+    for (let p = 1; p <= 7; p++) { const b = document.createElement("button"); b.type = "button"; b.textContent = p; b.dataset.v = p; b.setAttribute("aria-pressed", "false");
+      b.onclick = () => { LN.pos = String(p); [...s.children].forEach(c => c.setAttribute("aria-pressed", c.dataset.v === LN.pos)); $("ln-msg").textContent = ""; }; s.appendChild(b); }
+    box.appendChild(s);
+  } else {
+    const v = document.createElement("div"); v.className = "valves";
+    ["1","2","3"].forEach(n => { const b = document.createElement("button"); b.type = "button"; b.className = "valve"; b.dataset.v = n; b.setAttribute("aria-pressed", "false"); b.setAttribute("aria-label", "Ventil " + n);
+      b.innerHTML = `<span class="casing"></span><span class="top"><span class="stem"></span><span class="cap">${n}</span></span>`;
+      b.onclick = () => { LN.sel.has(n) ? LN.sel.delete(n) : LN.sel.add(n); b.classList.toggle("down", LN.sel.has(n)); b.setAttribute("aria-pressed", LN.sel.has(n)); $("ln-msg").textContent = ""; };
+      v.appendChild(b); });
+    box.appendChild(v);
+  }
+  showLearn();
+}
+function learnAnswer() { return instrObj().kind === "slide" ? LN.pos : ([...LN.sel].sort().join("+") || "0"); }
+function clearLearnInput() {
+  LN.sel.clear(); LN.pos = null;
+  document.querySelectorAll("#ln-input .valve").forEach(b => { b.classList.remove("down", "should"); b.setAttribute("aria-pressed", "false"); });
+  document.querySelectorAll("#ln-input .slide button").forEach(b => { b.classList.remove("should"); b.setAttribute("aria-pressed", "false"); });
+}
+function showLearn() {
+  cur.notes.forEach(n => n.classList.remove("abcjs-cursor-on"));
+  if (LN.i >= LN.list.length) {
+    $("ln-msg").textContent = ""; $("ln-pos").textContent = LN.list.length;
+    $("ln-msg").innerHTML = `<span style="color:var(--ok)">Lied fertig! ${LN.err === 0 ? "Ohne Fehler." : LN.err + " Fehler."}</span>`;
+    $("ln-check").disabled = true; return;
+  }
+  $("ln-check").disabled = false; LN.wrongOnce = false;
+  const n = LN.list[LN.i]; if (n.el) { n.el.classList.add("abcjs-cursor-on"); scrollToEl(n.el); }
+  $("ln-pos").textContent = LN.i + 1; clearLearnInput();
+}
+$("ln-check").onclick = () => {
+  const n = LN.list[LN.i]; if (!n) return;
+  if (instrObj().kind === "slide" && !LN.pos) { $("ln-msg").textContent = "Wähle zuerst eine Zugposition."; return; }
+  const a = learnAnswer();
+  if (a === n.fing) { $("ln-msg").innerHTML = `<span style="color:var(--ok)">Richtig: ${n.fing}</span>`; LN.i++; setTimeout(showLearn, 350); return; }
+  if (!LN.wrongOnce) { LN.err++; $("ln-err").textContent = LN.err; LN.wrongOnce = true; }
+  $("ln-msg").textContent = `Nicht ganz. Richtig ist ${n.fing}. Stell es ein und prüfe nochmals.`;
+  const want = n.fing === "0" ? [] : n.fing.split("+");
+  document.querySelectorAll("#ln-input .valve").forEach(b => b.classList.toggle("should", want.includes(b.dataset.v)));
+  document.querySelectorAll("#ln-input .slide button").forEach(b => b.classList.toggle("should", b.dataset.v === n.fing));
+};
+$("ln-restart").onclick = () => startLearn();
+
+/* ---------- Start ---------- */
+renderInstr();
+function boot() { if (!window.ABCJS) { setTimeout(boot, 100); return; } }
+boot();
+document.addEventListener("visibilitychange", () => { if (document.hidden) stopAll(); });
+</script>
+<script>
+if ("serviceWorker" in navigator) { window.addEventListener("load", () => { navigator.serviceWorker.register("sw.js").catch(() => {}); }); }
+</script>
+</body>
+</html>
