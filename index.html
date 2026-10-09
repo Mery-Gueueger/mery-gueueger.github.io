@@ -138,6 +138,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
 .slide button.should { box-shadow: 0 0 0 3px var(--ok) }
 .stat { display: flex; justify-content: space-between; font-size: .92rem; color: var(--muted); font-variant-numeric: tabular-nums }
 .stat b { color: var(--fg) }
+.voice { font-family: var(--f-display); font-weight: 800; font-size: 1.15rem; color: var(--accent); margin-top: 4px }
 .err { color: var(--bad); font-size: .88rem; min-height: 1.2em }
 .foot { text-align: center; font-size: .8rem; color: var(--muted) }
 </style>
@@ -222,8 +223,9 @@ body { padding-top: max(12px, env(safe-area-inset-top)); padding-bottom: max(48p
 
 <!-- LIED -->
 <section id="s-song" hidden>
-  <div class="top"><button class="back" data-go="instr">‹ Stimme</button><span class="crumb" id="sg-crumb"></span></div>
+  <div class="top"><button class="back" data-go="instr">‹ Stimme</button></div>
   <h2 id="sg-title"></h2>
+  <p class="voice" id="sg-crumb"></p>
   <div class="modes" role="group" aria-label="Übungsart" style="margin-top:10px">
     <button type="button" id="m-play" aria-pressed="true">Mitspielen</button>
     <button type="button" id="m-learn" aria-pressed="false">Auswendig lernen</button>
