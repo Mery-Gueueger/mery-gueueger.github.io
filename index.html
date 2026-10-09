@@ -139,6 +139,19 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
 .stat { display: flex; justify-content: space-between; font-size: .92rem; color: var(--muted); font-variant-numeric: tabular-nums }
 .stat b { color: var(--fg) }
 .voice { font-family: var(--f-display); font-weight: 800; font-size: 1.15rem; color: var(--accent); margin-top: 4px }
+.loopbox { display: flex; align-items: center; gap: 8px; flex-wrap: wrap }
+.loopbox select { font: inherit; font-weight: 700; padding: 6px 8px; border-radius: 8px; border: 1.5px solid var(--line); background: var(--card); color: var(--fg) }
+.metro { align-items: stretch; gap: 16px }
+.beats { display: flex; justify-content: center; gap: 12px; min-height: 34px }
+.beats span { width: 30px; height: 30px; border-radius: 50%; border: 2.5px solid var(--line); transition: background .05s }
+.beats span.on { background: var(--fg); border-color: var(--fg) }
+.beats span.on.first { background: var(--accent); border-color: var(--accent) }
+.bpm { display: flex; align-items: center; justify-content: space-between; gap: 10px }
+.bpm div { text-align: center }
+.bpm b { display: block; font-family: var(--f-display); font-weight: 900; font-size: 4rem; line-height: 1; font-variant-numeric: tabular-nums }
+.bpm span { color: var(--muted); font-size: .85rem }
+.round { width: 56px; height: 56px; border-radius: 50% !important; font-size: 1.8rem !important; padding: 0 !important }
+#mt-range { width: 100%; accent-color: var(--accent) }
 .err { color: var(--bad); font-size: .88rem; min-height: 1.2em }
 .foot { text-align: center; font-size: .8rem; color: var(--muted) }
 </style>
@@ -169,6 +182,7 @@ body { padding-top: max(12px, env(safe-area-inset-top)); padding-bottom: max(48p
   </div>
   <div class="tiles" style="margin-top:14px">
     <button class="tile red" id="go-songs"><div><b>Lieder üben</b><span>Mitspielen, Ventile lernen, auswendig üben</span></div><i>›</i></button>
+    <button class="tile" id="go-metro"><div><b>Metronom</b><span>Den Takt halten üben</span></div><i>›</i></button>
     <button class="tile" id="go-theory"><div><b>Musiktheorie</b><span>Notenwerte, Pausen, Zeichen – mit Quiz</span></div><i>›</i></button>
   </div>
 
@@ -180,6 +194,26 @@ body { padding-top: max(12px, env(safe-area-inset-top)); padding-bottom: max(48p
   <h2>Welche Stimme spielst du?</h2>
   <p class="muted" style="margin:6px 0 12px">Die App merkt sich deine Stimme für jedes Lied einzeln.</p>
   <div class="instr" id="instr"></div>
+</section>
+
+<!-- METRONOM -->
+<section id="s-metro" hidden>
+  <div class="top"><button class="back" data-go="home">‹ Start</button></div>
+  <h2>Metronom</h2>
+  <div class="card metro" style="margin-top:12px">
+    <div class="beats" id="mt-beats" aria-hidden="true"></div>
+    <div class="bpm"><button class="ghost round" id="mt-minus" aria-label="Langsamer">−</button><div><b id="mt-bpm">110</b><span>Schläge pro Minute</span></div><button class="ghost round" id="mt-plus" aria-label="Schneller">+</button></div>
+    <input type="range" id="mt-range" min="40" max="220" value="110" aria-label="Tempo">
+    <div>
+      <p class="label" style="margin:0 0 6px">Schläge pro Takt</p>
+      <div class="modes" id="mt-meter" role="group" aria-label="Schläge pro Takt"></div>
+    </div>
+    <div class="ctrl">
+      <button class="main" id="mt-start">▶ Start</button>
+      <button class="ghost" id="mt-tap">Tippen</button>
+    </div>
+    <p class="small muted">„Tippen“: Tippe ein paar Mal im gewünschten Tempo, dann übernimmt das Metronom dieses Tempo. Der erste Schlag im Takt klingt höher.</p>
+  </div>
 </section>
 
 <!-- THEORIE: Übersicht -->
@@ -245,8 +279,13 @@ body { padding-top: max(12px, env(safe-area-inset-top)); padding-bottom: max(48p
       <label class="switch"><input type="checkbox" id="sound" checked> Töne vorspielen</label>
     </div>
     <div class="tempo"><span class="small muted">Tempo</span><input type="range" id="tempo" min="40" max="120" step="5" value="100" aria-label="Tempo in Prozent"><output id="tempo-o">100 %</output></div>
+    <div class="loopbox">
+      <label class="switch"><input type="checkbox" id="loop"> Schleife</label>
+      <span class="small muted">Takt</span><select id="lp-a" aria-label="Schleife ab Takt"></select>
+      <span class="small muted">bis</span><select id="lp-b" aria-label="Schleife bis Takt"></select>
+    </div>
     <p class="small muted" id="tutti-hint" hidden>Alle Stimmen zusammen mit Schlagzeug. Die Noten oben zeigen die Melodie (Trompete 1. Stimme).</p>
-    <p class="small muted">Die App zählt einen Takt vor. Sobald eure Aufnahmen da sind, läuft hier die echte Aufnahme statt der Computertöne.</p>
+    <p class="small muted">Die App zählt einen Takt vor. Das Tempo kannst du auch während dem Abspielen ändern. Mit „Schleife“ wird nur der gewählte Teil immer wieder gespielt.</p>
   </div>
 
   <div id="p-learn" class="card" style="margin-top:10px" hidden>
@@ -404,11 +443,12 @@ function drawAbc(el, abc, scale) {
 }
 
 /* ---------- Navigation ---------- */
-const SCREENS = ["home", "instr", "theory", "lesson", "quiz", "songs", "song"];
+const SCREENS = ["home", "metro", "instr", "theory", "lesson", "quiz", "songs", "song"];
 // Verlauf, damit die Zurück-Taste des Handys eine Seite zurück geht statt die App zu schliessen
 const navStack = ["home"];
 function show(s) {
   if (s !== "song") stopAll();
+  if (s !== "metro" && typeof mtStop === "function") mtStop();
   SCREENS.forEach(n => $("s-" + n).hidden = n !== s);
   window.scrollTo(0, 0);
   if (s === "theory") renderLessons();
@@ -443,6 +483,7 @@ function renderInstr() {
     b.onclick = () => { curPart = pt; store.set("part-" + cur.song.id, pt.id); openPart(); }; $("instr").appendChild(b); });
 }
 $("go-theory").onclick = () => go("theory");
+$("go-metro").onclick = () => go("metro");
 $("logo-home").onclick = () => go("home");
 $("go-songs").onclick = () => go("songs");
 
@@ -551,7 +592,7 @@ function buildAbc(withLabels) {
   const tune = ABCJS.parseOnly(base)[0];
   const ps = notePitches(tune, key, bass);
   cur.labels = ps.map(n => fingOf(Math.max(...n.mids)));
-  let abc = base.replace("\nK:", "\n%%vocalfont Helvetica 12 bold\nK:");
+  let abc = base.replace("\nK:", "\n%%vocalfont Helvetica 12 bold\n%%barnumbers 1\nK:");
   if (withLabels) abc += "\nw: " + cur.labels.join(" ");
   return abc;
 }
@@ -565,6 +606,7 @@ function renderScore() {
   const pa = $("paper"), sv = pa.querySelector("svg");
   if (sv) { pa.style.width = Math.ceil(sv.getAttribute("width") * 1.5) + "px"; pa.style.overflow = "visible"; }
   cur.notes = [...pa.querySelectorAll(".abcjs-note")];
+  P.tracks = []; P.pos = 0; if (cur.mode === "play") preparePlayer();
   $("scroller").scrollLeft = 0;
 }
 function hint(el) {}
@@ -586,10 +628,10 @@ function scrollToEl(el) {
 function mark(els, on) { els.forEach(e => e.classList.toggle("abcjs-cursor-on", on)); }
 
 /* Abspielen */
-let actx = null, timer = null, playing = false, lastEls = [], countT = [];
+let actx = null, playing = false, lastEls = [];
 function ctx() { if (!actx) { const C = window.AudioContext || window.webkitAudioContext; if (C) actx = new C(); } if (actx && actx.state === "suspended") actx.resume(); return actx; }
-function tone(midi, sec, vol, type) {
-  const a = ctx(); if (!a) return; const t = a.currentTime;
+function tone(midi, sec, vol, type, at) {
+  const a = ctx(); if (!a) return; const t = at || a.currentTime;
   const o = a.createOscillator(), g = a.createGain(); o.type = type || "sawtooth";
   const f = 440 * Math.pow(2, (midi - 69) / 12); o.frequency.value = f;
   const lp = a.createBiquadFilter(); lp.type = "lowpass"; lp.Q.value = 0.7;
@@ -597,6 +639,12 @@ function tone(midi, sec, vol, type) {
   const v = type === "square" ? vol : vol * 0.55;
   g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(v, t + 0.03); g.gain.setValueAtTime(v * 0.85, t + Math.max(0.04, sec - 0.06)); g.gain.linearRampToValueAtTime(0, t + sec);
   o.connect(lp).connect(g).connect(a.destination); o.start(t); o.stop(t + sec + 0.05);
+}
+function click(accent, at) {
+  const a = ctx(); if (!a) return; const t = at || a.currentTime;
+  const o = a.createOscillator(), g = a.createGain(); o.type = "square"; o.frequency.value = accent ? 1760 : 1175;
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(accent ? 0.35 : 0.22, t + 0.002); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
+  o.connect(g).connect(a.destination); o.start(t); o.stop(t + 0.06);
 }
 let noiseBuf = null;
 function drum(kind) {
@@ -611,54 +659,118 @@ function drum(kind) {
   else { f.type = "highpass"; f.frequency.value = 7000; g.gain.setValueAtTime(kind === "hatA" ? 0.18 : 0.09, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.05); }
   n.connect(f).connect(g).connect(a.destination); n.start(t); n.stop(t + 0.25);
 }
-let extraTimers = [], drumIv = null;
-function stopAll() {
-  playing = false; if (timer) { try { timer.stop(); } catch (e) {} timer = null; }
-  extraTimers.forEach(x => { try { x.stop(); } catch (e) {} }); extraTimers = []; if (drumIv) { clearInterval(drumIv); drumIv = null; }
-  countT.forEach(clearTimeout); countT = []; mark(lastEls, false); lastEls = [];
-  if ($("play")) $("play").textContent = "▶ Abspielen";
+
+// Eigener Abspieler: Position in Viertelschlägen, Tempo wird bei jedem Schritt neu gelesen (live)
+const P = { tracks: [], pos: 0, last: 0, iv: null, barBeats: 4, end: 0, eighth: null, countIn: 0, bars: 0, measStart: [] };
+function eventsOf(tune) {
+  try { tune.setUpAudio(); } catch (e) {}
+  const tc = new ABCJS.TimingCallbacks(tune, { qpm: 60 });
+  return tc.noteTimings.filter(n => n.type === "event").map(n => ({ b: n.milliseconds / 1000, m: n.measureNumber, pitches: (n.midiPitches || []).map(x => ({ p: x.pitch, d: x.duration * 4 })), els: (n.elements || []).flat() }));
 }
-$("stop").onclick = () => { stopAll(); $("scroller").scrollLeft = 0; };
-$("tempo").oninput = () => { $("tempo-o").textContent = $("tempo").value + " %"; };
-$("play").onclick = () => {
-  if (playing) { stopAll(); return; }
-  ctx(); playing = true; $("play").textContent = "❚❚ Pause";
-  const qpm = Math.round(cur.song.qpm * $("tempo").value / 100), beat = 60000 / qpm;
-  const tr = instrObj().transpose, beats = 4;
-  try { cur.tune.setUpAudio(); } catch (e) {}
-  for (let b = 0; b < beats; b++) countT.push(setTimeout(() => { if (playing) tone(b === 0 ? 96 : 89, 0.05, 0.25, "square"); }, b * beat));
-  countT.push(setTimeout(() => {
-    if (!playing) return;
-    const tutti = instrObj().kind === "tutti";
-    const dur = p => Math.max(0.08, p.duration * 4 * beat / 1000 * 0.9);
-    timer = new ABCJS.TimingCallbacks(cur.tune, { qpm, eventCallback: ev => {
-      mark(lastEls, false);
-      if (!ev) { stopAll(); return; }
-      lastEls = (ev.elements || []).flat(); mark(lastEls, true); scrollToEl(lastEls[0]);
-      if (!tutti && $("sound").checked && ev.midiPitches) ev.midiPitches.forEach(p => tone(p.pitch + tr, dur(p), 0.22));
-      if (tutti && ev.midiPitches) ev.midiPitches.forEach(p => tone(p.pitch - 2, dur(p), 0.16));
-    } });
-    if (tutti) {
-      cur.song.parts.filter(pt => pt.instr !== "tutti" && pt.id !== "trp1").forEach(pt => {
-        const ins = INSTR.find(i => i.id === pt.instr);
-        let hid = document.getElementById("hid-" + pt.id);
-        if (!hid) { hid = document.createElement("div"); hid.id = "hid-" + pt.id; hid.style.cssText = "position:absolute;left:-9999px;top:0;width:600px;visibility:hidden"; document.body.appendChild(hid); }
-        const t = ABCJS.renderAbc(hid, pt.abc, {})[0];
-        try { t.setUpAudio(); } catch (e) {}
-        const vol = { trp: 0.12, pos: 0.16, eup: 0.15, sou: 0.24 }[pt.instr] || 0.14;
-        const x = new ABCJS.TimingCallbacks(t, { qpm, eventCallback: ev => { if (ev && ev.midiPitches) ev.midiPitches.forEach(p => tone(p.pitch + ins.transpose, dur(p), vol)); } });
-        extraTimers.push(x);
-      });
-      let step = 0; const eighth = beat / 2;
-      const hit = () => { if (!playing) return; const pos = step % 8;
-        if (pos === 0 || pos === 4) drum("kick"); if (pos === 2 || pos === 6) drum("snare"); if (pos === 7) drum("snare");
-        drum(pos % 2 === 0 ? "hatA" : "hatB"); step++; };
-      hit(); drumIv = setInterval(hit, eighth);
-      extraTimers.forEach(x => x.start());
+function meterBeats(abc) { const m = abc.match(/\nM:\s*([^\n]+)/); const v = m ? m[1].trim() : "4/4"; if (v === "C" || v === "C|") return 4; const [a, b] = v.split("/").map(Number); return a * 4 / b; }
+function preparePlayer() {
+  const ins = instrObj(), tutti = ins.kind === "tutti";
+  P.barBeats = meterBeats(curPart.abc);
+  const main = { events: eventsOf(cur.tune), transpose: tutti ? -2 : ins.transpose, vol: tutti ? 0.16 : 0.22, cursor: true, idx: 0, solo: !tutti };
+  P.tracks = [main];
+  if (tutti) cur.song.parts.filter(pt => pt.instr !== "tutti" && pt.id !== "trp1").forEach(pt => {
+    const pins = INSTR.find(i => i.id === pt.instr);
+    let hid = document.getElementById("hid-" + pt.id);
+    if (!hid) { hid = document.createElement("div"); hid.id = "hid-" + pt.id; hid.style.cssText = "position:absolute;left:-9999px;top:0;width:600px;visibility:hidden"; document.body.appendChild(hid); }
+    const t = ABCJS.renderAbc(hid, pt.abc, {})[0];
+    P.tracks.push({ events: eventsOf(t), transpose: pins.transpose, vol: { trp: 0.12, pos: 0.16, eup: 0.15, sou: 0.24 }[pt.instr] || 0.14, cursor: false, idx: 0 });
+  });
+  const ev = main.events, lastE = ev[ev.length - 1];
+  P.end = lastE ? Math.ceil((lastE.b + Math.max(...lastE.pitches.map(x => x.d), 1)) / P.barBeats) * P.barBeats : 0;
+  // Takte für die Schleife: erstes Auftreten jedes geschriebenen Takts
+  P.bars = 0; P.measStart = [];
+  ev.forEach(e => { if (e.m != null && P.measStart[e.m] == null) P.measStart[e.m] = Math.floor(e.b / P.barBeats + 1e-6) * P.barBeats; P.bars = Math.max(P.bars, (e.m || 0) + 1); });
+  const fill = (sel, val) => { const old = sel.value; sel.innerHTML = ""; for (let i = 1; i <= P.bars; i++) { const o = document.createElement("option"); o.value = i; o.textContent = i; sel.appendChild(o); } sel.value = old && +old <= P.bars ? old : val; };
+  fill($("lp-a"), 1); fill($("lp-b"), Math.min(4, P.bars));
+  P.pos = 0;
+}
+function loopRange() {
+  if (!$("loop").checked || !P.bars) return null;
+  let a = +$("lp-a").value - 1, b = +$("lp-b").value - 1; if (b < a) [a, b] = [b, a];
+  const s = P.measStart[a]; if (s == null) return null;
+  let e = s + P.barBeats; const ev = P.tracks[0].events;
+  for (const x of ev) { if (x.b >= s && x.m === b) e = Math.floor(x.b / P.barBeats + 1e-6) * P.barBeats + P.barBeats; if (x.b >= s && x.m === b + 1) break; }
+  return [s, Math.max(e, s + P.barBeats)];
+}
+function seek(pos) { P.pos = pos; P.tracks.forEach(t => { t.idx = t.events.findIndex(e => e.b >= pos - 1e-6); if (t.idx < 0) t.idx = t.events.length; }); P.eighth = null; }
+const qpmNow = () => cur.song.qpm * $("tempo").value / 100;
+function tick() {
+  const now = performance.now(), dt = now - P.last; P.last = now;
+  const beatsPerMs = qpmNow() / 60000;
+  if (P.countIn > 0) {
+    const before = P.countIn; P.countIn -= dt * beatsPerMs;
+    if (Math.ceil(P.countIn) < Math.ceil(before) && P.countIn > 0) click(false);
+    if (P.countIn > 0) return;
+    P.last = now; return;
+  }
+  P.pos += dt * beatsPerMs;
+  const lr = loopRange();
+  if (lr && (P.pos >= lr[1] || P.pos < lr[0] - 0.01)) { seek(lr[0]); }
+  if (!lr && P.pos >= P.end) { stopAll(true); return; }
+  const secPerBeat = 60 / qpmNow(), tutti = instrObj().kind === "tutti";
+  P.tracks.forEach(t => {
+    while (t.idx < t.events.length && t.events[t.idx].b <= P.pos) {
+      const e = t.events[t.idx++];
+      if (t.cursor) { mark(lastEls, false); lastEls = e.els; mark(lastEls, true); scrollToEl(lastEls[0]); }
+      if (!t.solo || $("sound").checked) e.pitches.forEach(x => tone(x.p + t.transpose, Math.max(0.08, x.d * secPerBeat * 0.9), t.vol));
     }
-    timer.start();
-  }, beats * beat));
+  });
+  if (tutti) {
+    const ei = Math.floor(P.pos * 2 + 1e-6);
+    if (ei !== P.eighth) { P.eighth = ei; const pos = ((ei % (P.barBeats * 2)) + P.barBeats * 2) % (P.barBeats * 2);
+      if (pos === 0 || pos === 4) drum("kick"); if (pos === 2 || pos === 6 || pos === 7) drum("snare"); drum(pos % 2 === 0 ? "hatA" : "hatB"); }
+  }
+}
+function stopAll(reset) {
+  playing = false; if (P.iv) { clearInterval(P.iv); P.iv = null; }
+  mark(lastEls, false); lastEls = [];
+  if (reset) { P.pos = 0; if ($("scroller")) $("scroller").scrollLeft = 0; }
+  if ($("play")) $("play").textContent = P.pos > 0 ? "▶ Weiter" : "▶ Abspielen";
+}
+$("stop").onclick = () => stopAll(true);
+$("tempo").oninput = () => { $("tempo-o").textContent = $("tempo").value + " %"; };
+["loop", "lp-a", "lp-b"].forEach(id => $(id).addEventListener("change", () => { const lr = loopRange(); if (playing && lr && (P.pos < lr[0] || P.pos >= lr[1])) seek(lr[0]); }));
+$("play").onclick = () => {
+  if (playing) { stopAll(false); return; }
+  ctx(); if (!P.tracks.length) preparePlayer();
+  const lr = loopRange();
+  if (P.pos <= 0 || (lr && (P.pos < lr[0] || P.pos >= lr[1]))) { seek(lr ? lr[0] : 0); P.countIn = P.barBeats; click(true); } else { seek(P.pos); P.countIn = 0; }
+  playing = true; $("play").textContent = "❚❚ Pause"; P.last = performance.now(); P.iv = setInterval(tick, 12);
 };
+
+/* Metronom */
+const MT = { bpm: store.get("mt-bpm", 110), meter: store.get("mt-meter", 4), on: false, next: 0, beat: 0, iv: null, taps: [] };
+function mtRender() {
+  $("mt-bpm").textContent = MT.bpm; $("mt-range").value = MT.bpm;
+  $("mt-beats").innerHTML = Array.from({ length: MT.meter }, (_, i) => `<span class="${i === 0 ? "first" : ""}"></span>`).join("");
+  $("mt-meter").innerHTML = "";
+  [2, 3, 4, 6].forEach(n => { const b = document.createElement("button"); b.type = "button"; b.textContent = n; b.setAttribute("aria-pressed", n === MT.meter);
+    b.onclick = () => { MT.meter = n; store.set("mt-meter", n); MT.beat = 0; mtRender(); }; $("mt-meter").appendChild(b); });
+}
+function mtSet(v) { MT.bpm = Math.max(40, Math.min(220, Math.round(v))); store.set("mt-bpm", MT.bpm); $("mt-bpm").textContent = MT.bpm; $("mt-range").value = MT.bpm; }
+function mtSched() {
+  const a = ctx(); if (!a) return;
+  while (MT.next < a.currentTime + 0.12) {
+    const b = MT.beat % MT.meter, when = MT.next;
+    click(b === 0, when);
+    const delay = Math.max(0, (when - a.currentTime) * 1000);
+    setTimeout(() => { if (!MT.on) return; document.querySelectorAll("#mt-beats span").forEach((s, i) => s.classList.toggle("on", i === b)); }, delay);
+    MT.beat++; MT.next += 60 / MT.bpm;
+  }
+}
+function mtStop() { MT.on = false; if (MT.iv) { clearInterval(MT.iv); MT.iv = null; } $("mt-start").textContent = "▶ Start"; document.querySelectorAll("#mt-beats span").forEach(s => s.classList.remove("on")); }
+$("mt-start").onclick = () => { if (MT.on) { mtStop(); return; } const a = ctx(); if (!a) return; MT.on = true; MT.beat = 0; MT.next = a.currentTime + 0.05; mtSched(); MT.iv = setInterval(mtSched, 25); $("mt-start").textContent = "■ Stopp"; };
+$("mt-range").oninput = e => mtSet(+e.target.value);
+$("mt-minus").onclick = () => mtSet(MT.bpm - 1);
+$("mt-plus").onclick = () => mtSet(MT.bpm + 1);
+$("mt-tap").onclick = () => { const t = performance.now(); MT.taps = MT.taps.filter(x => t - x < 2500); MT.taps.push(t);
+  if (MT.taps.length >= 3) { const d = (MT.taps[MT.taps.length - 1] - MT.taps[0]) / (MT.taps.length - 1); mtSet(60000 / d); } };
+mtRender();
 
 /* Auswendig lernen */
 let LN = { list: [], i: 0, err: 0, sel: new Set(), pos: null, wrongOnce: false };
