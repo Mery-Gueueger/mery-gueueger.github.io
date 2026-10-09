@@ -405,7 +405,9 @@ function drawAbc(el, abc, scale) {
 
 /* ---------- Navigation ---------- */
 const SCREENS = ["home", "instr", "theory", "lesson", "quiz", "songs", "song"];
-function go(s) {
+// Verlauf, damit die Zurück-Taste des Handys eine Seite zurück geht statt die App zu schliessen
+const navStack = ["home"];
+function show(s) {
   if (s !== "song") stopAll();
   SCREENS.forEach(n => $("s-" + n).hidden = n !== s);
   window.scrollTo(0, 0);
@@ -413,6 +415,21 @@ function go(s) {
   if (s === "songs") renderSongs();
   if (s === "instr") renderInstr();
 }
+function go(s) {
+  const top = navStack[navStack.length - 1];
+  if (s === top) { show(s); return; }
+  if (s === "home") { const n = navStack.length - 1; if (n > 0) { navStack.length = 1; history.go(-n); } else show(s); return; }
+  if (navStack.length > 1 && navStack[navStack.length - 2] === s) { history.back(); return; }
+  navStack.push(s); history.pushState({ s, d: navStack.length }, ""); show(s);
+}
+history.replaceState({ s: "home", d: 1 }, "");
+window.addEventListener("popstate", e => {
+  const st = e.state || { s: "home", d: 1 };
+  navStack.length = Math.max(1, st.d); navStack[navStack.length - 1] = st.s;
+  if (st.s === "song" && !curPart) { show("home"); return; }
+  if (st.s === "instr" && !cur.song) { show("home"); return; }
+  show(st.s);
+});
 document.querySelectorAll("[data-go]").forEach(b => b.onclick = () => go(b.dataset.go));
 
 /* ---------- Start ---------- */
