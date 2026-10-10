@@ -79,6 +79,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
 .row .num { font-family: var(--f-display); font-weight: 900; font-size: 1.1rem; width: 28px; color: var(--accent) }
 .row .txt { flex: 1; min-width: 0 }
 .row .txt b { display: block }
+.fit { white-space: nowrap; overflow: hidden }
 .row .txt small { color: var(--muted) }
 .badge { font-size: .75rem; font-weight: 700; border-radius: 999px; padding: 3px 9px; background: var(--ok-soft); color: var(--ok); white-space: nowrap }
 .badge.gray { background: var(--bg); color: var(--muted) }
@@ -203,6 +204,17 @@ body.intro .brand img { opacity: 0; transform: translateY(-160px) }
 body.landplay .scorecard { position: fixed; inset: 0; z-index: 900; margin: 0 !important; border-radius: 0; border: 0; padding: 6px 0; display: flex; align-items: center }
 body.landplay .scorecard .scroller { width: 100% }
 body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(10px, env(safe-area-inset-right)); bottom: 10px; z-index: 901 }
+.tuner { align-items: stretch }
+.tn-note { text-align: center; line-height: 1 }
+.tn-note b { font-family: var(--f-display); font-weight: 900; font-size: 5rem }
+.tn-note span { font-size: 1.2rem; color: var(--muted); margin-left: 4px }
+.tn-scale { position: relative; height: 44px; border-radius: 22px; background: var(--bg); border: 2px solid var(--line); overflow: hidden }
+.tn-mid { position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; background: var(--muted) }
+.tn-ok { position: absolute; left: 45%; width: 10%; top: 0; bottom: 0; background: var(--ok-soft) }
+#tn-needle { position: absolute; left: 50%; top: 4px; bottom: 4px; width: 8px; margin-left: -4px; border-radius: 4px; background: var(--muted); transition: left .12s linear, background .12s }
+#tn-needle.in { background: var(--ok) } #tn-needle.off { background: var(--accent) }
+.tn-lbl { display: flex; justify-content: space-between; font-size: .8rem; color: var(--muted); margin-top: -6px }
+.tn-msg { text-align: center; font-weight: 800; font-size: 1.15rem; margin: 0; min-height: 1.4em }
 @media (prefers-reduced-motion: reduce) { #splash img { animation: none; transform: none } }
 </style>
 </head>
@@ -220,9 +232,10 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
   <div class="tiles" style="margin-top:14px">
     <button class="tile red" id="go-songs"><div><b>Lieder üben</b><span>Mitspielen, Ventile lernen, auswendig üben</span></div><i>›</i></button>
     <button class="tile" id="go-metro"><div><b>Metronom</b><span>Den Takt halten üben</span></div><i>›</i></button>
+    <button class="tile" id="go-tuner"><div><b>Stimmgerät</b><span>Instrument stimmen über das Mikrofon</span></div><i>›</i></button>
     <button class="tile" id="go-theory"><div><b>Musiktheorie</b><span>Notenwerte, Pausen, Zeichen – mit Quiz</span></div><i>›</i></button>
   </div>
-  <p class="ver" id="ver">Version 27</p>
+  <p class="ver" id="ver">Version 28</p>
   <div class="card" id="lt" hidden>
     <b>Startlogo einstellen</b>
     <p class="val"><span id="lt-v">180</span> px</p>
@@ -270,6 +283,29 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
       <button class="ghost" id="mt-tap">Tippen</button>
     </div>
     <p class="small muted">„Tippen“: Tippe ein paar Mal im gewünschten Tempo, dann übernimmt das Metronom dieses Tempo. Der erste Schlag im Takt klingt höher.</p>
+  </div>
+</section>
+
+<!-- STIMMGERÄT -->
+<section id="s-tuner" hidden>
+  <div class="top"><button class="back" data-go="home">‹ Start</button></div>
+  <h2>Stimmgerät</h2>
+  <div class="card tuner" style="margin-top:12px">
+    <div class="tn-note"><b id="tn-name">–</b><span id="tn-oct"></span></div>
+    <div class="tn-scale" aria-hidden="true"><span class="tn-mid"></span><span class="tn-ok"></span><span id="tn-needle"></span></div>
+    <div class="tn-lbl"><span>zu tief</span><span>stimmt</span><span>zu hoch</span></div>
+    <p class="tn-msg" id="tn-msg" aria-live="polite">Tippe auf Start und spiele einen langen Ton.</p>
+    <p class="small muted" id="tn-hz" style="margin:0;text-align:center">&nbsp;</p>
+    <button class="main" id="tn-start">🎤 Start</button>
+    <div>
+      <p class="label" style="margin:0 0 6px">Notennamen</p>
+      <div class="modes" id="tn-mode" role="group" aria-label="Notennamen">
+        <button type="button" data-m="b" aria-pressed="true">Wie in euren Noten (B)</button>
+        <button type="button" data-m="c" aria-pressed="false">Klingend</button>
+      </div>
+    </div>
+    <div class="loopbox"><span class="small muted">Stimmton A =</span><select id="tn-a" aria-label="Stimmton A in Hertz"><option>438</option><option>439</option><option selected>440</option><option>441</option><option>442</option><option>443</option></select><span class="small muted">Hz</span></div>
+    <p class="small muted">„Wie in euren Noten“ zeigt den Ton so, wie er bei Trompete, Posaune, Euphi und Susi in den Noten steht. Gestimmt wird meistens auf das geschriebene C (klingend B). Grün heisst: der Ton stimmt. Ist er zu tief, Zug oder Stimmzug etwas hineinschieben, ist er zu hoch, etwas herausziehen.</p>
   </div>
 </section>
 
@@ -322,7 +358,7 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
 <!-- LIED -->
 <section id="s-song" hidden>
   <div class="top"><button class="back" data-go="instr">‹ Stimme</button></div>
-  <h2 id="sg-title"></h2>
+  <h2 id="sg-title" class="fit"></h2>
   <p class="voice" id="sg-crumb"></p>
   <div class="modes" role="group" aria-label="Übungsart" style="margin-top:10px">
     <button type="button" id="m-play" aria-pressed="true">Mitspielen</button>
@@ -568,13 +604,24 @@ function drawAbc(el, abc, scale) {
 }
 
 /* ---------- Navigation ---------- */
-const SCREENS = ["home", "metro", "instr", "theory", "lesson", "quiz", "songs", "song"];
+const SCREENS = ["home", "metro", "tuner", "instr", "theory", "lesson", "quiz", "songs", "song"];
 // Verlauf, damit die Zurück-Taste des Handys eine Seite zurück geht statt die App zu schliessen
 const navStack = ["home"];
+// Titel auf eine Zeile bringen: Schrift verkleinern, bis er passt
+function fitText(root) {
+  (root || document).querySelectorAll(".fit").forEach(el => {
+    if (!el.offsetParent) return;
+    el.style.fontSize = ""; const base = parseFloat(getComputedStyle(el).fontSize); let f = base;
+    while (el.scrollWidth > el.clientWidth + 1 && f > base * 0.55) { f -= 0.5; el.style.fontSize = f + "px"; }
+  });
+}
+window.addEventListener("resize", () => fitText());
 function show(s) {
   if (s !== "song") stopAll();
   if (s !== "metro" && typeof mtStop === "function") mtStop();
+  if (s !== "tuner" && typeof tnStop === "function") tnStop();
   SCREENS.forEach(n => $("s-" + n).hidden = n !== s);
+  requestAnimationFrame(() => fitText($("s-" + s)));
   if (typeof landUpd === "function") landUpd();
   window.scrollTo(0, 0);
   if (s === "theory") renderLessons();
@@ -613,6 +660,7 @@ function renderInstr() {
 }
 $("go-theory").onclick = () => go("theory");
 $("go-metro").onclick = () => go("metro");
+$("go-tuner").onclick = () => go("tuner");
 $("logo-home").onclick = () => go("home");
 $("go-songs").onclick = () => go("songs");
 
@@ -684,8 +732,9 @@ function renderSongs() {
   $("songlist").innerHTML = "";
   SONGS.forEach((s, i) => { const b = document.createElement("button"); b.className = "row"; b.type = "button";
     const sub = s.real ? `${s.sub} · ${s.parts.filter(p => p.instr !== "tutti").length} Stimmen mit Noten` : s.sub;
-    b.innerHTML = `<span class="num">${i + 1}</span><span class="txt"><b>${s.title}</b><small>${sub}</small></span><span class="num">›</span>`;
+    b.innerHTML = `<span class="txt"><b class="fit">${s.title}</b><small>${sub}</small></span><span class="num">›</span>`;
     b.onclick = () => { cur.song = SONGS[i]; go("instr"); }; $("songlist").appendChild(b); });
+  requestAnimationFrame(() => fitText($("songlist")));
 }
 const LET = ["C","D","E","F","G","A","B"], SEMI = [0,2,4,5,7,9,11];
 const KEYACC = { C: {}, F: { B: -1 }, Bb: { B: -1, E: -1 }, Eb: { B: -1, E: -1, A: -1 }, G: { F: 1 }, D: { F: 1, C: 1 } };
@@ -890,7 +939,7 @@ function tick() {
   }
 }
 function stopAll(reset) {
-  if (R.on) { R.on = false; cancelAnimationFrame(R.raf); if (R.gap) { clearTimeout(R.gap); R.gap = 0; } const b = bOf(R.el.currentTime); R.el.pause(); if (b > 0) P.pos = b; }
+  if (R.on) { R.on = false; cancelAnimationFrame(R.raf); if (R.gap) { clearTimeout(R.gap); R.gap = 0; } R.el.muted = false; R.unmuteAt = null; R.clicks = []; const b = bOf(R.el.currentTime); R.el.pause(); if (b > 0) P.pos = b; }
   else if (playing && actx && P.aT && actx.currentTime >= P.aT) P.pos = curPos(actx);
   playing = false; if (P.iv) { clearInterval(P.iv); P.iv = null; }
   mark(lastEls, false); lastEls = [];
@@ -977,25 +1026,26 @@ async function playRec() {
   el.currentTime = fromTop ? 0 : tOf(start);
   R.clicks = [];
   if (preroll && !fromTop) {
-    // mitten im Lied: zuerst einen Takt Klicks (ohne Musik), dann geht es los
-    el.muted = true; try { await el.play(); } catch (e) {} el.pause(); el.muted = false; el.currentTime = tOf(start);
-    playing = true; R.on = true; $("play").textContent = "❚❚ Pause"; recGap(start, 0.05); R.raf = requestAnimationFrame(recTick); return;
+    // mitten im Lied: zuerst ein Takt Klicks (Musik noch stumm), dann geht es nahtlos los
+    playing = true; R.on = true; $("play").textContent = "❚❚ Pause"; recGap(start, 0); R.raf = requestAnimationFrame(recTick); return;
   }
   try { await el.play(); } catch (e) { $("src-load").textContent = "Tippe nochmals auf Abspielen."; return; }
   playing = true; R.on = true; $("play").textContent = "❚❚ Pause"; R.raf = requestAnimationFrame(recTick);
 }
-// Pause, dann ein Takt Klicks, dann spielt die Aufnahme ab "start"
+// Zurück an "start", kurz warten, dann ein Takt Einzählen. Die Aufnahme läuft dabei stumm einen Takt vorher mit,
+// so kommen Klicks und Musik genau im Takt ohne Lücke.
 function recGap(start, wait) {
-  const el = R.el; el.pause(); el.currentTime = tOf(start); seek(start);
+  const el = R.el; el.pause(); seek(start);
   mark(lastEls, false); lastEls = [];
   const first = P.tracks[0].events[P.tracks[0].idx]; if (first) scrollToEl(first.els[0]);
-  const a = ctx(), sp = spbSong() / el.playbackRate, t0 = a.currentTime + wait;
-  for (let i = 0; i < P.barBeats; i++) click(i === 0, t0 + i * sp);
-  R.gap = setTimeout(() => { R.gap = 0; if (R.on) el.play().catch(() => {}); }, (wait + P.barBeats * sp) * 1000 - 10);
+  el.currentTime = Math.max(0, tOf(start - P.barBeats)); el.muted = true; R.unmuteAt = start;
+  R.clicks = Array.from({ length: P.barBeats }, (_, i) => ({ b: start - P.barBeats + i, acc: i === 0 }));
+  R.gap = setTimeout(() => { R.gap = 0; if (R.on) el.play().catch(() => {}); }, wait * 1000);
 }
 function recTick() {
   if (!R.on) return;
   const el = R.el, b = bOf(el.currentTime);
+  if (R.unmuteAt != null && b >= R.unmuteAt - 0.02) { el.muted = false; R.unmuteAt = null; }
   while (R.clicks.length && b >= R.clicks[0].b - 0.03) { const c = R.clicks.shift(); if (b - c.b < 0.3) click(c.acc); }
   const lr = loopRange();
   if (R.gap) { R.raf = requestAnimationFrame(recTick); return; }
@@ -1075,6 +1125,72 @@ window.addEventListener("resize", () => { clearTimeout(landUpd.t); landUpd.t = s
 $("l-play").onclick = () => $("play").click();
 $("l-stop").onclick = () => $("stop").click();
 new MutationObserver(() => { $("l-play").textContent = playing ? "❚❚" : "▶"; }).observe($("play"), { childList: true, characterData: true, subtree: true });
+
+/* Stimmgerät: Tonhöhe über das Mikrofon (Autokorrelation) */
+const TN = { on: false, stream: null, an: null, buf: null, raf: 0, mode: store.get("tn-mode", "b"), hist: [] };
+const TNAMES = ["C", "Cis", "D", "Es", "E", "F", "Fis", "G", "Gis", "A", "B", "H"];
+$("tn-a").value = String(store.get("tn-a", 440));
+$("tn-a").onchange = () => store.set("tn-a", +$("tn-a").value);
+function tnModeUI() { [...$("tn-mode").children].forEach(b => b.setAttribute("aria-pressed", b.dataset.m === TN.mode)); }
+$("tn-mode").querySelectorAll("button").forEach(b => b.onclick = () => { TN.mode = b.dataset.m; store.set("tn-mode", TN.mode); tnModeUI(); });
+tnModeUI();
+function detectPitch(x, sr) {
+  const n = x.length; let rms = 0; for (let i = 0; i < n; i++) rms += x[i] * x[i]; rms = Math.sqrt(rms / n);
+  if (rms < 0.01) return -1;
+  const minLag = Math.floor(sr / 1200), maxLag = Math.min(Math.floor(sr / 27), Math.floor(n / 2));
+  const W = n - maxLag, nsdf = new Float32Array(maxLag + 2);
+  for (let lag = minLag; lag <= maxLag + 1; lag++) {
+    let ac = 0, m = 0;
+    for (let i = 0; i < W; i++) { const a = x[i], b = x[i + lag]; ac += a * b; m += a * a + b * b; }
+    nsdf[lag] = m > 0 ? 2 * ac / m : 0;
+  }
+  // erster deutlicher Gipfel (vermeidet Oktavfehler)
+  let best = -1, bestV = 0, maxV = 0;
+  for (let l = minLag + 1; l <= maxLag; l++) if (nsdf[l] > maxV) maxV = nsdf[l];
+  if (maxV < 0.5) return -1;
+  for (let l = minLag + 1; l <= maxLag; l++) {
+    if (nsdf[l] > nsdf[l - 1] && nsdf[l] >= nsdf[l + 1] && nsdf[l] > 0.88 * maxV) { best = l; bestV = nsdf[l]; break; }
+  }
+  if (best < 0) return -1;
+  const a = nsdf[best - 1], b = nsdf[best], c = nsdf[best + 1], d = a - 2 * b + c;
+  const shift = d ? (a - c) / (2 * d) : 0;
+  return sr / (best + shift);
+}
+function tnLoop() {
+  if (!TN.on) return;
+  TN.an.getFloatTimeDomainData(TN.buf);
+  // halbe Abtastrate reicht und spart Rechenzeit
+  const half = new Float32Array(TN.buf.length >> 1); for (let i = 0; i < half.length; i++) half[i] = (TN.buf[2 * i] + TN.buf[2 * i + 1]) / 2;
+  const f = detectPitch(half, actx.sampleRate / 2);
+  if (f > 0) {
+    TN.hist.push(f); if (TN.hist.length > 5) TN.hist.shift();
+    const fm = [...TN.hist].sort((a, b) => a - b)[TN.hist.length >> 1];
+    const A = +$("tn-a").value, midi = 69 + 12 * Math.log2(fm / A), near = Math.round(midi), cents = Math.round((midi - near) * 100);
+    const shown = near + (TN.mode === "b" ? 2 : 0);
+    $("tn-name").textContent = TNAMES[((shown % 12) + 12) % 12]; $("tn-oct").textContent = "";
+    $("tn-hz").textContent = `${fm.toFixed(1)} Hz · ${cents > 0 ? "+" : ""}${cents} Cent`;
+    const nd = $("tn-needle"); nd.style.left = (50 + Math.max(-50, Math.min(50, cents))) + "%";
+    const ok = Math.abs(cents) <= 5; nd.className = ok ? "in" : "off";
+    $("tn-msg").textContent = ok ? "Stimmt!" : cents < 0 ? "Zu tief" : "Zu hoch";
+    $("tn-msg").style.color = ok ? "var(--ok)" : "var(--accent)";
+  } else { TN.hist = []; $("tn-msg").textContent = "Spiele einen langen Ton."; $("tn-msg").style.color = ""; $("tn-needle").className = ""; }
+  TN.raf = setTimeout(tnLoop, 90);
+}
+async function tnStart() {
+  const a = ctx(); if (!a) return;
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { $("tn-msg").textContent = "Dein Browser erlaubt kein Mikrofon."; return; }
+  try { TN.stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } }); }
+  catch (e) { $("tn-msg").textContent = "Bitte das Mikrofon erlauben."; return; }
+  const src = a.createMediaStreamSource(TN.stream); TN.an = a.createAnalyser(); TN.an.fftSize = 4096; src.connect(TN.an);
+  TN.buf = new Float32Array(TN.an.fftSize); TN.on = true; TN.hist = [];
+  $("tn-start").textContent = "■ Stopp"; $("tn-msg").textContent = "Spiele einen langen Ton."; tnLoop();
+}
+function tnStop() {
+  TN.on = false; clearTimeout(TN.raf);
+  if (TN.stream) { TN.stream.getTracks().forEach(t => t.stop()); TN.stream = null; }
+  $("tn-start").textContent = "🎤 Start"; $("tn-needle").className = ""; $("tn-needle").style.left = "50%";
+}
+$("tn-start").onclick = () => TN.on ? tnStop() : tnStart();
 
 /* Metronom */
 const MT = { bpm: store.get("mt-bpm", 110), meter: store.get("mt-meter", 4), on: false, next: 0, beat: 0, iv: null, taps: [] };
