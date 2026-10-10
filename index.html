@@ -166,13 +166,12 @@ body { padding-top: max(12px, env(safe-area-inset-top)); padding-bottom: max(48p
 </style>
 <style>
 #splash { position: fixed; inset: 0; z-index: 1000; background: #000; display: grid; place-items: center; overflow: hidden; pointer-events: auto; transition: opacity .15s linear }
-#splash img { width: min(72vw, 380px); height: auto; box-shadow: 0 0 0 300vmax #000000; background: transparent; transform-origin: 66.2% 46.3%; transform: scale(.92); opacity: 0; animation: splash-in .5s ease-out forwards }
-#splash.zoom img { opacity: 1; animation: splash-zoom .65s linear forwards }
-@keyframes splash-zoom { 0% { transform: scale(1.00) } 25% { transform: scale(1.40) } 40% { transform: scale(2.37) } 55% { transform: scale(5.11) } 70% { transform: scale(14.05) } 80% { transform: scale(31.56) } 90% { transform: scale(78.95) } 95% { transform: scale(130.03) } 100% { transform: scale(220.00) } }
+#splash img { width: 110px; height: auto; box-shadow: 0 0 0 300vmax #000000; background: transparent; transform-origin: 66.2% 46.3% }
+#splash.zoom img { opacity: 1; animation: splash-zoom .75s linear forwards }
+@keyframes splash-zoom { 0% { transform: scale(1.00) } 25% { transform: scale(1.49) } 40% { transform: scale(2.78) } 55% { transform: scale(6.92) } 70% { transform: scale(22.98) } 80% { transform: scale(59.98) } 90% { transform: scale(177.95) } 95% { transform: scale(321.57) } 100% { transform: scale(600.00) } }
 #splash.zoom { background: transparent }
 #splash.out { opacity: 0 }
-@keyframes splash-in { to { opacity: 1; transform: scale(1) } }
-@media (prefers-reduced-motion: reduce) { #splash img { animation: none; opacity: 1; transform: none } }
+@media (prefers-reduced-motion: reduce) { #splash img { animation: none; transform: none } }
 </style>
 </head>
 <body>
@@ -870,7 +869,7 @@ document.addEventListener("visibilitychange", () => { if (document.hidden) stopA
   let done = false;
   const finish = () => { if (done) return; done = true; sp.classList.add("out"); setTimeout(() => sp.remove(), 200); };
   sp.addEventListener("click", finish);
-  setTimeout(() => { if (done) return; if (reduce) { finish(); return; } sp.classList.add("zoom"); setTimeout(finish, 600); }, 1000);
+  setTimeout(() => { if (done) return; if (reduce) { finish(); return; } sp.classList.add("zoom"); setTimeout(finish, 700); }, 450);
 })();
 if ("serviceWorker" in navigator) { window.addEventListener("load", () => { navigator.serviceWorker.register("sw.js").catch(() => {}); }); }
 </script>
