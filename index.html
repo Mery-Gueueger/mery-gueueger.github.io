@@ -235,7 +235,7 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
     <button class="tile" id="go-tuner"><div><b>Stimmgerät</b><span>Instrument stimmen über das Mikrofon</span></div><i>›</i></button>
     <button class="tile" id="go-theory"><div><b>Musiktheorie</b><span>Notenwerte, Pausen, Zeichen – mit Quiz</span></div><i>›</i></button>
   </div>
-  <p class="ver" id="ver">Version 28</p>
+  <p class="ver" id="ver">Version 29</p>
   <div class="card" id="lt" hidden>
     <b>Startlogo einstellen</b>
     <p class="val"><span id="lt-v">180</span> px</p>
@@ -764,7 +764,7 @@ function openPart() {
   $("sg-title").textContent = cur.song.title; $("sg-crumb").textContent = curPart.name;
   $("showv-l").textContent = ins.kind === "slide" ? "Zugpositionen zeigen" : "Ventilzahlen zeigen";
   const tutti = ins.kind === "tutti";
-  $("m-learn").hidden = tutti; $("showv").parentElement.hidden = tutti && !cur.song.real; $("sound").parentElement.hidden = tutti;
+  $("m-learn").hidden = tutti; $("m-play").parentElement.hidden = tutti; $("showv").parentElement.hidden = tutti && !cur.song.real; $("sound").parentElement.hidden = tutti;
   $("tv-box").hidden = !(tutti && cur.song.real);
   if (tutti && cur.song.real) {
     const opts = cur.song.parts.filter(p => p.instr !== "tutti");
