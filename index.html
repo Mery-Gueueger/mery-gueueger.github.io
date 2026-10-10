@@ -166,7 +166,7 @@ body { padding-top: max(12px, env(safe-area-inset-top)); padding-bottom: max(48p
 </style>
 <style>
 #splash { position: fixed; inset: 0; z-index: 1000; background: #000; display: grid; place-items: center; overflow: hidden; pointer-events: auto; transition: opacity .15s linear }
-#splash img { width: 210px; height: auto; box-shadow: 0 0 0 300vmax #000000; background: transparent; transform-origin: 66.2% 46.3% }
+#splash img { width: 180px; height: auto; box-shadow: 0 0 0 300vmax #000000; background: transparent; transform-origin: 66.2% 46.3% }
 #splash.zoom img { opacity: 1; animation: splash-zoom .75s linear forwards }
 @keyframes splash-zoom { 0% { transform: scale(1.00) } 25% { transform: scale(1.45) } 40% { transform: scale(2.61) } 55% { transform: scale(6.13) } 70% { transform: scale(18.84) } 80% { transform: scale(46.27) } 90% { transform: scale(128.14) } 95% { transform: scale(223.03) } 100% { transform: scale(400.00) } }
 #splash.zoom { background: transparent }
@@ -188,6 +188,11 @@ body.intro .brand img { opacity: 0; transform: translateY(-160px) }
 #lt .ltr { display: flex; gap: 8px; flex-wrap: wrap }
 #lt .ltr button { flex: 1 1 120px; min-height: 48px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--card); color: var(--fg); font: inherit; font-weight: 700; cursor: pointer }
 #lt .ltr button.pri { background: var(--accent); border-color: var(--accent); color: var(--accent-fg) }
+.lock input { width: 100%; font: inherit; font-size: 1.1rem; padding: 12px 14px; border: 2px solid var(--line); border-radius: 12px; background: var(--bg); color: var(--fg) }
+.lock input:focus { outline: none; border-color: var(--accent) }
+.chip:disabled { opacity: .55; cursor: default }
+.src { margin-bottom: 2px }
+.loading { font-size: .9rem; color: var(--muted); min-height: 1.3em; margin: 0 }
 @media (prefers-reduced-motion: reduce) { #splash img { animation: none; transform: none } }
 </style>
 </head>
@@ -207,10 +212,10 @@ body.intro .brand img { opacity: 0; transform: translateY(-160px) }
     <button class="tile" id="go-metro"><div><b>Metronom</b><span>Den Takt halten üben</span></div><i>›</i></button>
     <button class="tile" id="go-theory"><div><b>Musiktheorie</b><span>Notenwerte, Pausen, Zeichen – mit Quiz</span></div><i>›</i></button>
   </div>
-  <p class="ver" id="ver">Version 23</p>
+  <p class="ver" id="ver">Version 24</p>
   <div class="card" id="lt" hidden>
     <b>Startlogo einstellen</b>
-    <p class="val"><span id="lt-v">210</span> px</p>
+    <p class="val"><span id="lt-v">180</span> px</p>
     <input type="range" id="lt-r" min="40" max="320" step="2" aria-label="Grösse des Startlogos">
     <div class="ltr">
       <button type="button" id="lt-m">− 2</button>
@@ -293,7 +298,14 @@ body.intro .brand img { opacity: 0; transform: translateY(-160px) }
 <section id="s-songs" hidden>
   <div class="top"><button class="back" data-go="home">‹ Start</button><span class="crumb" id="sl-crumb">Lieder üben</span></div>
   <h2>Lieder</h2>
-  <p class="muted" style="margin:6px 0 12px">Bisher nur ein Beispiellied. Eure Lieder kommen dazu, sobald die Noten da sind.</p>
+  <div class="card lock" id="lock" style="margin:10px 0 12px" hidden>
+    <b>Gugge-Lieder freischalten</b>
+    <p class="small muted" style="margin:0">Unsere Lieder sind nur für Mitglieder. Gib das Gugge-Passwort einmal ein, danach merkt sich dein Handy das.</p>
+    <input type="password" id="pw" autocomplete="current-password" placeholder="Gugge-Passwort" aria-label="Gugge-Passwort">
+    <button class="main" id="pw-go">Freischalten</button>
+    <p class="err" id="pw-err" aria-live="polite"></p>
+  </div>
+  <p class="loading" id="sl-load"></p>
   <div class="list" id="songlist"></div>
 </section>
 
@@ -312,13 +324,22 @@ body.intro .brand img { opacity: 0; transform: translateY(-160px) }
   </div>
 
   <div id="p-play" class="card" style="margin-top:10px">
+    <div class="src" id="src-box" hidden>
+      <p class="label" style="margin:0 0 6px">Was soll klingen?</p>
+      <div class="modes" id="src" role="group" aria-label="Klang">
+        <button type="button" data-src="mine" aria-pressed="true">Meine Stimme</button>
+        <button type="button" data-src="tutti" aria-pressed="false">Alle (Tutti)</button>
+        <button type="button" data-src="synth" aria-pressed="false">Computer</button>
+      </div>
+      <p class="loading" id="src-load"></p>
+    </div>
     <div class="ctrl">
       <button class="main" id="play">▶ Abspielen</button>
       <button class="ghost" id="stop">■ Stopp</button>
     </div>
     <div class="ctrl">
       <label class="switch"><input type="checkbox" id="showv" checked> <span id="showv-l">Ventilzahlen zeigen</span></label>
-      <label class="switch"><input type="checkbox" id="sound" checked> Töne vorspielen</label>
+      <label class="switch" id="sound-l"><input type="checkbox" id="sound" checked> Töne vorspielen</label>
     </div>
     <div class="tempo"><span class="small muted">Tempo</span><input type="range" id="tempo" min="40" max="120" step="5" value="100" aria-label="Tempo in Prozent"><output id="tempo-o">100 %</output></div>
     <div class="loopbox">
@@ -466,6 +487,56 @@ LESSONS[4].q = [
   { t: "Was ist eine Zahl in einem Kreis über dem Takt?", o: ["Tempoangabe", "Studierzeichen: eine Stelle zum Einsetzen", "Anzahl Wiederholungen", "Lautstärke"], a: 1, e: "Studierzeichen markieren Stellen, damit alle am gleichen Ort einsetzen." }
 ];
 
+/* ---------- Gugge-Lieder (verschlüsselt, nur mit Passwort) ---------- */
+const GUGGE = { key: null, ok: false, busy: false };
+const VOICE_NAMES = { trp1: "Trompete 1", trp2: "Trompete 2", pos1: "Posaune 1", pos2: "Posaune 2", eup: "Euphi", sou: "Susi" };
+const b64e = u8 => btoa(String.fromCharCode(...u8));
+const b64d = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+async function decryptWith(key, buf) { return crypto.subtle.decrypt({ name: "AES-GCM", iv: new Uint8Array(buf, 0, 12) }, key, new Uint8Array(buf, 12)); }
+function prepSong(s) {
+  const T = { trp: -2, pos: -14, eup: -14, sou: -26 };
+  s.real = true;
+  s.parts.forEach(p => { p.transpose = T[p.instr]; });
+  const mel = s.parts.find(p => p.id === "trp1") || s.parts.find(p => p.id === "eup") || s.parts[0];
+  s.parts.push({ id: "tutti", instr: "tutti", name: "Tutti", sub: "Die ganze Gugge", abc: mel.abc, fing: mel.fing, melody: mel.name });
+  s.missing = Object.keys(s.audio).filter(k => k !== "tutti" && !s.parts.some(p => p.id === k)).map(k => VOICE_NAMES[k] || k);
+  return s;
+}
+async function guggeOpen(raw) {
+  const key = await crypto.subtle.importKey("raw", raw, "AES-GCM", false, ["decrypt"]);
+  const r = await fetch("daten/lieder.bin", { cache: "no-cache" });
+  if (!r.ok) throw new Error("net");
+  const plain = await decryptWith(key, await r.arrayBuffer());
+  const list = JSON.parse(new TextDecoder().decode(plain));
+  GUGGE.key = key; GUGGE.ok = true;
+  for (let i = SONGS.length - 1; i >= 0; i--) if (SONGS[i].real) SONGS.splice(i, 1);
+  SONGS.unshift(...list.map(prepSong));
+}
+async function guggeStored() {
+  const raw = store.get("gk", null); if (!raw || !window.crypto || !crypto.subtle) return;
+  GUGGE.busy = true;
+  try { await guggeOpen(b64d(raw)); }
+  catch (e) { if (e && e.name === "OperationError") store.set("gk", null); }
+  GUGGE.busy = false;
+  if (!$("s-songs").hidden) renderSongs();
+}
+async function guggeUnlock() {
+  const pw = $("pw").value; if (!pw) { $("pw-err").textContent = "Bitte das Passwort eingeben."; return; }
+  if (!window.crypto || !crypto.subtle) { $("pw-err").textContent = "Dein Browser kann die Lieder nicht entschlüsseln."; return; }
+  $("pw-go").disabled = true; $("pw-err").textContent = ""; $("sl-load").textContent = "Wird geprüft …";
+  try {
+    const meta = await (await fetch("daten/schluessel.json", { cache: "no-cache" })).json();
+    const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(pw.normalize("NFC")), "PBKDF2", false, ["deriveBits"]);
+    const raw = new Uint8Array(await crypto.subtle.deriveBits({ name: "PBKDF2", salt: b64d(meta.salt), iterations: meta.iter, hash: "SHA-256" }, base, 256));
+    await guggeOpen(raw);
+    store.set("gk", b64e(raw)); $("pw").value = "";
+  } catch (e) {
+    $("pw-err").textContent = e && e.name === "OperationError" ? "Das Passwort stimmt nicht. Achte auf Gross- und Kleinschreibung." : "Keine Verbindung. Versuche es mit Internet nochmals.";
+  }
+  $("pw-go").disabled = false; $("sl-load").textContent = "";
+  renderSongs();
+}
+
 /* ---------- Hilfen ---------- */
 const $ = id => document.getElementById(id);
 const store = { get(k, d) { try { const v = localStorage.getItem("mg-" + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -521,8 +592,10 @@ function renderInstr() {
   const last = store.get("part-" + cur.song.id, null);
   $("instr").innerHTML = "";
   cur.song.parts.forEach(pt => { const ins = INSTR.find(i => i.id === pt.instr); const b = document.createElement("button"); b.type = "button"; b.className = "chip"; b.setAttribute("aria-pressed", pt.id === last);
-    b.innerHTML = `${pt.name}<small>${ins.sub}${pt.id === last ? " · zuletzt gespielt" : ""}</small>`;
+    b.innerHTML = `${pt.name}<small>${pt.sub || ins.sub}${pt.id === last ? " · zuletzt gespielt" : ""}</small>`;
     b.onclick = () => { curPart = pt; store.set("part-" + cur.song.id, pt.id); openPart(); }; $("instr").appendChild(b); });
+  (cur.song.missing || []).forEach(n => { const b = document.createElement("button"); b.type = "button"; b.className = "chip"; b.disabled = true;
+    b.innerHTML = `${n}<small>Noten fehlen noch, nur die Aufnahme ist da</small>`; $("instr").appendChild(b); });
 }
 $("go-theory").onclick = () => go("theory");
 $("go-metro").onclick = () => go("metro");
@@ -592,9 +665,12 @@ $("q-next").onclick = () => {
 
 /* ---------- Lieder ---------- */
 function renderSongs() {
+  $("lock").hidden = GUGGE.ok || GUGGE.busy;
+  $("sl-load").textContent = GUGGE.busy ? "Lieder werden geladen …" : "";
   $("songlist").innerHTML = "";
   SONGS.forEach((s, i) => { const b = document.createElement("button"); b.className = "row"; b.type = "button";
-    b.innerHTML = `<span class="num">${i + 1}</span><span class="txt"><b>${s.title}</b><small>${s.sub}</small></span><span class="num">›</span>`;
+    const sub = s.real ? `${s.sub} · ${s.parts.filter(p => p.instr !== "tutti").length} Stimmen mit Noten` : s.sub;
+    b.innerHTML = `<span class="num">${i + 1}</span><span class="txt"><b>${s.title}</b><small>${sub}</small></span><span class="num">›</span>`;
     b.onclick = () => { cur.song = SONGS[i]; go("instr"); }; $("songlist").appendChild(b); });
 }
 const LET = ["C","D","E","F","G","A","B"], SEMI = [0,2,4,5,7,9,11];
@@ -618,7 +694,7 @@ function notePitches(tune, key, bass) {
   return out;
 }
 const fingOf = (midi) => instrObj().kind === "slide" ? (SLIDE[midi] || "?") : (VALVE[midi] || "?");
-function partAbc() { return curPart.abc; }
+function partAbc() { return curPart.abc.replace(/\n[TQ]:[^\n]*/g, ""); }
 
 function openPart() {
   const ins = instrObj();
@@ -627,21 +703,27 @@ function openPart() {
   const tutti = ins.kind === "tutti";
   $("m-learn").hidden = tutti; $("showv").parentElement.hidden = tutti; $("sound").parentElement.hidden = tutti;
   $("tutti-hint").hidden = !tutti;
-  go("song"); setMode(tutti ? "play" : store.get("mode", "play"));
+  $("tutti-hint").textContent = cur.song.real ? `Die ganze Gugge zusammen. Die Noten oben zeigen die Melodie (${curPart.melody}).` : "Alle Stimmen zusammen mit Schlagzeug (Drum-and-Bass-Beat). Die Noten oben zeigen die Melodie (Trompete 1. Stimme).";
+  go("song"); srcUI(); setMode(tutti ? "play" : store.get("mode", "play"));
 }
+// Griffe aus den Noten-Daten (wie in den Noten der Gugge): "12" -> "1+2", Doppelgriff "12/1"
+const fmtF = f => f.split("/").map(x => x.length > 1 && instrObj().kind !== "slide" ? x.split("").join("+") : x).join("/");
 function buildAbc(withLabels) {
   const base = partAbc(); const key = keyOf(base), bass = bassClef(base);
   const tune = ABCJS.parseOnly(base)[0];
   const ps = notePitches(tune, key, bass);
-  cur.labels = ps.map(n => fingOf(Math.max(...n.mids)));
-  let abc = base.replace("\nK:", "\n%%vocalfont Helvetica 12 bold\n%%barnumbers 1\nK:");
-  if (withLabels) abc += "\nw: " + cur.labels.join(" ");
+  cur.labels = curPart.fing && curPart.fing.length === ps.length ? curPart.fing.map(fmtF) : ps.map(n => fingOf(Math.max(...n.mids)));
+  const real = cur.song && cur.song.real;
+  let abc = base.replace("\nK:", "\n%%vocalfont Helvetica " + (real ? 11 : 12) + " bold\n%%barnumbers 1" + (real ? "\n%%stretchlast 1" : "") + "\nK:");
+  // Eure Lieder: Griffe so kurz wie in euren Noten (12 statt 1+2)
+  const disp = real && curPart.fing && curPart.fing.length === ps.length ? curPart.fing : cur.labels;
+  if (withLabels) abc += "\nw: " + disp.map(l => l || "*").join(" ");
   return abc;
 }
 function renderScore() {
   const showLabels = cur.mode === "play" && $("showv").checked && instrObj().kind !== "tutti";
   const abc = buildAbc(showLabels);
-  const tune = ABCJS.renderAbc("paper", abc, { add_classes: true, scale: 1.5, staffwidth: Math.max(520, cur.labels.length * (showLabels ? 62 : 44) + 140),
+  const tune = ABCJS.renderAbc("paper", abc, { add_classes: true, scale: 1.5, staffwidth: Math.max(520, cur.labels.length * (showLabels ? (cur.song.real ? 68 : 62) : (cur.song.real ? 40 : 44)) + 140),
     foregroundColor: fgColor(), paddingleft: 6, paddingright: 16, paddingbottom: 8,
     clickListener: (el) => { if (cur.mode === "play") hint(el); } })[0];
   cur.tune = tune;
@@ -717,14 +799,16 @@ function meterBeats(abc) { const m = abc.match(/\nM:\s*([^\n]+)/); const v = m ?
 function preparePlayer() {
   const ins = instrObj(), tutti = ins.kind === "tutti";
   P.barBeats = meterBeats(curPart.abc);
-  const main = { events: eventsOf(cur.tune), transpose: tutti ? -2 : ins.transpose, vol: tutti ? 0.16 : 0.22, cursor: true, idx: 0, solo: !tutti };
+  const main = { events: eventsOf(cur.tune), transpose: tutti ? (cur.song.real ? -2 : -2) : (curPart.transpose ?? ins.transpose), vol: tutti ? 0.16 : 0.22, cursor: true, idx: 0, solo: !tutti };
+  if (tutti && cur.song.real) { const mel = cur.song.parts.find(p => p.name === curPart.melody); if (mel) main.transpose = mel.transpose; }
   P.tracks = [main];
-  if (tutti) cur.song.parts.filter(pt => pt.instr !== "tutti" && pt.id !== "trp1").forEach(pt => {
+  const melId = cur.song.real ? (cur.song.parts.find(p => p.name === curPart.melody) || {}).id : "trp1";
+  if (tutti) cur.song.parts.filter(pt => pt.instr !== "tutti" && pt.id !== melId).forEach(pt => {
     const pins = INSTR.find(i => i.id === pt.instr);
     let hid = document.getElementById("hid-" + pt.id);
     if (!hid) { hid = document.createElement("div"); hid.id = "hid-" + pt.id; hid.style.cssText = "position:absolute;left:-9999px;top:0;width:600px;visibility:hidden"; document.body.appendChild(hid); }
     const t = ABCJS.renderAbc(hid, pt.abc, {})[0];
-    P.tracks.push({ events: eventsOf(t), transpose: pins.transpose, vol: { trp: 0.12, pos: 0.2, eup: 0.15, sou: 0.24 }[pt.instr] || 0.14, cursor: false, idx: 0 });
+    P.tracks.push({ events: eventsOf(t), transpose: pt.transpose ?? pins.transpose, vol: { trp: 0.12, pos: 0.2, eup: 0.15, sou: 0.24 }[pt.instr] || 0.14, cursor: false, idx: 0 });
   });
   const ev = main.events, lastE = ev[ev.length - 1];
   P.end = lastE ? Math.ceil((lastE.b + Math.max(...lastE.pitches.map(x => x.d), 1)) / P.barBeats) * P.barBeats : 0;
@@ -773,7 +857,7 @@ function tick() {
       if (!t.solo || $("sound").checked) e.pitches.forEach(x => tone(x.p + t.transpose, Math.max(0.08, x.d * spb * 0.9), t.vol, null, when));
     }
   });
-  if (tutti) while (P.step / 4 < limit) { drumStep(P.step, Math.max(a.currentTime, at(P.step / 4))); P.step++; }
+  if (tutti && !cur.song.real) while (P.step / 4 < limit) { drumStep(P.step, Math.max(a.currentTime, at(P.step / 4))); P.step++; }
   // Schleife: am Ende des Bereichs nahtlos zum Anfang springen
   if (lr && horizon >= lr[1]) {
     const tEnd = at(lr[1]); P.aPos = lr[0]; P.aT = tEnd;
@@ -782,20 +866,24 @@ function tick() {
   }
 }
 function stopAll(reset) {
-  if (playing && actx && P.aT && actx.currentTime >= P.aT) P.pos = curPos(actx);
+  if (R.on) { R.on = false; cancelAnimationFrame(R.raf); const b = bOf(R.el.currentTime); R.el.pause(); if (b > 0) P.pos = b; }
+  else if (playing && actx && P.aT && actx.currentTime >= P.aT) P.pos = curPos(actx);
   playing = false; if (P.iv) { clearInterval(P.iv); P.iv = null; }
   mark(lastEls, false); lastEls = [];
   if (reset) { P.pos = 0; if ($("scroller")) $("scroller").scrollLeft = 0; }
   if ($("play")) $("play").textContent = P.pos > 0 ? "▶ Weiter" : "▶ Abspielen";
 }
 $("stop").onclick = () => stopAll(true);
-$("tempo").oninput = () => { $("tempo-o").textContent = $("tempo").value + " %"; };
+$("tempo").oninput = () => { $("tempo-o").textContent = $("tempo").value + " %"; if (R.on) R.el.playbackRate = $("tempo").value / 100; };
 ["loop", "lp-a", "lp-b"].forEach(id => $(id).addEventListener("change", () => {
-  const lr = loopRange(); if (!playing || !lr || !actx) return;
+  const lr = loopRange(); if (!playing || !lr) return;
+  if (R.on) { const b = bOf(R.el.currentTime); if (b < lr[0] || b >= lr[1]) { R.el.currentTime = tOf(lr[0]); seek(lr[0]); } return; }
+  if (!actx) return;
   const pos = curPos(actx); if (pos < lr[0] || pos >= lr[1]) { seek(lr[0]); P.aPos = lr[0]; P.aT = actx.currentTime + 0.05; }
 }));
 $("play").onclick = async () => {
   if (playing) { stopAll(false); return; }
+  if (recKey()) { playRec(); return; }
   const a = ctx(); if (!a) return;
   try { if (a.state !== "running") await a.resume(); } catch (e) {}
   if (!P.tracks.length) preparePlayer();
@@ -809,6 +897,77 @@ $("play").onclick = async () => {
   P.aPos = P.pos;
   playing = true; $("play").textContent = "❚❚ Pause"; P.iv = setInterval(tick, 25); tick();
 };
+
+/* Aufnahmen (verschlüsselt geladen, Tempo ohne Tonhöhenänderung) */
+let SRC = store.get("src", "mine");
+const AUD = {};
+const R = { el: new Audio(), on: false, raf: 0, clicks: [] };
+R.el.preload = "auto"; R.el.preservesPitch = true; R.el.mozPreservesPitch = true; R.el.webkitPreservesPitch = true;
+const spbSong = () => 60 / cur.song.qpm;
+const tOf = b => cur.song.offset + b * spbSong();
+const bOf = t => (t - cur.song.offset) / spbSong();
+function ownAudio() { return cur.song && cur.song.real && instrObj().kind !== "tutti" && !!cur.song.audio[curPart.id]; }
+function recKey() {
+  if (!cur.song || !cur.song.real || SRC === "synth" || !GUGGE.key) return null;
+  if (SRC === "mine" && ownAudio()) return curPart.id;
+  return cur.song.audio.tutti ? "tutti" : null;
+}
+function srcUI() {
+  const real = !!(cur.song && cur.song.real);
+  $("src-box").hidden = !real;
+  const tutti = instrObj().kind === "tutti";
+  const mine = $("src").querySelector('[data-src="mine"]');
+  mine.hidden = tutti; mine.disabled = !ownAudio();
+  let s = SRC; if (tutti && s === "mine") s = "tutti"; if (s === "mine" && !ownAudio()) s = "tutti";
+  [...$("src").children].forEach(b => b.setAttribute("aria-pressed", b.dataset.src === s));
+  const rk = recKey();
+  $("sound-l").hidden = real && !!rk;
+  $("src-load").textContent = real && !tutti && !ownAudio() && SRC !== "synth" ? "Für diese Stimme gibt es keine eigene Aufnahme. Es spielt die ganze Gugge." : "";
+  if (rk) loadAudio(rk).catch(() => {});
+}
+$("src").querySelectorAll("button").forEach(b => b.onclick = () => { stopAll(true); SRC = b.dataset.src; store.set("src", SRC); srcUI(); });
+async function loadAudio(pid) {
+  const k = cur.song.id + "/" + pid; if (AUD[k]) return AUD[k];
+  if (!AUD["p" + k]) AUD["p" + k] = (async () => {
+    const r = await fetch("daten/" + cur.song.audio[pid]); if (!r.ok) throw new Error("net");
+    const plain = await decryptWith(GUGGE.key, await r.arrayBuffer());
+    return AUD[k] = URL.createObjectURL(new Blob([plain], { type: "audio/mpeg" }));
+  })().catch(e => { delete AUD["p" + k]; throw e; });
+  return AUD["p" + k];
+}
+async function playRec() {
+  const pid = recKey(); let url;
+  if (!AUD[cur.song.id + "/" + pid]) $("src-load").textContent = "Aufnahme wird geladen …";
+  try { url = await loadAudio(pid); } catch (e) { $("src-load").textContent = "Die Aufnahme konnte nicht geladen werden. Prüfe die Internetverbindung."; return; }
+  $("src-load").textContent = "";
+  ctx();
+  if (!P.tracks.length) preparePlayer();
+  const lr = loopRange(); let start = P.pos, preroll = false;
+  if (P.pos <= 0 || (lr && (P.pos < lr[0] || P.pos >= lr[1]))) { start = lr ? lr[0] : 0; preroll = true; }
+  seek(start);
+  const el = R.el;
+  if (el.dataset.k !== url) { el.dataset.k = url; el.src = url; await new Promise(res => { el.addEventListener("loadedmetadata", res, { once: true }); el.load(); }); }
+  el.playbackRate = $("tempo").value / 100;
+  el.currentTime = preroll ? Math.max(0, tOf(start - P.barBeats)) : tOf(start);
+  R.clicks = preroll ? Array.from({ length: P.barBeats }, (_, i) => ({ b: start - P.barBeats + i, acc: i === 0 })) : [];
+  try { await el.play(); } catch (e) { $("src-load").textContent = "Tippe nochmals auf Abspielen."; return; }
+  playing = true; R.on = true; $("play").textContent = "❚❚ Pause"; R.raf = requestAnimationFrame(recTick);
+}
+function recTick() {
+  if (!R.on) return;
+  const el = R.el, b = bOf(el.currentTime);
+  while (R.clicks.length && b >= R.clicks[0].b - 0.03) { const c = R.clicks.shift(); if (b - c.b < 0.3) click(c.acc); }
+  const lr = loopRange();
+  if (lr && b >= lr[1]) { el.currentTime = tOf(lr[0]); seek(lr[0]); }
+  else if (!lr && (b >= P.end || el.ended)) { stopAll(true); return; }
+  else if (b >= -0.01) {
+    const t = P.tracks[0];
+    if (t.idx > 0 && t.events[t.idx - 1].b > b + 0.05) seek(b);
+    let els = null; while (t.idx < t.events.length && t.events[t.idx].b <= b + 0.02) { els = t.events[t.idx].els; t.idx++; }
+    if (els) { mark(lastEls, false); lastEls = els; mark(lastEls, true); scrollToEl(lastEls[0]); }
+  }
+  R.raf = requestAnimationFrame(recTick);
+}
 
 /* Metronom */
 const MT = { bpm: store.get("mt-bpm", 110), meter: store.get("mt-meter", 4), on: false, next: 0, beat: 0, iv: null, taps: [] };
@@ -844,7 +1003,8 @@ let LN = { list: [], i: 0, err: 0, sel: new Set(), pos: null, wrongOnce: false }
 function startLearn() {
   const base = partAbc(); const tune = ABCJS.parseOnly(base)[0];
   const ps = notePitches(tune, keyOf(base), bassClef(base));
-  LN = { list: ps.map((n, k) => ({ fing: fingOf(Math.max(...n.mids)), el: cur.notes[k] })), i: 0, err: 0, sel: new Set(), pos: null, wrongOnce: false };
+  const labs = cur.labels && cur.labels.length === ps.length ? cur.labels : ps.map(n => fingOf(Math.max(...n.mids)));
+  LN = { list: ps.map((n, k) => ({ fing: (labs[k] || "").split("/")[0], el: cur.notes[k] })).filter(x => x.fing), i: 0, err: 0, sel: new Set(), pos: null, wrongOnce: false };
   $("ln-tot").textContent = LN.list.length; $("ln-err").textContent = 0;
   const ins = instrObj();
   $("ln-help").textContent = ins.kind === "slide" ? "Wähle die Zugposition für die rote Note und tippe auf Prüfen." : "Drücke die Ventile für die rote Note (antippen = drücken, nochmals = loslassen). Bei 0 drückst du keines. Dann Prüfen.";
@@ -895,13 +1055,16 @@ $("ln-check").onclick = () => {
 $("ln-restart").onclick = () => startLearn();
 
 /* ---------- Start ---------- */
+$("pw-go").onclick = guggeUnlock;
+$("pw").addEventListener("keydown", e => { if (e.key === "Enter") guggeUnlock(); });
+guggeStored();
 renderInstr();
 function boot() { if (!window.ABCJS) { setTimeout(boot, 100); return; } }
 boot();
 document.addEventListener("visibilitychange", () => { if (document.hidden) stopAll(); });
 </script>
 <script>
-const SPLASH_W = 210;
+const SPLASH_W = 180;
 const splashW = () => { try { const v = +localStorage.getItem("mg-splashw"); return v >= 40 && v <= 400 ? v : SPLASH_W; } catch (e) { return SPLASH_W; } };
 function runSplash(sp, w) {
   if (!sp) return;
