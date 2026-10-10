@@ -171,6 +171,16 @@ body { padding-top: max(12px, env(safe-area-inset-top)); padding-bottom: max(48p
 @keyframes splash-zoom { 0% { transform: scale(1.00) } 25% { transform: scale(1.45) } 40% { transform: scale(2.61) } 55% { transform: scale(6.13) } 70% { transform: scale(18.84) } 80% { transform: scale(46.27) } 90% { transform: scale(128.14) } 95% { transform: scale(223.03) } 100% { transform: scale(400.00) } }
 #splash.zoom { background: transparent }
 #splash.out { opacity: 0 }
+body.intro .brand img { opacity: 0; transform: translateY(-160px) }
+.brand img.drop { animation: logo-drop .7s linear both }
+@keyframes logo-drop {
+  0% { opacity: 1; transform: translateY(-160px); animation-timing-function: cubic-bezier(.5,0,1,1) }
+  55% { transform: translateY(0); animation-timing-function: cubic-bezier(0,0,.5,1) }
+  70% { transform: translateY(-16px); animation-timing-function: cubic-bezier(.5,0,1,1) }
+  83% { transform: translateY(0); animation-timing-function: cubic-bezier(0,0,.5,1) }
+  91% { transform: translateY(-4px); animation-timing-function: cubic-bezier(.5,0,1,1) }
+  100% { opacity: 1; transform: translateY(0) }
+}
 @media (prefers-reduced-motion: reduce) { #splash img { animation: none; transform: none } }
 </style>
 </head>
@@ -866,8 +876,11 @@ document.addEventListener("visibilitychange", () => { if (document.hidden) stopA
 (function () {
   const sp = document.getElementById("splash"); if (!sp) return;
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const lg = document.querySelector(".brand img");
+  if (!reduce) document.body.classList.add("intro");
   let done = false;
-  const finish = () => { if (done) return; done = true; sp.classList.add("out"); setTimeout(() => sp.remove(), 200); };
+  const drop = () => { document.body.classList.remove("intro"); if (!reduce && lg) { lg.classList.add("drop"); lg.addEventListener("animationend", () => lg.classList.remove("drop"), { once: true }); } };
+  const finish = () => { if (done) return; done = true; sp.classList.add("out"); setTimeout(drop, 60); setTimeout(() => sp.remove(), 200); };
   sp.addEventListener("click", finish);
   setTimeout(() => { if (done) return; if (reduce) { finish(); return; } sp.classList.add("zoom"); setTimeout(finish, 700); }, 450);
 })();
