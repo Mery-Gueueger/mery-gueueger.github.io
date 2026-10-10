@@ -14,7 +14,7 @@ SONGS = [
                 ("pos2", "pos", "Posaune 2", "itd/scores/ms341 In Too Deep NUM - Bb Trombon 2.pdf", "itd/audio/05 ms341 In Too Deep - Trombon 2.mp3"),
                 ("eup", "eup", "Euphi", "itd/scores/ms341 In Too Deep NUM - Bb Euphonium.pdf", "itd/audio/06 ms341 In Too Deep - Euphonium.mp3"),
                 ("sou", "sou", "Susi", "itd/scores/ms341 In Too Deep NUM - Bb Tuba.pdf", None)],
-         tutti="itd/audio/01 ms341 In Too Deep - Tutti.mp3", marks={}),
+         tutti="itd/audio/01 ms341 In Too Deep - Tutti.mp3", drums="itd/audio/08 ms341 In Too Deep - Drums.mp3", marks={}),
     dict(id="wanegbt", title="We Are Never Ever Getting Back Together", sub="Taylor Swift", qpm=172, key="A", offset=0.04 + 8 * 60 / 172,
          parts=[("trp1", "trp", "Trompete 1", "wa/we-are-never-ever-getting-back-together-trompete-1.pdf", "wa/We Are Never Ever Getting Back Together-trompete-1.mp3"),
                 ("trp2", "trp", "Trompete 2", "wa/we-are-never-ever-getting-back-together-trompete-2.pdf", "wa/We Are Never Ever Getting Back Together-trompete-2.mp3"),
@@ -22,7 +22,7 @@ SONGS = [
                 ("pos2", "pos", "Posaune 2", "wa/we-are-never-ever-getting-back-together-posaune-2.pdf", "wa/We Are Never Ever Getting Back Together-posaune-2.mp3"),
                 ("eup", "eup", "Euphi", "wa/we-are-never-ever-getting-back-together-euphonium.pdf", "wa/We Are Never Ever Getting Back Together-euphonium.mp3"),
                 ("sou", "sou", "Susi", "wa/we-are-never-ever-getting-back-together-sousaphon.pdf", "wa/We Are Never Ever Getting Back Together-sousaphon.mp3")],
-         tutti="wa/We Are Never Ever Getting Back-tutti.mp3", marks={}),
+         tutti="wa/We Are Never Ever Getting Back-tutti.mp3", drums="wa/We Are Never Ever Getting Back Together-drms-all.mp3", marks={}),
     dict(id="sowk", title="Somewhere Only We Know", sub="Keane", qpm=86, key="G", offset=0.725 + 8 * 60 / 86,
          parts=[("trp1", "trp", "Trompete 1", None, "sowk/audio/Somewhere Only We Know - Trumpet 1.mp3"),
                 ("trp2", "trp", "Trompete 2", None, "sowk/audio/Somewhere Only We Know - Trumpet 2.mp3"),
@@ -30,7 +30,7 @@ SONGS = [
                 ("pos2", "pos", "Posaune 2", "sowk/scores/Somewhere Only We Know NUM - Bb Trombon 2.pdf", "sowk/audio/Somewhere Only We Know - Trombon 2.mp3"),
                 ("eup", "eup", "Euphi", "sowk/scores/Somewhere Only We Know NUM - Bb Euphonium.pdf", "sowk/audio/Somewhere Only We Know - Euphonium.mp3"),
                 ("sou", "sou", "Susi", None, "sowk/audio/Somewhere Only We Know - Tuba.mp3")],
-         tutti="sowk/audio/Somewhere Only We Know - Tutti.mp3",
+         tutti="sowk/audio/Somewhere Only We Know - Tutti.mp3", drums="sowk/audio/Somewhere Only We Know - Drums.mp3",
          # Wiederholung Takt 33-52, 1. Klammer 47-52, 2. Klammer ab 53 (Taktindex 0-basiert)
          marks={32: dict(pre="|:"), 46: dict(volta="[1"), 51: dict(post=":|"), 52: dict(volta="[2")}),
 ]
@@ -103,6 +103,8 @@ def run():
                     report.append((s["title"], name, x))
         if s.get("tutti"):
             song["audio"]["tutti"] = s["tutti"]
+        if s.get("drums") and os.path.getsize(SRC + s["drums"]) > 0:
+            song["audio"]["drums"] = s["drums"]
         out.append(song)
     return out, report
 

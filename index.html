@@ -235,7 +235,7 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
     <button class="tile" id="go-tuner"><div><b>Stimmgerät</b><span>Instrument stimmen über das Mikrofon</span></div><i>›</i></button>
     <button class="tile" id="go-theory"><div><b>Musiktheorie</b><span>Notenwerte, Pausen, Zeichen – mit Quiz</span></div><i>›</i></button>
   </div>
-  <p class="ver" id="ver">Version 29</p>
+  <p class="ver" id="ver">Version 30</p>
   <div class="card" id="lt" hidden>
     <b>Startlogo einstellen</b>
     <p class="val"><span id="lt-v">180</span> px</p>
@@ -431,7 +431,8 @@ const INSTR = [
   { id: "pos", name: "Posaune", sub: "Zugpositionen 1–7", kind: "slide", transpose: 0 },
   { id: "eup", name: "Euphi", sub: "Ventile 1–3", kind: "valve", transpose: -14 },
   { id: "sou", name: "Susi", sub: "Ventile 1–3", kind: "valve", transpose: -26 },
-  { id: "tutti", name: "Tutti", sub: "Alle Stimmen mit Schlagzeug", kind: "tutti", transpose: 0 }
+  { id: "tutti", name: "Tutti", sub: "Alle Stimmen mit Schlagzeug", kind: "tutti", transpose: 0 },
+  { id: "drums", name: "Schlagzeug & Pauken", sub: "Aufnahme vom Schlagzeug", kind: "tutti", transpose: 0 }
 ];
 // Griffe für B-Instrumente im Violinschlüssel (geschriebene Tonhöhe, MIDI)
 const VALVE = {52:"1+2+3",53:"1+3",54:"1+2+3",55:"1+3",56:"2+3",57:"1+2",58:"1",59:"2",60:"0",61:"1+2+3",62:"1+3",63:"2+3",64:"1+2",65:"1",66:"2",67:"0",68:"2+3",69:"1+2",70:"1",71:"2",72:"0",73:"1+2",74:"1",75:"2",76:"0",77:"1",78:"2",79:"0",80:"2+3",81:"1+2",82:"1",83:"2",84:"0"};
@@ -547,7 +548,9 @@ function prepSong(s) {
   s.parts.forEach(p => { p.transpose = T[p.instr]; });
   const mel = s.parts.find(p => p.id === "trp1") || s.parts.find(p => p.id === "eup") || s.parts[0];
   s.parts.push({ id: "tutti", instr: "tutti", name: "Tutti", sub: "Die ganze Gugge", abc: mel.abc, fing: mel.fing, melody: mel.name });
-  s.missing = Object.keys(s.audio).filter(k => k !== "tutti" && !s.parts.some(p => p.id === k)).map(k => VOICE_NAMES[k] || k);
+  if (s.audio.drums) s.parts.push({ id: "drums", instr: "drums", name: "Schlagzeug & Pauken", sub: "Aufnahme vom Schlagzeug, eigene Noten gibt es noch keine", abc: mel.abc, fing: mel.fing, melody: mel.name });
+  s.missing = Object.keys(s.audio).filter(k => k !== "tutti" && k !== "drums" && !s.parts.some(p => p.id === k)).map(k => VOICE_NAMES[k] || k);
+  if (!s.audio.drums) s.missing.push("Schlagzeug & Pauken|Aufnahme fehlt noch");
   return s;
 }
 async function guggeOpen(raw) {
@@ -656,7 +659,8 @@ function renderInstr() {
     b.innerHTML = `${pt.name}<small>${pt.sub || ins.sub}${pt.id === last ? " · zuletzt gespielt" : ""}</small>`;
     b.onclick = () => { curPart = pt; store.set("part-" + cur.song.id, pt.id); openPart(); }; $("instr").appendChild(b); });
   (cur.song.missing || []).forEach(n => { const b = document.createElement("button"); b.type = "button"; b.className = "chip"; b.disabled = true;
-    b.innerHTML = `${n}<small>Noten fehlen noch, nur die Aufnahme ist da</small>`; $("instr").appendChild(b); });
+    const [nm, why] = n.split("|");
+    b.innerHTML = `${nm}<small>${why || "Noten fehlen noch, nur die Aufnahme ist da"}</small>`; $("instr").appendChild(b); });
 }
 $("go-theory").onclick = () => go("theory");
 $("go-metro").onclick = () => go("metro");
@@ -772,7 +776,7 @@ function openPart() {
     const keep = store.get("tv-" + cur.song.id, null); setTuttiVoice(opts.find(p => p.id === keep) ? keep : opts[0].id, false);
   }
   $("tutti-hint").hidden = !tutti;
-  $("tutti-hint").textContent = cur.song.real ? `Die ganze Gugge zusammen. Die Noten oben zeigen ${curPart.melody}.` : "Alle Stimmen zusammen mit Schlagzeug (Drum-and-Bass-Beat). Die Noten oben zeigen die Melodie (Trompete 1. Stimme).";
+  if (!cur.song.real) $("tutti-hint").textContent = "Alle Stimmen zusammen mit Schlagzeug (Drum-and-Bass-Beat). Die Noten oben zeigen die Melodie (Trompete 1. Stimme).";
   go("song"); srcUI(); setMode(tutti ? "play" : store.get("mode", "play"));
   showOrig();
 }
@@ -979,7 +983,7 @@ R.el.preload = "auto"; R.el.preservesPitch = true; R.el.mozPreservesPitch = true
 const spbSong = () => 60 / cur.song.qpm;
 const tOf = b => cur.song.offset + b * spbSong();
 const bOf = t => (t - cur.song.offset) / spbSong();
-function ownAudio() { return cur.song && cur.song.real && instrObj().kind !== "tutti" && !!cur.song.audio[curPart.id]; }
+function ownAudio() { return cur.song && cur.song.real && curPart.id !== "tutti" && !!cur.song.audio[curPart.id]; }
 function recKey() {
   if (!cur.song || !cur.song.real || SRC === "synth" || !GUGGE.key) return null;
   if (SRC === "mine" && ownAudio()) return curPart.id;
@@ -990,8 +994,9 @@ function srcUI() {
   $("src-box").hidden = !real;
   const tutti = instrObj().kind === "tutti";
   const mine = $("src").querySelector('[data-src="mine"]');
-  mine.hidden = tutti; mine.disabled = !ownAudio();
-  let s = SRC; if (tutti && s === "mine") s = "tutti"; if (s === "mine" && !ownAudio()) s = "tutti";
+  const isT = curPart.id === "tutti";
+  mine.hidden = isT; mine.disabled = !ownAudio();
+  let s = SRC; if (isT && s === "mine") s = "tutti"; if (s === "mine" && !ownAudio()) s = "tutti";
   [...$("src").children].forEach(b => b.setAttribute("aria-pressed", b.dataset.src === s));
   const rk = recKey();
   $("sound-l").hidden = real && !!rk;
@@ -1067,7 +1072,7 @@ function setTuttiVoice(id, redraw) {
   const src = cur.song.parts.find(p => p.id === id); if (!src) return;
   Object.assign(curPart, { abc: src.abc, fing: src.fing, pages: src.pages, melody: src.name, vkind: src.instr === "pos" ? "slide" : "valve" });
   $("tv").value = id; store.set("tv-" + cur.song.id, id);
-  $("tutti-hint").textContent = `Die ganze Gugge zusammen. Die Noten oben zeigen ${src.name}.`;
+  $("tutti-hint").textContent = curPart.id === "drums" ? `Für Schlagzeug und Pauken gibt es noch keine eigenen Noten. Zur Orientierung zeigen die Noten oben ${src.name}.` : `Die ganze Gugge zusammen. Die Noten oben zeigen ${src.name}.`;
   $("showv-l").textContent = src.instr === "pos" ? "Zugpositionen zeigen" : "Ventilzahlen zeigen";
   if (redraw) { stopAll(true); renderScore(); showOrig(); }
 }
