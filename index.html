@@ -222,7 +222,7 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
     <button class="tile" id="go-metro"><div><b>Metronom</b><span>Den Takt halten üben</span></div><i>›</i></button>
     <button class="tile" id="go-theory"><div><b>Musiktheorie</b><span>Notenwerte, Pausen, Zeichen – mit Quiz</span></div><i>›</i></button>
   </div>
-  <p class="ver" id="ver">Version 25</p>
+  <p class="ver" id="ver">Version 26</p>
   <div class="card" id="lt" hidden>
     <b>Startlogo einstellen</b>
     <p class="val"><span id="lt-v">180</span> px</p>
@@ -358,6 +358,7 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
       <span class="small muted">Takt</span><select id="lp-a" aria-label="Schleife ab Takt"></select>
       <span class="small muted">bis</span><select id="lp-b" aria-label="Schleife bis Takt"></select>
     </div>
+    <div class="loopbox" id="tv-box" hidden><span class="small muted">Noten anzeigen von</span><select id="tv" aria-label="Welche Stimme in den Noten angezeigt wird"></select></div>
     <p class="small muted" id="tutti-hint" hidden>Alle Stimmen zusammen mit Schlagzeug (Drum-and-Bass-Beat). Die Noten oben zeigen die Melodie (Trompete 1. Stimme).</p>
     <p class="small muted">Die App zählt einen Takt vor. Das Tempo kannst du auch während dem Abspielen ändern. Mit „Schleife“ wird nur der gewählte Teil immer wieder gespielt.</p>
   </div>
@@ -714,14 +715,20 @@ function openPart() {
   $("sg-title").textContent = cur.song.title; $("sg-crumb").textContent = curPart.name;
   $("showv-l").textContent = ins.kind === "slide" ? "Zugpositionen zeigen" : "Ventilzahlen zeigen";
   const tutti = ins.kind === "tutti";
-  $("m-learn").hidden = tutti; $("showv").parentElement.hidden = tutti; $("sound").parentElement.hidden = tutti;
+  $("m-learn").hidden = tutti; $("showv").parentElement.hidden = tutti && !cur.song.real; $("sound").parentElement.hidden = tutti;
+  $("tv-box").hidden = !(tutti && cur.song.real);
+  if (tutti && cur.song.real) {
+    const opts = cur.song.parts.filter(p => p.instr !== "tutti");
+    $("tv").innerHTML = opts.map(p => `<option value="${p.id}">${p.name}</option>`).join("");
+    const keep = store.get("tv-" + cur.song.id, null); setTuttiVoice(opts.find(p => p.id === keep) ? keep : opts[0].id, false);
+  }
   $("tutti-hint").hidden = !tutti;
-  $("tutti-hint").textContent = cur.song.real ? `Die ganze Gugge zusammen. Die Noten oben zeigen die Melodie (${curPart.melody}).` : "Alle Stimmen zusammen mit Schlagzeug (Drum-and-Bass-Beat). Die Noten oben zeigen die Melodie (Trompete 1. Stimme).";
+  $("tutti-hint").textContent = cur.song.real ? `Die ganze Gugge zusammen. Die Noten oben zeigen ${curPart.melody}.` : "Alle Stimmen zusammen mit Schlagzeug (Drum-and-Bass-Beat). Die Noten oben zeigen die Melodie (Trompete 1. Stimme).";
   go("song"); srcUI(); setMode(tutti ? "play" : store.get("mode", "play"));
   showOrig();
 }
 // Griffe aus den Noten-Daten (wie in den Noten der Gugge): "12" -> "1+2", Doppelgriff "12/1"
-const fmtF = f => f.split("/").map(x => x.length > 1 && instrObj().kind !== "slide" ? x.split("").join("+") : x).join("/");
+const fmtF = f => f.split("/").map(x => x.length > 1 && instrObj().kind !== "slide" && curPart.vkind !== "slide" ? x.split("").join("+") : x).join("/");
 function buildAbc(withLabels) {
   const base = partAbc(); const key = keyOf(base), bass = bassClef(base);
   const tune = ABCJS.parseOnly(base)[0];
@@ -735,7 +742,7 @@ function buildAbc(withLabels) {
   return abc;
 }
 function renderScore() {
-  const showLabels = cur.mode === "play" && $("showv").checked && instrObj().kind !== "tutti";
+  const showLabels = cur.mode === "play" && $("showv").checked && (instrObj().kind !== "tutti" || cur.song.real);
   const abc = buildAbc(showLabels);
   const tune = ABCJS.renderAbc("paper", abc, { add_classes: true, scale: 1.5, staffwidth: Math.max(520, cur.labels.length * (showLabels ? (cur.song.real ? 68 : 62) : (cur.song.real ? 40 : 44)) + 140),
     foregroundColor: fgColor(), paddingleft: 6, paddingright: 16, paddingbottom: 8,
@@ -875,13 +882,14 @@ function tick() {
   if (tutti && !cur.song.real) while (P.step / 4 < limit) { drumStep(P.step, Math.max(a.currentTime, at(P.step / 4))); P.step++; }
   // Schleife: am Ende des Bereichs nahtlos zum Anfang springen
   if (lr && horizon >= lr[1]) {
-    const tEnd = at(lr[1]); P.aPos = lr[0]; P.aT = tEnd;
+    const tEnd = at(lr[1]); P.aPos = lr[0]; P.aT = tEnd + P.barBeats / P.rate;
+    for (let i = 0; i < P.barBeats; i++) click(i === 0, tEnd + i / P.rate);
     P.tracks.forEach(t => { t.idx = t.events.findIndex(e => e.b >= lr[0] - 1e-6); if (t.idx < 0) t.idx = t.events.length; });
     P.step = Math.ceil(lr[0] * 4 - 1e-6);
   }
 }
 function stopAll(reset) {
-  if (R.on) { R.on = false; cancelAnimationFrame(R.raf); const b = bOf(R.el.currentTime); R.el.pause(); if (b > 0) P.pos = b; }
+  if (R.on) { R.on = false; cancelAnimationFrame(R.raf); if (R.gap) { clearTimeout(R.gap); R.gap = 0; } const b = bOf(R.el.currentTime); R.el.pause(); if (b > 0) P.pos = b; }
   else if (playing && actx && P.aT && actx.currentTime >= P.aT) P.pos = curPos(actx);
   playing = false; if (P.iv) { clearInterval(P.iv); P.iv = null; }
   mark(lastEls, false); lastEls = [];
@@ -975,7 +983,14 @@ function recTick() {
   const el = R.el, b = bOf(el.currentTime);
   while (R.clicks.length && b >= R.clicks[0].b - 0.03) { const c = R.clicks.shift(); if (b - c.b < 0.3) click(c.acc); }
   const lr = loopRange();
-  if (lr && b >= lr[1]) { el.currentTime = tOf(lr[0]); seek(lr[0]); }
+  if (R.gap) { R.raf = requestAnimationFrame(recTick); return; }
+  if (lr && b >= lr[1]) {
+    // ein Takt Klicks zwischen den Durchgängen, dann von vorn
+    el.pause(); el.currentTime = tOf(lr[0]); seek(lr[0]); mark(lastEls, false); lastEls = [];
+    const a = ctx(), sp = spbSong() / el.playbackRate, t0 = a.currentTime + 0.03;
+    for (let i = 0; i < P.barBeats; i++) click(i === 0, t0 + i * sp);
+    R.gap = setTimeout(() => { R.gap = 0; if (R.on) el.play().catch(() => {}); }, (0.03 + P.barBeats * sp) * 1000);
+  }
   else if (!lr && (b >= P.end || el.ended)) { stopAll(true); return; }
   else if (b >= -0.01) {
     const t = P.tracks[0];
@@ -985,6 +1000,16 @@ function recTick() {
   }
   R.raf = requestAnimationFrame(recTick);
 }
+
+function setTuttiVoice(id, redraw) {
+  const src = cur.song.parts.find(p => p.id === id); if (!src) return;
+  Object.assign(curPart, { abc: src.abc, fing: src.fing, pages: src.pages, melody: src.name, vkind: src.instr === "pos" ? "slide" : "valve" });
+  $("tv").value = id; store.set("tv-" + cur.song.id, id);
+  $("tutti-hint").textContent = `Die ganze Gugge zusammen. Die Noten oben zeigen ${src.name}.`;
+  $("showv-l").textContent = src.instr === "pos" ? "Zugpositionen zeigen" : "Ventilzahlen zeigen";
+  if (redraw) { stopAll(true); renderScore(); showOrig(); }
+}
+$("tv").onchange = () => setTuttiVoice($("tv").value, true);
 
 /* Originalnoten (verschlüsselte Bilder der PDF-Seiten) */
 async function pageUrl(nm) {
