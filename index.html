@@ -252,7 +252,7 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
     <button class="tile" id="go-tuner"><div><b>Stimmgerät</b><span>Instrument stimmen über das Mikrofon</span></div><i>›</i></button>
     <button class="tile" id="go-theory"><div><b>Musiktheorie</b><span>Notenwerte, Pausen, Zeichen – mit Quiz</span></div><i>›</i></button>
   </div>
-  <p class="ver" id="ver">Version 32</p>
+  <p class="ver" id="ver">Version 33</p>
   <div class="card" id="lt" hidden>
     <b>Startlogo einstellen</b>
     <p class="val"><span id="lt-v">180</span> px</p>
@@ -409,7 +409,7 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
     <div class="tempo"><span class="small muted">Tempo</span><input type="range" id="tempo" min="40" max="120" step="5" value="100" aria-label="Tempo in Prozent"><output id="tempo-o">100 %</output></div>
     <div class="loopbox">
       <label class="switch"><input type="checkbox" id="loop"> Schleife</label>
-      <span class="lp-t" id="lp-t">Takt 1 bis 4</span>
+      <span class="lp-t" id="lp-t">Takt 1 bis 20</span>
       <select id="lp-a" hidden></select><select id="lp-b" hidden></select>
     </div>
     <div class="dual" id="lp-dual">
@@ -918,7 +918,7 @@ function preparePlayer() {
   P.bars = 0; P.measStart = [];
   ev.forEach(e => { if (e.m != null && P.measStart[e.m] == null) P.measStart[e.m] = Math.floor(e.b / P.barBeats + 1e-6) * P.barBeats; P.bars = Math.max(P.bars, (e.m || 0) + 1); });
   const fill = (sel, val) => { const old = sel.value; sel.innerHTML = ""; for (let i = 1; i <= P.bars; i++) { const o = document.createElement("option"); o.value = i; o.textContent = i; sel.appendChild(o); } sel.value = old && +old <= P.bars ? old : val; };
-  fill($("lp-a"), 1); fill($("lp-b"), Math.min(4, P.bars));
+  fill($("lp-a"), 1); fill($("lp-b"), Math.min(20, P.bars));
   lpSync();
   $("seek").max = Math.max(1, P.end); seekUI(0, true);
   P.pos = 0;
