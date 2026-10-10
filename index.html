@@ -289,7 +289,7 @@ body { padding-top: max(12px, env(safe-area-inset-top)); padding-bottom: max(48p
       <span class="small muted">Takt</span><select id="lp-a" aria-label="Schleife ab Takt"></select>
       <span class="small muted">bis</span><select id="lp-b" aria-label="Schleife bis Takt"></select>
     </div>
-    <p class="small muted" id="tutti-hint" hidden>Alle Stimmen zusammen mit Schlagzeug. Die Noten oben zeigen die Melodie (Trompete 1. Stimme).</p>
+    <p class="small muted" id="tutti-hint" hidden>Alle Stimmen zusammen mit Schlagzeug (Drum-and-Bass-Beat). Die Noten oben zeigen die Melodie (Trompete 1. Stimme).</p>
     <p class="small muted">Die App zählt einen Takt vor. Das Tempo kannst du auch während dem Abspielen ändern. Mit „Schleife“ wird nur der gewählte Teil immer wieder gespielt.</p>
   </div>
 
@@ -655,13 +655,17 @@ let noiseBuf = null;
 function drum(kind) {
   const a = ctx(); if (!a) return; const t = a.currentTime;
   if (kind === "kick") {
-    const o = a.createOscillator(), g = a.createGain(); o.frequency.setValueAtTime(120, t); o.frequency.exponentialRampToValueAtTime(45, t + 0.12);
-    g.gain.setValueAtTime(0.9, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.25); o.connect(g).connect(a.destination); o.start(t); o.stop(t + 0.3); return;
+    const o = a.createOscillator(), g = a.createGain(); o.frequency.setValueAtTime(160, t); o.frequency.exponentialRampToValueAtTime(42, t + 0.09);
+    g.gain.setValueAtTime(1.0, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.28); o.connect(g).connect(a.destination); o.start(t); o.stop(t + 0.3); return;
   }
   if (!noiseBuf) { noiseBuf = a.createBuffer(1, a.sampleRate * 0.3, a.sampleRate); const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; }
   const n = a.createBufferSource(); n.buffer = noiseBuf; const f = a.createBiquadFilter(), g = a.createGain();
-  if (kind === "snare") { f.type = "bandpass"; f.frequency.value = 1800; g.gain.setValueAtTime(0.5, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.18); }
-  else { f.type = "highpass"; f.frequency.value = 7000; g.gain.setValueAtTime(kind === "hatA" ? 0.18 : 0.09, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.05); }
+  if (kind === "snare" || kind === "ghost") {
+    const loud = kind === "snare" ? 0.6 : 0.12;
+    f.type = "bandpass"; f.frequency.value = 2200; f.Q.value = 0.6; g.gain.setValueAtTime(loud, t); g.gain.exponentialRampToValueAtTime(0.001, t + (kind === "snare" ? 0.16 : 0.07));
+    if (kind === "snare") { const o = a.createOscillator(), og = a.createGain(); o.frequency.setValueAtTime(260, t); o.frequency.exponentialRampToValueAtTime(160, t + 0.06); og.gain.setValueAtTime(0.35, t); og.gain.exponentialRampToValueAtTime(0.001, t + 0.09); o.connect(og).connect(a.destination); o.start(t); o.stop(t + 0.1); }
+  }
+  else { f.type = "highpass"; f.frequency.value = 8000; g.gain.setValueAtTime(kind === "hatA" ? 0.16 : 0.07, t); g.gain.exponentialRampToValueAtTime(0.001, t + (kind === "hatA" ? 0.045 : 0.03)); }
   n.connect(f).connect(g).connect(a.destination); n.start(t); n.stop(t + 0.25);
 }
 
@@ -726,9 +730,14 @@ function tick() {
     }
   });
   if (tutti) {
-    const ei = Math.floor(P.pos * 2 + 1e-6);
-    if (ei !== P.eighth) { P.eighth = ei; const pos = ((ei % (P.barBeats * 2)) + P.barBeats * 2) % (P.barBeats * 2);
-      if (pos === 0 || pos === 4) drum("kick"); if (pos === 2 || pos === 6 || pos === 7) drum("snare"); drum(pos % 2 === 0 ? "hatA" : "hatB"); }
+    // Drum-and-Bass-Groove (Two-Step) im Sechzehntelraster, jeder 4. Takt mit kleinem Fill
+    const si = Math.floor(P.pos * 4 + 1e-6), steps = P.barBeats * 4;
+    if (si !== P.eighth) { P.eighth = si; const s = ((si % steps) + steps) % steps;
+      const fill = Math.floor(si / steps) % 4 === 3;
+      if (s === 0 || s === 10 || (fill && s === 13)) drum("kick");
+      if (s === 4 || s === 12 || (fill && s >= 14)) drum("snare");
+      else if (s === 7 || s === 9 || s === 15) drum("ghost");
+      drum(s % 2 === 0 ? "hatA" : "hatB"); }
   }
 }
 function stopAll(reset) {
