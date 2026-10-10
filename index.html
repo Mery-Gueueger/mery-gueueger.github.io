@@ -279,7 +279,7 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
     <button class="tile" id="go-tuner"><div><b>Stimmgerät</b><span>Instrument stimmen über das Mikrofon</span></div><i>›</i></button>
     <button class="tile" id="go-theory"><div><b>Musiktheorie</b><span>Notenwerte, Pausen, Zeichen – mit Quiz</span></div><i>›</i></button>
   </div>
-  <p class="ver" id="ver">Version 40</p>
+  <p class="ver" id="ver">Version 41</p>
   <div class="card" id="lt" hidden>
     <b>Startlogo einstellen</b>
     <p class="val"><span id="lt-v">180</span> px</p>
@@ -1180,6 +1180,7 @@ function recTick() {
     recGap(lr[0], 0.4);
   }
   else if (!lr && (b >= P.end || el.ended)) { stopAll(true); return; }
+  else if (R.unmuteAt != null) { seekUI(R.unmuteAt); }  // Einzählen: Noten warten, nichts markiert
   else if (b >= -0.01) {
     seekUI(b);
     const t = P.tracks[0];
@@ -1425,7 +1426,8 @@ function learnStats() {
   $("ln-ok").textContent = LN.ok; $("ln-done").textContent = LN.done; $("ln-st").textContent = LN.streak;
   $("ln-pct").textContent = LN.done ? Math.round(LN.ok / LN.done * 100) + " %" : "";
 }
-const learnBeat = () => R.on ? bOf(R.el.currentTime) : (actx ? curPos(actx) : 0);
+// Während dem Einzählen steht die Anzeige still am Anfang (nichts markieren, nichts werten)
+const learnBeat = () => R.on ? (R.unmuteAt != null ? R.unmuteAt : bOf(R.el.currentTime)) : (actx ? (actx.currentTime < P.aT ? P.aPos : curPos(actx)) : 0);
 const learnSpb = () => R.on ? spbSong() / R.el.playbackRate : 1 / (P.rate || 2);
 function learnXs() {
   if (LN.xs) return LN.xs;
@@ -1479,6 +1481,8 @@ function learnLoop() {
         it.forEach(x => { if (x.b >= b - 0.01) { x.hit = false; x.res = null; x.el.classList.remove("ln-ok", "ln-bad"); } });
       }
       while (LN.j < it.length && it[LN.j].b < b - 1) LN.j++;  // Sprung nach vorn
+      const counting = R.on ? R.unmuteAt != null : (actx && actx.currentTime < P.aT);
+      if (counting) while (LN.j < it.length && it[LN.j].b < b - 0.01) LN.j++;  // beim Einzählen: Noten davor nicht werten
       const want = learnHeld();
       for (let k = LN.j; k < it.length && it[k].b <= b + eB + 0.01; k++) {
         const x = it[k], prev = it[k - 1], next = it[k + 1];
