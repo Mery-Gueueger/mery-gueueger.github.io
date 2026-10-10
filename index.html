@@ -141,6 +141,18 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
 .stat b { color: var(--fg) }
 .voice { font-family: var(--f-display); font-weight: 800; font-size: 1.15rem; color: var(--accent); margin-top: 4px }
 .loopbox { display: flex; align-items: center; gap: 8px; flex-wrap: wrap }
+.lp-t { margin-left: auto; font-weight: 800; font-variant-numeric: tabular-nums }
+.dual { position: relative; height: 40px; margin: 0 6px }
+.dual-track { position: absolute; left: 0; right: 0; top: 50%; height: 8px; margin-top: -4px; border-radius: 4px; background: var(--line) }
+#lp-fill { position: absolute; top: 0; bottom: 0; border-radius: 4px; background: var(--muted) }
+.dual.on #lp-fill { background: var(--accent) }
+.dual input { position: absolute; left: -14px; width: calc(100% + 28px); top: 0; height: 40px; margin: 0; background: none; pointer-events: none; -webkit-appearance: none; appearance: none }
+.dual input::-webkit-slider-runnable-track { background: none; height: 40px }
+.dual input::-webkit-slider-thumb { -webkit-appearance: none; pointer-events: auto; width: 30px; height: 30px; margin-top: 5px; border-radius: 50%; background: var(--card); border: 4px solid var(--accent); box-shadow: 0 1px 4px rgba(0,0,0,.3); cursor: pointer }
+.dual input::-moz-range-thumb { pointer-events: auto; width: 24px; height: 24px; border-radius: 50%; background: var(--card); border: 4px solid var(--accent); cursor: pointer }
+.dual input::-moz-range-track { background: none }
+.lp-fine { display: flex; align-items: center; gap: 6px; font-size: .85rem; color: var(--muted); font-weight: 700 }
+.lp-fine button { width: 40px; height: 36px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--card); color: var(--fg); font-size: 1.2rem; font-weight: 800; cursor: pointer }
 .loopbox select { font: inherit; font-weight: 700; padding: 6px 8px; border-radius: 8px; border: 1.5px solid var(--line); background: var(--card); color: var(--fg) }
 .metro { align-items: stretch; gap: 16px }
 .beats { display: flex; justify-content: center; gap: 12px; min-height: 34px }
@@ -240,7 +252,7 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
     <button class="tile" id="go-tuner"><div><b>Stimmgerät</b><span>Instrument stimmen über das Mikrofon</span></div><i>›</i></button>
     <button class="tile" id="go-theory"><div><b>Musiktheorie</b><span>Notenwerte, Pausen, Zeichen – mit Quiz</span></div><i>›</i></button>
   </div>
-  <p class="ver" id="ver">Version 31</p>
+  <p class="ver" id="ver">Version 32</p>
   <div class="card" id="lt" hidden>
     <b>Startlogo einstellen</b>
     <p class="val"><span id="lt-v">180</span> px</p>
@@ -397,8 +409,17 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
     <div class="tempo"><span class="small muted">Tempo</span><input type="range" id="tempo" min="40" max="120" step="5" value="100" aria-label="Tempo in Prozent"><output id="tempo-o">100 %</output></div>
     <div class="loopbox">
       <label class="switch"><input type="checkbox" id="loop"> Schleife</label>
-      <span class="small muted">Takt</span><select id="lp-a" aria-label="Schleife ab Takt"></select>
-      <span class="small muted">bis</span><select id="lp-b" aria-label="Schleife bis Takt"></select>
+      <span class="lp-t" id="lp-t">Takt 1 bis 4</span>
+      <select id="lp-a" hidden></select><select id="lp-b" hidden></select>
+    </div>
+    <div class="dual" id="lp-dual">
+      <div class="dual-track"><div id="lp-fill"></div></div>
+      <input type="range" id="lp-ra" min="1" max="4" step="1" value="1" aria-label="Schleife ab Takt">
+      <input type="range" id="lp-rb" min="1" max="4" step="1" value="4" aria-label="Schleife bis Takt">
+    </div>
+    <div class="lp-fine">
+      <span>Anfang</span><button type="button" data-f="a-1" aria-label="Anfang einen Takt früher">−</button><button type="button" data-f="a1" aria-label="Anfang einen Takt später">+</button>
+      <span style="margin-left:auto">Ende</span><button type="button" data-f="b-1" aria-label="Ende einen Takt früher">−</button><button type="button" data-f="b1" aria-label="Ende einen Takt später">+</button>
     </div>
     <div class="loopbox" id="tv-box" hidden><span class="small muted">Noten anzeigen von</span><select id="tv" aria-label="Welche Stimme in den Noten angezeigt wird"></select></div>
     <p class="small muted" id="tutti-hint" hidden>Alle Stimmen zusammen mit Schlagzeug (Drum-and-Bass-Beat). Die Noten oben zeigen die Melodie (Trompete 1. Stimme).</p>
@@ -898,9 +919,35 @@ function preparePlayer() {
   ev.forEach(e => { if (e.m != null && P.measStart[e.m] == null) P.measStart[e.m] = Math.floor(e.b / P.barBeats + 1e-6) * P.barBeats; P.bars = Math.max(P.bars, (e.m || 0) + 1); });
   const fill = (sel, val) => { const old = sel.value; sel.innerHTML = ""; for (let i = 1; i <= P.bars; i++) { const o = document.createElement("option"); o.value = i; o.textContent = i; sel.appendChild(o); } sel.value = old && +old <= P.bars ? old : val; };
   fill($("lp-a"), 1); fill($("lp-b"), Math.min(4, P.bars));
+  lpSync();
   $("seek").max = Math.max(1, P.end); seekUI(0, true);
   P.pos = 0;
 }
+// Schleife: zwei Regler (Anfang und Ende) auf einer Leiste, je ein Takt
+function lpSync() {
+  const n = Math.max(1, P.bars || 1), a = +$("lp-a").value || 1, b = +$("lp-b").value || 1;
+  ["lp-ra", "lp-rb"].forEach(id => $(id).max = n);
+  $("lp-ra").value = a; $("lp-rb").value = b;
+  const pa = n > 1 ? (a - 1) / (n - 1) : 0, pb = n > 1 ? (b - 1) / (n - 1) : 1;
+  $("lp-fill").style.left = pa * 100 + "%"; $("lp-fill").style.width = Math.max(0, pb - pa) * 100 + "%";
+  $("lp-t").textContent = a === b ? `Takt ${a}` : `Takt ${a} bis ${b}`;
+  $("lp-dual").classList.toggle("on", $("loop").checked);
+}
+function lpInput(which) {
+  let a = +$("lp-ra").value, b = +$("lp-rb").value;
+  if (a > b) { if (which === "a") b = a; else a = b; }
+  $("lp-a").value = a; $("lp-b").value = b;
+  if (!$("loop").checked) $("loop").checked = true;
+  lpSync();
+}
+$("lp-ra").addEventListener("input", () => lpInput("a"));
+$("lp-rb").addEventListener("input", () => lpInput("b"));
+["lp-ra", "lp-rb"].forEach(id => $(id).addEventListener("change", () => { $("lp-a").dispatchEvent(new Event("change")); }));
+$("loop").addEventListener("change", lpSync);
+document.querySelectorAll(".lp-fine button").forEach(bt => bt.onclick = () => {
+  const w = bt.dataset.f[0], d = +bt.dataset.f.slice(1), el = $(w === "a" ? "lp-ra" : "lp-rb");
+  el.value = Math.max(1, Math.min(+el.max, +el.value + d)); lpInput(w); $("lp-a").dispatchEvent(new Event("change"));
+});
 // Fortschrittsbalken: Position in Schlägen (mit Wiederholungen), Anzeige als Takt
 let seekDrag = false;
 function barAt(b) { const ev = P.tracks[0] && P.tracks[0].events; if (!ev || !ev.length) return 1; let m = ev[0].m || 0; for (const e of ev) { if (e.b > b + 1e-6) break; m = e.m; } return (m || 0) + 1; }
