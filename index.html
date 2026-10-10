@@ -201,6 +201,11 @@ body.intro .brand img { opacity: 0; transform: translateY(-160px) }
 .v-bar { position: fixed; top: max(8px, env(safe-area-inset-top)); right: 8px; z-index: 951; display: flex; gap: 6px }
 .v-bar button, .land-ctrl button { width: 48px; height: 48px; border-radius: 50%; border: 0; background: rgba(20,20,20,.75); color: #fff; font-size: 1.3rem; font-weight: 700; cursor: pointer }
 .land-ctrl { display: none }
+.seek { display: flex; align-items: center; gap: 10px; padding: 4px 12px 0 }
+.seek input { flex: 1; min-width: 0; accent-color: var(--accent); height: 36px }
+.seek span { font-size: .85rem; color: var(--muted); font-weight: 700; min-width: 4.8em; text-align: right; font-variant-numeric: tabular-nums }
+body.landplay .scorecard { flex-direction: column; justify-content: center }
+body.landplay .seek { width: 100%; padding-right: 130px }
 body.landplay .scorecard { position: fixed; inset: 0; z-index: 900; margin: 0 !important; border-radius: 0; border: 0; padding: 6px 0; display: flex; align-items: center }
 body.landplay .scorecard .scroller { width: 100% }
 body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(10px, env(safe-area-inset-right)); bottom: 10px; z-index: 901 }
@@ -235,7 +240,7 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
     <button class="tile" id="go-tuner"><div><b>Stimmgerät</b><span>Instrument stimmen über das Mikrofon</span></div><i>›</i></button>
     <button class="tile" id="go-theory"><div><b>Musiktheorie</b><span>Notenwerte, Pausen, Zeichen – mit Quiz</span></div><i>›</i></button>
   </div>
-  <p class="ver" id="ver">Version 30</p>
+  <p class="ver" id="ver">Version 31</p>
   <div class="card" id="lt" hidden>
     <b>Startlogo einstellen</b>
     <p class="val"><span id="lt-v">180</span> px</p>
@@ -367,6 +372,7 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
 
   <div class="card scorecard" style="margin-top:10px">
     <div class="scroller" id="scroller"><div id="paper"></div></div>
+    <div class="seek" id="seek-box"><input type="range" id="seek" min="0" max="1" step="0.25" value="0" aria-label="Stelle im Lied"><span id="seek-t">Takt 1</span></div>
     <div class="land-ctrl"><button type="button" id="l-play" aria-label="Abspielen oder Pause">▶</button><button type="button" id="l-stop" aria-label="Stopp">■</button></div>
   </div>
 
@@ -811,7 +817,7 @@ function hint(el) {}
 function setMode(m) {
   stopAll(); cur.mode = m; if (instrObj().kind !== "tutti") store.set("mode", m);
   $("m-play").setAttribute("aria-pressed", m === "play"); $("m-learn").setAttribute("aria-pressed", m === "learn");
-  $("p-play").hidden = m !== "play"; $("p-learn").hidden = m !== "learn";
+  $("p-play").hidden = m !== "play"; $("p-learn").hidden = m !== "learn"; $("seek-box").hidden = m !== "play";
   renderScore();
   if (m === "learn") startLearn();
   landUpd();
@@ -892,8 +898,24 @@ function preparePlayer() {
   ev.forEach(e => { if (e.m != null && P.measStart[e.m] == null) P.measStart[e.m] = Math.floor(e.b / P.barBeats + 1e-6) * P.barBeats; P.bars = Math.max(P.bars, (e.m || 0) + 1); });
   const fill = (sel, val) => { const old = sel.value; sel.innerHTML = ""; for (let i = 1; i <= P.bars; i++) { const o = document.createElement("option"); o.value = i; o.textContent = i; sel.appendChild(o); } sel.value = old && +old <= P.bars ? old : val; };
   fill($("lp-a"), 1); fill($("lp-b"), Math.min(4, P.bars));
+  $("seek").max = Math.max(1, P.end); seekUI(0, true);
   P.pos = 0;
 }
+// Fortschrittsbalken: Position in Schlägen (mit Wiederholungen), Anzeige als Takt
+let seekDrag = false;
+function barAt(b) { const ev = P.tracks[0] && P.tracks[0].events; if (!ev || !ev.length) return 1; let m = ev[0].m || 0; for (const e of ev) { if (e.b > b + 1e-6) break; m = e.m; } return (m || 0) + 1; }
+function seekUI(b, force) { if (seekDrag && !force) return; $("seek").value = Math.max(0, b); $("seek-t").textContent = "Takt " + barAt(Math.max(0, b)); }
+function seekTo(b) {
+  b = Math.max(0, Math.min(P.end - 0.01, Math.floor(b / P.barBeats + 1e-6) * P.barBeats));
+  seek(b); mark(lastEls, false); lastEls = [];
+  const t = P.tracks[0], e = t && t.events[t.idx]; if (e) { lastEls = e.els; mark(lastEls, true); scrollToEl(lastEls[0]); }
+  if (R.on && !R.gap) { R.el.currentTime = tOf(b); R.clicks = []; R.unmuteAt = null; R.el.muted = false; }
+  else if (playing && !R.on && actx) { P.aPos = b; P.aT = actx.currentTime + 0.05; P.step = Math.ceil(b * 4 - 1e-6); }
+  P.pos = b; seekUI(b, true);
+  $("play").textContent = playing ? "❚❚ Pause" : (b > 0 ? "▶ Weiter" : "▶ Abspielen");
+}
+$("seek").addEventListener("input", () => { seekDrag = true; const b = +$("seek").value; $("seek-t").textContent = "Takt " + barAt(b); });
+$("seek").addEventListener("change", () => { seekDrag = false; if (!P.tracks.length) preparePlayer(); seekTo(+$("seek").value); });
 function loopRange() {
   if (!$("loop").checked || !P.bars) return null;
   let a = +$("lp-a").value - 1, b = +$("lp-b").value - 1; if (b < a) [a, b] = [b, a];
@@ -919,7 +941,7 @@ function tick() {
   const r = qpmNow() / 60;
   if (r !== P.rate && a.currentTime >= P.aT) { P.aPos = curPos(a); P.aT = a.currentTime; P.rate = r; }
   let pos = curPos(a);
-  if (a.currentTime >= P.aT) P.pos = pos;
+  if (a.currentTime >= P.aT) { P.pos = pos; seekUI(pos); }
   const lr = loopRange();
   if (!lr && pos >= P.end) { stopAll(true); return; }
   const horizon = pos + LOOKAHEAD * P.rate, tutti = instrObj().kind === "tutti", spb = 1 / P.rate;
@@ -947,7 +969,7 @@ function stopAll(reset) {
   else if (playing && actx && P.aT && actx.currentTime >= P.aT) P.pos = curPos(actx);
   playing = false; if (P.iv) { clearInterval(P.iv); P.iv = null; }
   mark(lastEls, false); lastEls = [];
-  if (reset) { P.pos = 0; if ($("scroller")) $("scroller").scrollLeft = 0; }
+  if (reset) { P.pos = 0; if ($("scroller")) $("scroller").scrollLeft = 0; if ($("seek")) seekUI(0, true); }
   if ($("play")) $("play").textContent = P.pos > 0 ? "▶ Weiter" : "▶ Abspielen";
 }
 $("stop").onclick = () => stopAll(true);
@@ -1060,6 +1082,7 @@ function recTick() {
   }
   else if (!lr && (b >= P.end || el.ended)) { stopAll(true); return; }
   else if (b >= -0.01) {
+    seekUI(b);
     const t = P.tracks[0];
     if (t.idx > 0 && t.events[t.idx - 1].b > b + 0.05) seek(b);
     let els = null; while (t.idx < t.events.length && t.events[t.idx].b <= b + 0.02) { els = t.events[t.idx].els; t.idx++; }
