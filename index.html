@@ -112,6 +112,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
 .scorecard { padding: 12px 0 8px }
 .scroller { max-width: 100%; overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; color: var(--fg); padding: 0 8px; scroll-behavior: smooth }
 .scroller svg { display: block }
+.scroller { scrollbar-width: none } .scroller::-webkit-scrollbar { display: none }
 .abcjs-cursor-on { fill: var(--accent) !important; color: var(--accent) !important }
 .abcjs-lyric { fill: var(--accent) !important; font-weight: 700 }
 .ctrl { display: flex; flex-wrap: wrap; gap: 8px; align-items: center }
@@ -252,7 +253,7 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
     <button class="tile" id="go-tuner"><div><b>Stimmgerät</b><span>Instrument stimmen über das Mikrofon</span></div><i>›</i></button>
     <button class="tile" id="go-theory"><div><b>Musiktheorie</b><span>Notenwerte, Pausen, Zeichen – mit Quiz</span></div><i>›</i></button>
   </div>
-  <p class="ver" id="ver">Version 34</p>
+  <p class="ver" id="ver">Version 35</p>
   <div class="card" id="lt" hidden>
     <b>Startlogo einstellen</b>
     <p class="val"><span id="lt-v">180</span> px</p>
@@ -920,7 +921,7 @@ function preparePlayer() {
   const fill = (sel, val) => { const old = sel.value; sel.innerHTML = ""; for (let i = 1; i <= P.bars; i++) { const o = document.createElement("option"); o.value = i; o.textContent = i; sel.appendChild(o); } sel.value = old && +old <= P.bars ? old : val; };
   fill($("lp-a"), 1); fill($("lp-b"), Math.min(20, P.bars));
   lpSync();
-  $("seek").max = Math.max(1, P.end); seekUI(0, true);
+  $("seek").max = Math.max(1, P.end); seekUI(0, true); XMAP = null;
   P.pos = 0;
 }
 // Schleife: zwei Regler (Anfang und Ende) auf einer Leiste, je ein Takt
@@ -954,6 +955,7 @@ function barAt(b) { const ev = P.tracks[0] && P.tracks[0].events; if (!ev || !ev
 function seekUI(b, force) { if (seekDrag && !force) return; $("seek").value = Math.max(0, b); $("seek-t").textContent = "Takt " + barAt(Math.max(0, b)); }
 function seekTo(b) {
   b = Math.max(0, Math.min(P.end - 0.01, Math.floor(b / P.barBeats + 1e-6) * P.barBeats));
+  seekQuiet = Date.now() + 900;
   seek(b); mark(lastEls, false); lastEls = [];
   const t = P.tracks[0], e = t && t.events[t.idx]; if (e) { lastEls = e.els; mark(lastEls, true); scrollToEl(lastEls[0]); }
   if (R.on && !R.gap) { R.el.currentTime = tOf(b); R.clicks = []; R.unmuteAt = null; R.el.muted = false; }
@@ -961,6 +963,24 @@ function seekTo(b) {
   P.pos = b; seekUI(b, true);
   $("play").textContent = playing ? "❚❚ Pause" : (b > 0 ? "▶ Weiter" : "▶ Abspielen");
 }
+// Von Hand in den Noten scrollen: Balken fährt mit (und dort geht es beim Abspielen weiter)
+let XMAP = null, seekQuiet = 0;
+function xmap() {
+  if (XMAP) return XMAP;
+  const ev = P.tracks[0] && P.tracks[0].events; if (!ev) return [];
+  const pl = $("paper").getBoundingClientRect().left; let lastM = -1; XMAP = [];
+  for (const e of ev) { if (e.m < lastM) break; lastM = e.m; if (e.els[0]) XMAP.push({ b: e.b, x: e.els[0].getBoundingClientRect().left - pl }); }
+  return XMAP;
+}
+$("scroller").addEventListener("scroll", () => {
+  if (playing || cur.mode !== "play" || !P.tracks.length || Date.now() < seekQuiet) return;
+  const m = xmap(); if (!m.length) return;
+  const sc = $("scroller"), x = sc.scrollLeft + sc.clientWidth * 0.3;
+  let k = 0; while (k + 1 < m.length && m[k + 1].x <= x) k++;
+  const b = sc.scrollLeft < 4 ? 0 : Math.floor(m[k].b / P.barBeats + 1e-6) * P.barBeats;
+  P.pos = b; seek(b); seekUI(b, true);
+  $("play").textContent = b > 0 ? "▶ Weiter" : "▶ Abspielen";
+}, { passive: true });
 $("seek").addEventListener("input", () => { seekDrag = true; const b = +$("seek").value; $("seek-t").textContent = "Takt " + barAt(b); });
 $("seek").addEventListener("change", () => { seekDrag = false; if (!P.tracks.length) preparePlayer(); seekTo(+$("seek").value); });
 function loopRange() {
@@ -1189,6 +1209,7 @@ $("v-out").onclick = () => vZoom(1 / 1.4);
 /* Querformat beim Mitspielen: Noten über den ganzen Bildschirm */
 const LANDQ = matchMedia("(orientation: landscape) and (max-height: 560px)");
 function landUpd() {
+  XMAP = null;
   const on = LANDQ.matches && !$("s-song").hidden && cur.mode === "play" && $("viewer").hidden;
   document.body.classList.toggle("landplay", on);
   const pa = $("paper"); pa.style.zoom = "";
