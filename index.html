@@ -193,7 +193,7 @@ body.intro .brand img { opacity: 0; transform: translateY(-160px) }
 </head>
 <body>
 <div id="splash" aria-hidden="true"><img src="splash-logo-w.png" alt=""></div>
-<script>try { const w = +localStorage.getItem("mg-splashw"); if (w >= 100 && w <= 400) document.querySelector("#splash img").style.width = w + "px"; } catch (e) {}</script>
+<script>try { const w = +localStorage.getItem("mg-splashw"); if (w >= 40 && w <= 400) document.querySelector("#splash img").style.width = w + "px"; } catch (e) {}</script>
 <div class="app">
 <header class="brand"><button type="button" id="logo-home" aria-label="Zum Startbildschirm"><img src="logo.png" alt="Mery-Güüger Merenschwand"></button></header>
 
@@ -207,11 +207,11 @@ body.intro .brand img { opacity: 0; transform: translateY(-160px) }
     <button class="tile" id="go-metro"><div><b>Metronom</b><span>Den Takt halten üben</span></div><i>›</i></button>
     <button class="tile" id="go-theory"><div><b>Musiktheorie</b><span>Notenwerte, Pausen, Zeichen – mit Quiz</span></div><i>›</i></button>
   </div>
-  <p class="ver" id="ver">Version 22</p>
+  <p class="ver" id="ver">Version 23</p>
   <div class="card" id="lt" hidden>
     <b>Startlogo einstellen</b>
     <p class="val"><span id="lt-v">210</span> px</p>
-    <input type="range" id="lt-r" min="120" max="320" step="2" aria-label="Grösse des Startlogos">
+    <input type="range" id="lt-r" min="40" max="320" step="2" aria-label="Grösse des Startlogos">
     <div class="ltr">
       <button type="button" id="lt-m">− 2</button>
       <button type="button" id="lt-p">+ 2</button>
@@ -902,7 +902,7 @@ document.addEventListener("visibilitychange", () => { if (document.hidden) stopA
 </script>
 <script>
 const SPLASH_W = 210;
-const splashW = () => { try { const v = +localStorage.getItem("mg-splashw"); return v >= 100 && v <= 400 ? v : SPLASH_W; } catch (e) { return SPLASH_W; } };
+const splashW = () => { try { const v = +localStorage.getItem("mg-splashw"); return v >= 40 && v <= 400 ? v : SPLASH_W; } catch (e) { return SPLASH_W; } };
 function runSplash(sp, w) {
   if (!sp) return;
   sp.querySelector("img").style.width = (w || splashW()) + "px";
@@ -924,7 +924,7 @@ runSplash(document.getElementById("splash"));
   const st = document.getElementById("lt-s");
   const status = () => { const s = splashW(); st.textContent = cur === s ? `Gespeichert: ${s} px` : `Noch nicht gespeichert (gespeichert ist ${s} px)`; st.style.color = cur === s ? "" : "var(--accent)"; };
   const sync = () => { r.value = cur; v.textContent = cur; status(); };
-  const set = n => { cur = Math.max(120, Math.min(320, n)); sync(); };
+  const set = n => { cur = Math.max(40, Math.min(320, n)); sync(); };
   r.addEventListener("input", () => set(+r.value));
   document.getElementById("lt-m").onclick = () => set(cur - 2);
   document.getElementById("lt-p").onclick = () => set(cur + 2);
