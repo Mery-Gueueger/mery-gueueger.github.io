@@ -220,9 +220,9 @@ body.learning .ln-zone { display: block }
 body.learning .scroller { scroll-behavior: auto }
 .abcjs-note.ln-ok, .abcjs-note.ln-ok path { fill: var(--ok) !important; stroke: var(--ok) }
 .abcjs-note.ln-bad, .abcjs-note.ln-bad path { fill: var(--bad) !important; stroke: var(--bad) }
-.ln-stage { display: flex; align-items: stretch; gap: 0; margin: 4px -6px 0 0 }
-#ln-cv { flex: 1 1 auto; min-width: 0; width: 100%; height: auto; display: block }
-#ln-input { flex: 0 0 auto }
+.ln-stage { position: relative; display: flex; justify-content: flex-end; margin: 4px -6px 0 0; min-height: 200px }
+#ln-cv { position: absolute; left: 0; top: 0; width: 100%; height: 100%; z-index: 2; pointer-events: none; display: block }
+#ln-input { flex: 0 0 auto; position: relative; z-index: 1 }
 .ln-btns { display: flex; gap: 10px }
 .ln-btns button { flex: 1 1 0; min-height: 52px }
 /* Ventile von oben: runde Knöpfe, 1 unten */
@@ -231,9 +231,9 @@ body.learning .scroller { scroll-behavior: auto }
 .tv.down { transform: translateY(5px) scale(.96); box-shadow: 0 0 0 var(--brass-2), inset 0 3px 8px rgba(0,0,0,.35); background: var(--accent); color: var(--accent-fg); border-color: var(--accent) }
 /* Posaunenzug senkrecht: Haltesteg auf der Skala 1–7 */
 .tbv { position: relative; width: 112px; height: 330px; touch-action: none; user-select: none; -webkit-user-select: none; cursor: pointer }
-.tbv .tube { position: absolute; top: 0; bottom: 0; width: 10px; border-radius: 5px; background: linear-gradient(90deg, var(--brass), var(--brass-2)) }
+.tbv .tube { position: absolute; top: 26px; bottom: 0; width: 10px; border-radius: 5px; background: linear-gradient(90deg, var(--brass), var(--brass-2)) }
 .tbv .t1 { left: 46px } .tbv .t2 { left: 90px }
-.tbv .bow { position: absolute; left: 46px; bottom: -6px; width: 54px; height: 28px; border: 10px solid var(--brass-2); border-top: 0; border-radius: 0 0 28px 28px }
+.tbv .bow { position: absolute; left: 46px; top: 0; width: 54px; height: 36px; border: 10px solid var(--brass-2); border-bottom: 0; border-radius: 27px 27px 0 0 }
 .tbv .brace { position: absolute; left: 34px; width: 78px; height: 40px; margin-top: -20px; border-radius: 12px; background: var(--card); border: 5px solid var(--brass-2); box-shadow: 0 3px 8px rgba(0,0,0,.25); transition: top 60ms linear, background 60ms }
 .tbv .brace::after { content: ""; position: absolute; top: 50%; left: 8px; right: 8px; height: 6px; margin-top: -3px; border-radius: 3px; background: var(--brass-2) }
 .tbv.down .brace { background: var(--accent); border-color: var(--accent) }
@@ -279,7 +279,7 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
     <button class="tile" id="go-tuner"><div><b>Stimmgerät</b><span>Instrument stimmen über das Mikrofon</span></div><i>›</i></button>
     <button class="tile" id="go-theory"><div><b>Musiktheorie</b><span>Notenwerte, Pausen, Zeichen – mit Quiz</span></div><i>›</i></button>
   </div>
-  <p class="ver" id="ver">Version 38</p>
+  <p class="ver" id="ver">Version 39</p>
   <div class="card" id="lt" hidden>
     <b>Startlogo einstellen</b>
     <p class="val"><span id="lt-v">180</span> px</p>
@@ -1364,10 +1364,10 @@ function startLearn() {
     const tb = document.createElement("div"); tb.className = "tbv"; tb.setAttribute("role", "slider"); tb.setAttribute("aria-label", "Zugposition 1 bis 7");
     tb.innerHTML = `<div class="tube t1"></div><div class="tube t2"></div><div class="bow"></div><div class="brace"></div><div class="scale">${[1, 2, 3, 4, 5, 6, 7].map(n => `<span>${n}</span>`).join("")}</div>`;
     const brace = tb.querySelector(".brace"), nums = [...tb.querySelectorAll(".scale span")];
-    const TOP = 22, py = n => TOP + (n - 1) * (tb.clientHeight - 2 * TOP) / 6;
+    const TOP = 22, py = n => tb.clientHeight - TOP - (n - 1) * (tb.clientHeight - 2 * TOP) / 6;  // 1 unten (beim Spieler)
     let pos = 1;
     const place = n => { brace.style.top = py(n) + "px"; nums.forEach((s, i) => { s.style.top = py(i + 1) + "px"; s.classList.toggle("on", i + 1 === n && tb.classList.contains("down")); }); tb.setAttribute("aria-valuenow", n); };
-    const at = e => { const r = tb.getBoundingClientRect(); return Math.max(1, Math.min(7, Math.round((e.clientY - r.top - TOP) / ((r.height - 2 * TOP) / 6)) + 1)); };
+    const at = e => { const r = tb.getBoundingClientRect(); return Math.max(1, Math.min(7, Math.round((r.bottom - TOP - e.clientY) / ((r.height - 2 * TOP) / 6)) + 1)); };
     tb.addEventListener("pointerdown", e => { e.preventDefault(); try { tb.setPointerCapture(e.pointerId); } catch (x) {} tb.classList.add("down"); pos = at(e); LN.held = new Set([String(pos)]); place(pos); });
     tb.addEventListener("pointermove", e => { if (!tb.classList.contains("down")) return; pos = at(e); LN.held = new Set([String(pos)]); place(pos); });
     const up = () => { tb.classList.remove("down"); LN.held = new Set(); place(pos); };
@@ -1393,6 +1393,8 @@ function startLearn() {
 function learnLanes() {
   const cv = $("ln-cv"); cv.style.height = Math.max(200, $("ln-input").offsetHeight) + "px";
   const r0 = cv.getBoundingClientRect(); LN.lanes = {};
+  const tgt = instrObj().kind === "slide" ? document.querySelector("#ln-input .tbv .brace") : document.querySelector("#ln-input .tv");
+  if (tgt) { const rt = tgt.getBoundingClientRect(); LN.hitX = rt.left + rt.width / 2 - r0.left; }
   const dpr = window.devicePixelRatio || 1;
   cv.width = Math.round(r0.width * dpr); cv.height = Math.round(r0.height * dpr);
   if (instrObj().kind === "slide") document.querySelectorAll("#ln-input .scale span").forEach((s, i) => { const r = s.getBoundingClientRect(); LN.lanes[String(i + 1)] = r.top + r.height / 2 - r0.top; });
@@ -1433,22 +1435,23 @@ function learnXs() {
 function learnDraw(b, sp) {
   const cv = $("ln-cv"), c = cv.getContext("2d"), dpr = window.devicePixelRatio || 1;
   const W = cv.width / dpr, H = cv.height / dpr; c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, W, H);
-  const slide = instrObj().kind === "slide", hitX = W - 10, r = slide ? 13 : 17;
+  const slide = instrObj().kind === "slide", hitX = LN.hitX || W - 10, r = slide ? 13 : 17;
   // etwa 2 Sekunden sichtbar, aber schnelle Noten nie übereinander
-  const ppb = Math.max((W - 30) / (2.2 / sp), (2 * r + 6) / (LN.minGap || 1));
+  const ppb = Math.max((hitX - 20) / (2.2 / sp), (2 * r + 6) / (LN.minGap || 1));
   const fg = getComputedStyle(document.body).color;
   // Bahnen
   Object.entries(LN.lanes).forEach(([k, y]) => {
     c.strokeStyle = slide ? "rgba(128,128,128,.25)" : (LANE_COL[k] + "40"); c.lineWidth = slide ? 2 : 6; c.lineCap = "round";
-    c.beginPath(); c.moveTo(8, y); c.lineTo(hitX, y); c.stroke();
+    c.beginPath(); c.moveTo(8, y); c.lineTo(hitX - 40, y); c.stroke();
   });
   // Ziellinie
-  c.strokeStyle = fg; c.globalAlpha = .25; c.lineWidth = 3; c.beginPath(); c.moveTo(hitX, 4); c.lineTo(hitX, H - 4); c.stroke(); c.globalAlpha = 1;
+
   // Punkte
   const it = LN.items;
   for (let k = Math.max(0, LN.j - 3); k < it.length; k++) {
     const x = it[k]; const dx = (x.b - b) * ppb; if (dx > W) break;
     const X = hitX - dx; if (X < -r - x.len * ppb) continue;
+    if (X > hitX + 2) continue;  // angekommen: verschwindet im Ventil
     x.lanes.forEach(l => {
       const y = LN.lanes[l]; if (y == null) return;
       const col = x.res === "ok" ? "#1E7A4C" : x.res === "bad" ? "#999" : (slide ? "#C4161C" : LANE_COL[l]);
