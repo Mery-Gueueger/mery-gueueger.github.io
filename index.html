@@ -181,11 +181,19 @@ body.intro .brand img { opacity: 0; transform: translateY(-160px) }
   91% { transform: translateY(-4px); animation-timing-function: cubic-bezier(.5,0,1,1) }
   100% { opacity: 1; transform: translateY(0) }
 }
+.ver { text-align: center; color: var(--muted); font-size: .8rem; margin: 22px 0 4px; user-select: none; -webkit-user-select: none; cursor: default }
+#lt { position: fixed; inset: auto 12px 12px 12px; z-index: 900; max-width: 520px; margin-inline: auto; box-shadow: 0 8px 30px rgba(0,0,0,.25) }
+#lt .val { font-family: var(--f-display); font-weight: 800; font-size: 2rem; text-align: center; margin: 0 }
+#lt input[type=range] { width: 100%; height: 44px }
+#lt .ltr { display: flex; gap: 8px; flex-wrap: wrap }
+#lt .ltr button { flex: 1 1 120px; min-height: 48px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--card); color: var(--fg); font: inherit; font-weight: 700; cursor: pointer }
+#lt .ltr button.pri { background: var(--accent); border-color: var(--accent); color: var(--accent-fg) }
 @media (prefers-reduced-motion: reduce) { #splash img { animation: none; transform: none } }
 </style>
 </head>
 <body>
 <div id="splash" aria-hidden="true"><img src="splash-logo-w.png" alt=""></div>
+<script>try { const w = +localStorage.getItem("mg-splashw"); if (w >= 100 && w <= 400) document.querySelector("#splash img").style.width = w + "px"; } catch (e) {}</script>
 <div class="app">
 <header class="brand"><button type="button" id="logo-home" aria-label="Zum Startbildschirm"><img src="logo.png" alt="Mery-Güüger Merenschwand"></button></header>
 
@@ -198,6 +206,24 @@ body.intro .brand img { opacity: 0; transform: translateY(-160px) }
     <button class="tile red" id="go-songs"><div><b>Lieder üben</b><span>Mitspielen, Ventile lernen, auswendig üben</span></div><i>›</i></button>
     <button class="tile" id="go-metro"><div><b>Metronom</b><span>Den Takt halten üben</span></div><i>›</i></button>
     <button class="tile" id="go-theory"><div><b>Musiktheorie</b><span>Notenwerte, Pausen, Zeichen – mit Quiz</span></div><i>›</i></button>
+  </div>
+  <p class="ver" id="ver">Version 21</p>
+  <div class="card" id="lt" hidden>
+    <b>Startlogo einstellen</b>
+    <p class="val"><span id="lt-v">210</span> px</p>
+    <input type="range" id="lt-r" min="120" max="320" step="2" aria-label="Grösse des Startlogos">
+    <div class="ltr">
+      <button type="button" id="lt-m">− 2</button>
+      <button type="button" id="lt-p">+ 2</button>
+    </div>
+    <div class="ltr">
+      <button type="button" class="pri" id="lt-play">Animation abspielen</button>
+    </div>
+    <div class="ltr">
+      <button type="button" id="lt-reset">Zurücksetzen</button>
+      <button type="button" id="lt-close">Schliessen</button>
+    </div>
+    <p class="muted" style="margin:0;font-size:.85rem">Die Grösse wird auf diesem Handy gespeichert. Schliesse die App ganz und öffne sie neu, dann siehst du den echten Start mit dem Android-Ladelogo. Wenn es passt, schick mir die Zahl.</p>
   </div>
 
 </section>
@@ -873,16 +899,37 @@ boot();
 document.addEventListener("visibilitychange", () => { if (document.hidden) stopAll(); });
 </script>
 <script>
-(function () {
-  const sp = document.getElementById("splash"); if (!sp) return;
+const SPLASH_W = 210;
+const splashW = () => { try { const v = +localStorage.getItem("mg-splashw"); return v >= 100 && v <= 400 ? v : SPLASH_W; } catch (e) { return SPLASH_W; } };
+function runSplash(sp) {
+  if (!sp) return;
+  sp.querySelector("img").style.width = splashW() + "px";
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const lg = document.querySelector(".brand img");
   if (!reduce) document.body.classList.add("intro");
   let done = false;
-  const drop = () => { document.body.classList.remove("intro"); if (!reduce && lg) { lg.classList.add("drop"); lg.addEventListener("animationend", () => lg.classList.remove("drop"), { once: true }); } };
+  const drop = () => { document.body.classList.remove("intro"); if (!reduce && lg) { lg.classList.remove("drop"); void lg.offsetWidth; lg.classList.add("drop"); lg.addEventListener("animationend", () => lg.classList.remove("drop"), { once: true }); } };
   const finish = () => { if (done) return; done = true; sp.classList.add("out"); setTimeout(drop, 60); setTimeout(() => sp.remove(), 200); };
   sp.addEventListener("click", finish);
   setTimeout(() => { if (done) return; if (reduce) { finish(); return; } sp.classList.add("zoom"); setTimeout(finish, 700); }, 450);
+}
+runSplash(document.getElementById("splash"));
+(function () {
+  const lt = document.getElementById("lt"), r = document.getElementById("lt-r"), v = document.getElementById("lt-v");
+  let taps = 0, tt = 0;
+  document.getElementById("ver").addEventListener("click", () => { clearTimeout(tt); tt = setTimeout(() => taps = 0, 1500); if (++taps >= 5) { taps = 0; lt.hidden = false; sync(); } });
+  const sync = () => { r.value = splashW(); v.textContent = splashW(); };
+  const set = n => { n = Math.max(120, Math.min(320, n)); try { localStorage.setItem("mg-splashw", n); } catch (e) {} sync(); };
+  r.addEventListener("input", () => set(+r.value));
+  document.getElementById("lt-m").onclick = () => set(splashW() - 2);
+  document.getElementById("lt-p").onclick = () => set(splashW() + 2);
+  document.getElementById("lt-reset").onclick = () => { try { localStorage.removeItem("mg-splashw"); } catch (e) {} sync(); };
+  document.getElementById("lt-close").onclick = () => lt.hidden = true;
+  document.getElementById("lt-play").onclick = () => {
+    const sp = document.createElement("div"); sp.id = "splash"; sp.setAttribute("aria-hidden", "true");
+    sp.innerHTML = '<img src="splash-logo-w.png" alt="">';
+    document.body.prepend(sp); runSplash(sp);
+  };
 })();
 if ("serviceWorker" in navigator) { window.addEventListener("load", () => { navigator.serviceWorker.register("sw.js").catch(() => {}); }); }
 </script>
