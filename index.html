@@ -327,7 +327,7 @@ const SONGS = [
     parts: [
       { id: "trp1", instr: "trp", name: "Trompete 1. Stimme", abc: "X:1\nM:4/4\nL:1/8\nK:C\n|: !f! G2 GA G2 E2 | c2 c2 B2 A2 | G2 GA GE CE | D4 z4 | G2 GA G2 E2 | c2 cd e2 c2 | d2 B2 G2 B2 | c4 z2 G2 :| !ff! e2 e2 dc d2 | c2 c2 BA B2 | A2 AB c2 A2 | G6 z2 | e2 ed c2 A2 | G2 GA c2 e2 | d2 d2 B2 G2 | c4 z4 |]" },
       { id: "trp2", instr: "trp", name: "Trompete 2. Stimme", abc: "X:1\nM:4/4\nL:1/8\nK:C\n|: !f! E2 EF E2 C2 | A2 A2 G2 F2 | E2 EF EC CC | B,4 z4 | E2 EF E2 C2 | E2 EF G2 E2 | B2 G2 D2 G2 | E4 z2 E2 :| !ff! c2 c2 BA B2 | A2 A2 GF G2 | F2 FG A2 F2 | E6 z2 | c2 cB A2 F2 | E2 EF A2 c2 | B2 B2 G2 D2 | E4 z4 |]" },
-      { id: "pos", instr: "pos", name: "Posaune", abc: "X:1\nM:4/4\nL:1/8\nK:Bb clef=bass\n|: !f! z2 D,2 z2 D,2 | z2 E,2 z2 E,2 | z2 D,2 z2 D,2 | z2 A,2 z2 A,2 | z2 D,2 z2 D,2 | z2 D,2 z2 D,2 | z2 A,2 z2 A,2 | z2 D,2 z4 :| !ff! z2 D,2 z2 D,2 | z2 A,2 z2 A,2 | z2 E,2 z2 E,2 | z2 D,2 z2 D,2 | z2 B,2 z2 B,2 | z2 D,2 z2 D,2 | z2 A,2 z2 A,2 | z2 D,2 z4 |]" },
+      { id: "pos", instr: "pos", name: "Posaune", abc: "X:1\nM:4/4\nL:1/8\nK:Bb clef=bass\n|: !mf! D,4 F,4 | G,4 G,2 B,2 | F,4 D,4 | C,2 E,2 F,4 | D,6 F,2 | B,4 A,2 G,2 | F,4 E,2 C,2 | D,4 z2 F,2 :| !f! D,3 F, z2 B,2 | C3 A, z2 F,2 | B,3 G, z2 E,2 | F,6 z2 | G,3 B, z2 D2 | F,3 B, z2 D2 | C3 A, F,2 E,2 | D,4 z4 |]" },
       { id: "eup", instr: "eup", name: "Euphi", abc: "X:1\nM:4/4\nL:1/8\nK:C\n|: !f! z4 C2 E2 | F2 A2 F2 C2 | E2 G2 E2 C2 | B,2 D2 G2 F2 | E4 C2 E2 | G2 E2 C2 E2 | F2 D2 B,2 D2 | C2 G,2 C2 z2 :| !ff! G2 E2 G2 c2 | B2 G2 D2 G2 | A2 F2 C2 F2 | E2 G2 c2 z2 | c2 A2 E2 C2 | E2 G2 c2 G2 | B2 G2 D2 B,2 | C4 z4 |]" },
       { id: "sou", instr: "sou", name: "Susi", abc: "X:1\nM:4/4\nL:1/8\nK:C\n|: !f! C2 z2 G,2 z2 | F2 z2 C2 z2 | C2 z2 G,2 z2 | G,2 z2 D2 z2 | C2 z2 G,2 z2 | C2 z2 G,2 z2 | G,2 z2 D2 z2 | C2 G,2 C2 z2 :| !ff! C2 z2 G,2 z2 | G,2 z2 D2 z2 | F2 z2 C2 z2 | C2 z2 G,2 z2 | A,2 z2 E2 z2 | C2 z2 G,2 z2 | G,2 z2 D2 z2 | C2 G,2 C2 z2 |]" },
       { id: "tutti", instr: "tutti", name: "Tutti", abc: "X:1\nM:4/4\nL:1/8\nK:C\n|: !f! G2 GA G2 E2 | c2 c2 B2 A2 | G2 GA GE CE | D4 z4 | G2 GA G2 E2 | c2 cd e2 c2 | d2 B2 G2 B2 | c4 z2 G2 :| !ff! e2 e2 dc d2 | c2 c2 BA B2 | A2 AB c2 A2 | G6 z2 | e2 ed c2 A2 | G2 GA c2 e2 | d2 d2 B2 G2 | c4 z4 |]" }
@@ -652,8 +652,8 @@ function click(accent, at) {
   o.connect(g).connect(a.destination); o.start(t); o.stop(t + 0.06);
 }
 let noiseBuf = null;
-function drum(kind) {
-  const a = ctx(); if (!a) return; const t = a.currentTime;
+function drum(kind, at) {
+  const a = ctx(); if (!a) return; const t = at || a.currentTime;
   if (kind === "kick") {
     const o = a.createOscillator(), g = a.createGain(); o.frequency.setValueAtTime(160, t); o.frequency.exponentialRampToValueAtTime(42, t + 0.09);
     g.gain.setValueAtTime(1.0, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.28); o.connect(g).connect(a.destination); o.start(t); o.stop(t + 0.3); return;
@@ -670,7 +670,7 @@ function drum(kind) {
 }
 
 // Eigener Abspieler: Position in Viertelschlägen, Tempo wird bei jedem Schritt neu gelesen (live)
-const P = { tracks: [], pos: 0, last: 0, iv: null, barBeats: 4, end: 0, eighth: null, countIn: 0, bars: 0, measStart: [] };
+const P = { tracks: [], pos: 0, iv: null, barBeats: 4, end: 0, step: 0, bars: 0, measStart: [], aT: 0, aPos: 0, rate: 2 };
 function eventsOf(tune) {
   try { tune.setUpAudio(); } catch (e) {}
   const tc = new ABCJS.TimingCallbacks(tune, { qpm: 60 });
@@ -687,7 +687,7 @@ function preparePlayer() {
     let hid = document.getElementById("hid-" + pt.id);
     if (!hid) { hid = document.createElement("div"); hid.id = "hid-" + pt.id; hid.style.cssText = "position:absolute;left:-9999px;top:0;width:600px;visibility:hidden"; document.body.appendChild(hid); }
     const t = ABCJS.renderAbc(hid, pt.abc, {})[0];
-    P.tracks.push({ events: eventsOf(t), transpose: pins.transpose, vol: { trp: 0.12, pos: 0.16, eup: 0.15, sou: 0.24 }[pt.instr] || 0.14, cursor: false, idx: 0 });
+    P.tracks.push({ events: eventsOf(t), transpose: pins.transpose, vol: { trp: 0.12, pos: 0.2, eup: 0.15, sou: 0.24 }[pt.instr] || 0.14, cursor: false, idx: 0 });
   });
   const ev = main.events, lastE = ev[ev.length - 1];
   P.end = lastE ? Math.ceil((lastE.b + Math.max(...lastE.pitches.map(x => x.d), 1)) / P.barBeats) * P.barBeats : 0;
@@ -706,41 +706,46 @@ function loopRange() {
   for (const x of ev) { if (x.b >= s && x.m === b) e = Math.floor(x.b / P.barBeats + 1e-6) * P.barBeats + P.barBeats; if (x.b >= s && x.m === b + 1) break; }
   return [s, Math.max(e, s + P.barBeats)];
 }
-function seek(pos) { P.pos = pos; P.tracks.forEach(t => { t.idx = t.events.findIndex(e => e.b >= pos - 1e-6); if (t.idx < 0) t.idx = t.events.length; }); P.eighth = null; }
+function seek(pos) { P.pos = pos; P.tracks.forEach(t => { t.idx = t.events.findIndex(e => e.b >= pos - 1e-6); if (t.idx < 0) t.idx = t.events.length; }); P.step = Math.ceil(pos * 4 - 1e-6); }
 const qpmNow = () => cur.song.qpm * $("tempo").value / 100;
+// Zeitplanung über die Audio-Uhr: Töne werden kurz im Voraus exakt eingeplant, dadurch kein Holpern
+const LOOKAHEAD = 0.15;
+function curPos(a) { return P.aPos + (a.currentTime - P.aT) * P.rate; }
+function drumStep(si, when) {
+  const steps = P.barBeats * 4, s = ((si % steps) + steps) % steps, fill = Math.floor(si / steps) % 4 === 3;
+  if (s === 0 || s === 10 || (fill && s === 13)) drum("kick", when);
+  if (s === 4 || s === 12 || (fill && s >= 14)) drum("snare", when);
+  else if (s === 7 || s === 9 || s === 15) drum("ghost", when);
+  drum(s % 2 === 0 ? "hatA" : "hatB", when);
+}
 function tick() {
-  const now = performance.now(), dt = now - P.last; P.last = now;
-  const beatsPerMs = qpmNow() / 60000;
-  if (P.countIn > 0) {
-    const before = P.countIn; P.countIn -= dt * beatsPerMs;
-    if (Math.ceil(P.countIn) < Math.ceil(before) && P.countIn > 0) click(false);
-    if (P.countIn > 0) return;
-    P.last = now; return;
-  }
-  P.pos += dt * beatsPerMs;
+  const a = ctx(); if (!a) return;
+  const r = qpmNow() / 60;
+  if (r !== P.rate && a.currentTime >= P.aT) { P.aPos = curPos(a); P.aT = a.currentTime; P.rate = r; }
+  let pos = curPos(a);
+  if (a.currentTime >= P.aT) P.pos = pos;
   const lr = loopRange();
-  if (lr && (P.pos >= lr[1] || P.pos < lr[0] - 0.01)) { seek(lr[0]); }
-  if (!lr && P.pos >= P.end) { stopAll(true); return; }
-  const secPerBeat = 60 / qpmNow(), tutti = instrObj().kind === "tutti";
+  if (!lr && pos >= P.end) { stopAll(true); return; }
+  const horizon = pos + LOOKAHEAD * P.rate, tutti = instrObj().kind === "tutti", spb = 1 / P.rate;
+  const at = b => P.aT + (b - P.aPos) / P.rate;
+  const limit = lr ? Math.min(horizon, lr[1]) : horizon;
   P.tracks.forEach(t => {
-    while (t.idx < t.events.length && t.events[t.idx].b <= P.pos) {
-      const e = t.events[t.idx++];
-      if (t.cursor) { mark(lastEls, false); lastEls = e.els; mark(lastEls, true); scrollToEl(lastEls[0]); }
-      if (!t.solo || $("sound").checked) e.pitches.forEach(x => tone(x.p + t.transpose, Math.max(0.08, x.d * secPerBeat * 0.9), t.vol));
+    while (t.idx < t.events.length && t.events[t.idx].b < limit) {
+      const e = t.events[t.idx++], when = Math.max(a.currentTime, at(e.b));
+      if (t.cursor) { const els = e.els; setTimeout(() => { if (!playing) return; mark(lastEls, false); lastEls = els; mark(lastEls, true); scrollToEl(lastEls[0]); }, Math.max(0, (when - a.currentTime) * 1000)); }
+      if (!t.solo || $("sound").checked) e.pitches.forEach(x => tone(x.p + t.transpose, Math.max(0.08, x.d * spb * 0.9), t.vol, null, when));
     }
   });
-  if (tutti) {
-    // Drum-and-Bass-Groove (Two-Step) im Sechzehntelraster, jeder 4. Takt mit kleinem Fill
-    const si = Math.floor(P.pos * 4 + 1e-6), steps = P.barBeats * 4;
-    if (si !== P.eighth) { P.eighth = si; const s = ((si % steps) + steps) % steps;
-      const fill = Math.floor(si / steps) % 4 === 3;
-      if (s === 0 || s === 10 || (fill && s === 13)) drum("kick");
-      if (s === 4 || s === 12 || (fill && s >= 14)) drum("snare");
-      else if (s === 7 || s === 9 || s === 15) drum("ghost");
-      drum(s % 2 === 0 ? "hatA" : "hatB"); }
+  if (tutti) while (P.step / 4 < limit) { drumStep(P.step, Math.max(a.currentTime, at(P.step / 4))); P.step++; }
+  // Schleife: am Ende des Bereichs nahtlos zum Anfang springen
+  if (lr && horizon >= lr[1]) {
+    const tEnd = at(lr[1]); P.aPos = lr[0]; P.aT = tEnd;
+    P.tracks.forEach(t => { t.idx = t.events.findIndex(e => e.b >= lr[0] - 1e-6); if (t.idx < 0) t.idx = t.events.length; });
+    P.step = Math.ceil(lr[0] * 4 - 1e-6);
   }
 }
 function stopAll(reset) {
+  if (playing && actx && P.aT && actx.currentTime >= P.aT) P.pos = curPos(actx);
   playing = false; if (P.iv) { clearInterval(P.iv); P.iv = null; }
   mark(lastEls, false); lastEls = [];
   if (reset) { P.pos = 0; if ($("scroller")) $("scroller").scrollLeft = 0; }
@@ -748,13 +753,24 @@ function stopAll(reset) {
 }
 $("stop").onclick = () => stopAll(true);
 $("tempo").oninput = () => { $("tempo-o").textContent = $("tempo").value + " %"; };
-["loop", "lp-a", "lp-b"].forEach(id => $(id).addEventListener("change", () => { const lr = loopRange(); if (playing && lr && (P.pos < lr[0] || P.pos >= lr[1])) seek(lr[0]); }));
-$("play").onclick = () => {
+["loop", "lp-a", "lp-b"].forEach(id => $(id).addEventListener("change", () => {
+  const lr = loopRange(); if (!playing || !lr || !actx) return;
+  const pos = curPos(actx); if (pos < lr[0] || pos >= lr[1]) { seek(lr[0]); P.aPos = lr[0]; P.aT = actx.currentTime + 0.05; }
+}));
+$("play").onclick = async () => {
   if (playing) { stopAll(false); return; }
-  ctx(); if (!P.tracks.length) preparePlayer();
-  const lr = loopRange();
-  if (P.pos <= 0 || (lr && (P.pos < lr[0] || P.pos >= lr[1]))) { seek(lr ? lr[0] : 0); P.countIn = P.barBeats; click(true); } else { seek(P.pos); P.countIn = 0; }
-  playing = true; $("play").textContent = "❚❚ Pause"; P.last = performance.now(); P.iv = setInterval(tick, 12);
+  const a = ctx(); if (!a) return;
+  try { if (a.state !== "running") await a.resume(); } catch (e) {}
+  if (!P.tracks.length) preparePlayer();
+  const lr = loopRange(); P.rate = qpmNow() / 60;
+  const t0 = a.currentTime + 0.12;
+  if (P.pos <= 0 || (lr && (P.pos < lr[0] || P.pos >= lr[1]))) {
+    seek(lr ? lr[0] : 0);
+    for (let i = 0; i < P.barBeats; i++) click(i === 0, t0 + i / P.rate);
+    P.aT = t0 + P.barBeats / P.rate;
+  } else { seek(P.pos); P.aT = t0; }
+  P.aPos = P.pos;
+  playing = true; $("play").textContent = "❚❚ Pause"; P.iv = setInterval(tick, 25); tick();
 };
 
 /* Metronom */
