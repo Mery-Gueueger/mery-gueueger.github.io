@@ -214,6 +214,16 @@ body.intro .brand img { opacity: 0; transform: translateY(-160px) }
 .v-bar { position: fixed; top: max(8px, env(safe-area-inset-top)); right: 8px; z-index: 951; display: flex; gap: 6px }
 .v-bar button, .land-ctrl button { width: 48px; height: 48px; border-radius: 50%; border: 0; background: rgba(20,20,20,.75); color: #fff; font-size: 1.3rem; font-weight: 700; cursor: pointer }
 .land-ctrl { display: none }
+.scorecard { position: relative }
+.ln-zone { display: none; position: absolute; top: 8px; bottom: 52px; left: calc(30% - 22px); width: 44px; border-radius: 10px; background: var(--accent-soft); border: 2px dashed var(--accent); opacity: .55; pointer-events: none }
+body.learning .ln-zone { display: block }
+body.learning .scroller { scroll-behavior: auto }
+.abcjs-note.ln-ok, .abcjs-note.ln-ok path { fill: var(--ok) !important; stroke: var(--ok) }
+.abcjs-note.ln-bad, .abcjs-note.ln-bad path { fill: var(--bad) !important; stroke: var(--bad) }
+#ln-input .valves { gap: 10px }
+#ln-input .valve { height: 64px }
+#ln-input .valve .cap { height: 60px }
+#ln-input .slide button.down { border-color: var(--accent); background: var(--accent); color: var(--accent-fg) }
 .seek { display: flex; align-items: center; gap: 10px; padding: 4px 12px 0 }
 .seek input { flex: 1; min-width: 0; accent-color: var(--accent); height: 36px }
 .seek span { font-size: .85rem; color: var(--muted); font-weight: 700; min-width: 4.8em; text-align: right; font-variant-numeric: tabular-nums }
@@ -253,7 +263,7 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
     <button class="tile" id="go-tuner"><div><b>Stimmgerät</b><span>Instrument stimmen über das Mikrofon</span></div><i>›</i></button>
     <button class="tile" id="go-theory"><div><b>Musiktheorie</b><span>Notenwerte, Pausen, Zeichen – mit Quiz</span></div><i>›</i></button>
   </div>
-  <p class="ver" id="ver">Version 35</p>
+  <p class="ver" id="ver">Version 36</p>
   <div class="card" id="lt" hidden>
     <b>Startlogo einstellen</b>
     <p class="val"><span id="lt-v">180</span> px</p>
@@ -385,8 +395,20 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
 
   <div class="card scorecard" style="margin-top:10px">
     <div class="scroller" id="scroller"><div id="paper"></div></div>
+    <div class="ln-zone" aria-hidden="true"></div>
     <div class="seek" id="seek-box"><input type="range" id="seek" min="0" max="1" step="0.25" value="0" aria-label="Stelle im Lied"><span id="seek-t">Takt 1</span></div>
     <div class="land-ctrl"><button type="button" id="l-play" aria-label="Abspielen oder Pause">▶</button><button type="button" id="l-stop" aria-label="Stopp">■</button></div>
+  </div>
+
+  <div id="p-learn" class="card" style="margin-top:10px" hidden>
+    <div class="stat"><span>Richtig <b id="ln-ok">0</b> von <b id="ln-done">0</b></span><span id="ln-pct"></span><span>Serie <b id="ln-st">0</b></span></div>
+    <div id="ln-input"></div>
+    <div class="ctrl">
+      <button class="main" id="ln-play">▶ Los</button>
+      <button class="ghost" id="ln-stop">■ Stopp</button>
+    </div>
+    <p class="small muted" id="ln-help" style="margin:0"></p>
+    <p class="err" id="ln-msg" aria-live="polite"></p>
   </div>
 
   <div id="p-play" class="card" style="margin-top:10px">
@@ -427,16 +449,6 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
     <p class="small muted">Die App zählt einen Takt vor. Das Tempo kannst du auch während dem Abspielen ändern. Mit „Schleife“ wird nur der gewählte Teil immer wieder gespielt.</p>
   </div>
 
-  <div id="p-learn" class="card" style="margin-top:10px" hidden>
-    <div class="stat"><span>Note <b id="ln-pos">1</b> von <b id="ln-tot">0</b></span><span>Fehler <b id="ln-err">0</b></span></div>
-    <p class="small muted" id="ln-help"></p>
-    <div id="ln-input"></div>
-    <p class="err" id="ln-msg" aria-live="polite"></p>
-    <div class="ctrl">
-      <button class="main" id="ln-check">Prüfen</button>
-      <button class="ghost" id="ln-restart">Von vorn</button>
-    </div>
-  </div>
   <div class="card" id="orig" style="margin-top:10px" hidden>
     <b>Originalnoten</b>
     <p class="small muted" style="margin:0">Antippen für den ganzen Bildschirm. Handy quer halten, dann werden die Noten grösser.</p>
@@ -832,14 +844,17 @@ function renderScore() {
   const pa = $("paper"), sv = pa.querySelector("svg");
   if (sv) { try { const bw = sv.getBBox(); sv.setAttribute("width", Math.ceil(bw.x + bw.width + 16)); } catch (e) {} pa.style.width = Math.ceil(sv.getBoundingClientRect().width) + "px"; pa.style.overflow = "visible"; }
   cur.notes = [...pa.querySelectorAll(".abcjs-note")];
-  P.tracks = []; P.pos = 0; if (cur.mode === "play") preparePlayer();
+  P.tracks = []; P.pos = 0; preparePlayer();
   $("scroller").scrollLeft = 0;
 }
 function hint(el) {}
 function setMode(m) {
   stopAll(); cur.mode = m; if (instrObj().kind !== "tutti") store.set("mode", m);
   $("m-play").setAttribute("aria-pressed", m === "play"); $("m-learn").setAttribute("aria-pressed", m === "learn");
-  $("p-play").hidden = m !== "play"; $("p-learn").hidden = m !== "learn"; $("seek-box").hidden = m !== "play";
+  $("p-play").hidden = false; $("p-learn").hidden = m !== "learn"; $("seek-box").hidden = false;
+  $("showv").parentElement.style.display = m === "learn" ? "none" : "";
+  $("play").parentElement.style.display = m === "learn" ? "none" : "";
+  document.body.classList.toggle("learning", m === "learn");
   renderScore();
   if (m === "learn") startLearn();
   landUpd();
@@ -849,6 +864,7 @@ $("m-learn").onclick = () => setMode("learn");
 $("showv").onchange = () => { stopAll(); renderScore(); };
 
 function scrollToEl(el) {
+  if (cur.mode === "learn" && playing) return;  // beim Lernen scrollt die Anzeige gleichmässig selbst
   if (!el) return; const sc = $("scroller"); const r = el.getBoundingClientRect(), sr = sc.getBoundingClientRect();
   const x = r.left - sr.left + sc.scrollLeft; sc.scrollLeft = Math.max(0, x - sc.clientWidth * 0.3);
 }
@@ -1317,61 +1333,119 @@ $("mt-tap").onclick = () => { const t = performance.now(); MT.taps = MT.taps.fil
   if (MT.taps.length >= 3) { const d = (MT.taps[MT.taps.length - 1] - MT.taps[0]) / (MT.taps.length - 1); mtSet(60000 / d); } };
 mtRender();
 
-/* Auswendig lernen */
-let LN = { list: [], i: 0, err: 0, sel: new Set(), pos: null, wrongOnce: false };
+/* Auswendig lernen: Lied läuft, Ventile wie echte Ventile halten, im Feld zählt es */
+let LN = { items: [], j: 0, ok: 0, done: 0, streak: 0, held: new Set(), raf: 0, xs: null };
+const learnHeld = () => instrObj().kind === "slide" ? ([...LN.held][0] || "") : ([...LN.held].sort().join("+") || "0");
 function startLearn() {
-  const base = partAbc(); const tune = ABCJS.parseOnly(base)[0];
-  const ps = notePitches(tune, keyOf(base), bassClef(base));
-  const labs = cur.labels && cur.labels.length === ps.length ? cur.labels : ps.map(n => fingOf(Math.max(...n.mids)));
-  LN = { list: ps.map((n, k) => ({ fing: (labs[k] || "").split("/")[0], el: cur.notes[k] })).filter(x => x.fing), i: 0, err: 0, sel: new Set(), pos: null, wrongOnce: false };
-  $("ln-tot").textContent = LN.list.length; $("ln-err").textContent = 0;
-  const ins = instrObj();
-  $("ln-help").textContent = ins.kind === "slide" ? "Wähle die Zugposition für die rote Note und tippe auf Prüfen." : "Drücke die Ventile für die rote Note (antippen = drücken, nochmals = loslassen). Bei 0 drückst du keines. Dann Prüfen.";
-  const box = $("ln-input"); box.innerHTML = "";
+  const ins = instrObj(), box = $("ln-input"); box.innerHTML = ""; LN.held = new Set();
+  $("ln-help").textContent = ins.kind === "slide"
+    ? "Das Lied läuft. Halte die richtige Zugposition gedrückt, wenn die Note im Feld ist."
+    : "Das Lied läuft. Halte die richtigen Ventile gedrückt, wenn die Note im Feld ist, wie bei einem echten Instrument. Bei 0 drückst du keines.";
+  const hold = (b, v) => {
+    const down = e => {
+      e.preventDefault(); try { b.setPointerCapture(e.pointerId); } catch (x) {}
+      if (ins.kind === "slide") { LN.held.clear(); box.querySelectorAll("button").forEach(o => o.classList.remove("down")); }
+      LN.held.add(v); b.classList.add("down");
+    };
+    const up = () => { LN.held.delete(v); b.classList.remove("down"); };
+    b.addEventListener("pointerdown", down); b.addEventListener("pointerup", up); b.addEventListener("pointercancel", up); b.addEventListener("lostpointercapture", up);
+    b.addEventListener("contextmenu", e => e.preventDefault());
+  };
   if (ins.kind === "slide") {
     const s = document.createElement("div"); s.className = "slide";
-    for (let p = 1; p <= 7; p++) { const b = document.createElement("button"); b.type = "button"; b.textContent = p; b.dataset.v = p; b.setAttribute("aria-pressed", "false");
-      b.onclick = () => { LN.pos = String(p); [...s.children].forEach(c => c.setAttribute("aria-pressed", c.dataset.v === LN.pos)); $("ln-msg").textContent = ""; }; s.appendChild(b); }
+    for (let p = 1; p <= 7; p++) { const b = document.createElement("button"); b.type = "button"; b.textContent = p; hold(b, String(p)); s.appendChild(b); }
     box.appendChild(s);
   } else {
     const v = document.createElement("div"); v.className = "valves";
-    ["1","2","3"].forEach(n => { const b = document.createElement("button"); b.type = "button"; b.className = "valve"; b.dataset.v = n; b.setAttribute("aria-pressed", "false"); b.setAttribute("aria-label", "Ventil " + n);
-      b.innerHTML = `<span class="casing"></span><span class="top"><span class="stem"></span><span class="cap">${n}</span></span>`;
-      b.onclick = () => { LN.sel.has(n) ? LN.sel.delete(n) : LN.sel.add(n); b.classList.toggle("down", LN.sel.has(n)); b.setAttribute("aria-pressed", LN.sel.has(n)); $("ln-msg").textContent = ""; };
-      v.appendChild(b); });
+    ["1", "2", "3"].forEach(n => {
+      const b = document.createElement("button"); b.type = "button"; b.className = "valve"; b.setAttribute("aria-label", "Ventil " + n);
+      b.innerHTML = `<span class="casing"></span><span class="top"><span class="stem"></span><span class="cap">${n}</span></span>`; hold(b, n); v.appendChild(b);
+    });
     box.appendChild(v);
   }
-  showLearn();
+  learnReset();
+  if (!LN.raf) LN.raf = requestAnimationFrame(learnLoop);
 }
-function learnAnswer() { return instrObj().kind === "slide" ? LN.pos : ([...LN.sel].sort().join("+") || "0"); }
-function clearLearnInput() {
-  LN.sel.clear(); LN.pos = null;
-  document.querySelectorAll("#ln-input .valve").forEach(b => { b.classList.remove("down", "should"); b.setAttribute("aria-pressed", "false"); });
-  document.querySelectorAll("#ln-input .slide button").forEach(b => { b.classList.remove("should"); b.setAttribute("aria-pressed", "false"); });
+function learnItems() {
+  const ev = P.tracks[0] ? P.tracks[0].events : [], idx = new Map(cur.notes.map((el, k) => [el, k])), out = [];
+  ev.forEach(e => {
+    const el = e.els[0]; const k = idx.get(el); if (k == null) return;
+    const f = (cur.labels[k] || "").split("/")[0]; if (!f) return;
+    out.push({ b: e.b, fing: f.length > 1 && instrObj().kind !== "slide" && !f.includes("+") ? f.split("").join("+") : f, el });
+  });
+  return out;
 }
-function showLearn() {
-  cur.notes.forEach(n => n.classList.remove("abcjs-cursor-on"));
-  if (LN.i >= LN.list.length) {
-    $("ln-msg").textContent = ""; $("ln-pos").textContent = LN.list.length;
-    $("ln-msg").innerHTML = `<span style="color:var(--ok)">Lied fertig! ${LN.err === 0 ? "Ohne Fehler." : LN.err + " Fehler."}</span>`;
-    $("ln-check").disabled = true; return;
+function learnReset() {
+  cur.notes.forEach(n => n.classList.remove("ln-ok", "ln-bad"));
+  LN.items = learnItems(); LN.j = 0; LN.ok = 0; LN.done = 0; LN.streak = 0; LN.xs = null;
+  learnStats(); $("ln-msg").textContent = "";
+}
+function learnStats() {
+  $("ln-ok").textContent = LN.ok; $("ln-done").textContent = LN.done; $("ln-st").textContent = LN.streak;
+  $("ln-pct").textContent = LN.done ? Math.round(LN.ok / LN.done * 100) + " %" : "";
+}
+const learnBeat = () => R.on ? bOf(R.el.currentTime) : (actx ? curPos(actx) : 0);
+// Sekunden pro Schlag beim aktuellen Tempo
+const learnSpb = () => R.on ? spbSong() / R.el.playbackRate : 1 / P.rate;
+function learnXs() {
+  if (LN.xs) return LN.xs;
+  const pl = $("paper").getBoundingClientRect().left;
+  return LN.xs = P.tracks[0].events.map(e => e.els[0] ? e.els[0].getBoundingClientRect().left - pl + 8 : null);
+}
+function learnLoop() {
+  if (cur.mode !== "learn") { LN.raf = 0; return; }
+  if (playing && P.tracks.length) {
+    const b = learnBeat(), sp = learnSpb(), it = LN.items;
+    const eB = 0.15 / sp, lB = 0.28 / sp;  // Toleranz vor und nach der Note, in Schlägen
+    // Sprung zurück (Schleife, Balken): ab dort neu werten
+    if (LN.j > 0 && it[LN.j - 1] && it[LN.j - 1].b > b + 0.5) {
+      LN.j = it.findIndex(x => x.b >= b - 0.01); if (LN.j < 0) LN.j = it.length;
+      it.forEach(x => { if (x.b >= b - 0.01) { x.hit = false; x.el.classList.remove("ln-ok", "ln-bad"); } });
+    }
+    // Sprung nach vorn: übersprungene Noten nicht werten
+    while (LN.j < it.length && it[LN.j].b < b - 1) LN.j++;
+    const want = learnHeld();
+    for (let k = LN.j; k < it.length && it[k].b <= b + eB + 0.01; k++) {
+      const x = it[k], prev = it[k - 1], next = it[k + 1];
+      const early = Math.min(eB, prev ? (x.b - prev.b) / 2 : 1), late = Math.min(lB, next ? (next.b - x.b) * 0.6 : 1);
+      if (b >= x.b - early && b <= x.b + late && want === x.fing) x.hit = true;
+    }
+    while (LN.j < it.length) {
+      const x = it[LN.j], next = it[LN.j + 1], late = Math.min(lB, next ? (next.b - x.b) * 0.6 : 1);
+      if (b <= x.b + late) break;
+      LN.done++;
+      if (x.hit) { LN.ok++; LN.streak++; x.el.classList.add("ln-ok"); } else { LN.streak = 0; x.el.classList.add("ln-bad"); }
+      x.hit = false; LN.j++; learnStats();
+    }
+    // Noten gleichmässig durch das Feld schieben
+    const ev = P.tracks[0].events, xs = learnXs(); let k = 0;
+    while (k + 1 < ev.length && ev[k + 1].b <= b) k++;
+    if (xs[k] != null) {
+      let x = xs[k];
+      if (b >= ev[k].b && ev[k + 1] && xs[k + 1] != null && xs[k + 1] > xs[k]) x += (xs[k + 1] - xs[k]) * Math.min(1, (b - ev[k].b) / (ev[k + 1].b - ev[k].b));
+      if (b < ev[0].b) x = xs[0] - (ev[0].b - b) * 40;
+      const sc = $("scroller"); sc.scrollLeft = Math.max(0, x - sc.clientWidth * 0.3);
+    }
   }
-  $("ln-check").disabled = false; LN.wrongOnce = false;
-  const n = LN.list[LN.i]; if (n.el) { n.el.classList.add("abcjs-cursor-on"); scrollToEl(n.el); }
-  $("ln-pos").textContent = LN.i + 1; clearLearnInput();
+  LN.raf = requestAnimationFrame(learnLoop);
 }
-$("ln-check").onclick = () => {
-  const n = LN.list[LN.i]; if (!n) return;
-  if (instrObj().kind === "slide" && !LN.pos) { $("ln-msg").textContent = "Wähle zuerst eine Zugposition."; return; }
-  const a = learnAnswer();
-  if (a === n.fing) { $("ln-msg").innerHTML = `<span style="color:var(--ok)">Richtig: ${n.fing}</span>`; LN.i++; setTimeout(showLearn, 350); return; }
-  if (!LN.wrongOnce) { LN.err++; $("ln-err").textContent = LN.err; LN.wrongOnce = true; }
-  $("ln-msg").textContent = `Nicht ganz. Richtig ist ${n.fing}. Stell es ein und prüfe nochmals.`;
-  const want = n.fing === "0" ? [] : n.fing.split("+");
-  document.querySelectorAll("#ln-input .valve").forEach(b => b.classList.toggle("should", want.includes(b.dataset.v)));
-  document.querySelectorAll("#ln-input .slide button").forEach(b => b.classList.toggle("should", b.dataset.v === n.fing));
+$("ln-play").onclick = () => { if (!playing && P.pos <= 0) learnReset(); $("play").click(); };
+$("ln-stop").onclick = () => {
+  $("stop").click();
+  if (LN.done) $("ln-msg").innerHTML = `<span style="color:var(--ok)">${LN.ok} von ${LN.done} Noten richtig gegriffen (${Math.round(LN.ok / LN.done * 100)} %).</span>`;
 };
-$("ln-restart").onclick = () => startLearn();
+new MutationObserver(() => {
+  $("ln-play").textContent = playing ? "❚❚ Pause" : (P.pos > 0 ? "▶ Weiter" : "▶ Los");
+  if (!playing && cur.mode === "learn" && LN.done) $("ln-msg").innerHTML = `<span style="color:var(--ok)">${LN.ok} von ${LN.done} Noten richtig gegriffen (${Math.round(LN.ok / LN.done * 100)} %).</span>`;
+}).observe($("play"), { childList: true, characterData: true, subtree: true });
+// Am Computer: Tasten 1, 2, 3 (Posaune 1–7) gedrückt halten
+document.addEventListener("keydown", e => {
+  if (cur.mode !== "learn" || $("s-song").hidden || e.repeat || !"1234567".includes(e.key) || !e.key) return;
+  if (instrObj().kind !== "slide" && !"123".includes(e.key)) return;
+  if (instrObj().kind === "slide") LN.held.clear();
+  LN.held.add(e.key);
+});
+document.addEventListener("keyup", e => { LN.held.delete(e.key); });
 
 /* ---------- Start ---------- */
 $("pw-go").onclick = guggeUnlock;
