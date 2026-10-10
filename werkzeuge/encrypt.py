@@ -35,6 +35,22 @@ for s in songs:
             open(os.path.join(data_dir, nm), "wb").write(enc(open(src, "rb").read()))
         names[pid] = nm
     s["audio"] = names
+    # Originalnoten als Bilder (eine Datei pro Seite)
+    for pt in s["parts"]:
+        src = pt.pop("pdf", None)
+        if not src:
+            continue
+        import pymupdf
+        doc = pymupdf.open(src)
+        pages = []
+        for i, pg in enumerate(doc):
+            nm = hashlib.sha256(key + f"{s['id']}-{pt['id']}-s{i + 1}".encode()).hexdigest()[:16] + ".bin"
+            path = os.path.join(data_dir, nm)
+            if not os.path.exists(path):
+                pix = pg.get_pixmap(dpi=170, colorspace=pymupdf.csGRAY)
+                open(path, "wb").write(enc(pix.tobytes("png")))
+            pages.append(nm)
+        pt["pages"] = pages
 open(os.path.join(data_dir, "lieder.bin"), "wb").write(enc(json.dumps(songs, ensure_ascii=False).encode("utf-8")))
 json.dump(meta, open(kfile, "w"))
 print("ok", len(songs), "Lieder")

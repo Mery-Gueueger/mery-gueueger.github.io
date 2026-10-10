@@ -193,6 +193,16 @@ body.intro .brand img { opacity: 0; transform: translateY(-160px) }
 .chip:disabled { opacity: .55; cursor: default }
 .src { margin-bottom: 2px }
 .loading { font-size: .9rem; color: var(--muted); min-height: 1.3em; margin: 0 }
+#orig-pages img { display: block; width: 100%; height: auto; border: 1px solid var(--line); border-radius: 8px; margin-top: 8px; background: #fff; cursor: zoom-in }
+#viewer { position: fixed; inset: 0; z-index: 950; background: #fff; overflow: auto; -webkit-overflow-scrolling: touch }
+#v-pages { width: 100%; }
+#v-pages img { display: block; width: 100%; height: auto }
+.v-bar { position: fixed; top: max(8px, env(safe-area-inset-top)); right: 8px; z-index: 951; display: flex; gap: 6px }
+.v-bar button, .land-ctrl button { width: 48px; height: 48px; border-radius: 50%; border: 0; background: rgba(20,20,20,.75); color: #fff; font-size: 1.3rem; font-weight: 700; cursor: pointer }
+.land-ctrl { display: none }
+body.landplay .scorecard { position: fixed; inset: 0; z-index: 900; margin: 0 !important; border-radius: 0; border: 0; padding: 6px 0; display: flex; align-items: center }
+body.landplay .scorecard .scroller { width: 100% }
+body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(10px, env(safe-area-inset-right)); bottom: 10px; z-index: 901 }
 @media (prefers-reduced-motion: reduce) { #splash img { animation: none; transform: none } }
 </style>
 </head>
@@ -212,7 +222,7 @@ body.intro .brand img { opacity: 0; transform: translateY(-160px) }
     <button class="tile" id="go-metro"><div><b>Metronom</b><span>Den Takt halten üben</span></div><i>›</i></button>
     <button class="tile" id="go-theory"><div><b>Musiktheorie</b><span>Notenwerte, Pausen, Zeichen – mit Quiz</span></div><i>›</i></button>
   </div>
-  <p class="ver" id="ver">Version 24</p>
+  <p class="ver" id="ver">Version 25</p>
   <div class="card" id="lt" hidden>
     <b>Startlogo einstellen</b>
     <p class="val"><span id="lt-v">180</span> px</p>
@@ -321,6 +331,7 @@ body.intro .brand img { opacity: 0; transform: translateY(-160px) }
 
   <div class="card scorecard" style="margin-top:10px">
     <div class="scroller" id="scroller"><div id="paper"></div></div>
+    <div class="land-ctrl"><button type="button" id="l-play" aria-label="Abspielen oder Pause">▶</button><button type="button" id="l-stop" aria-label="Stopp">■</button></div>
   </div>
 
   <div id="p-play" class="card" style="margin-top:10px">
@@ -361,8 +372,18 @@ body.intro .brand img { opacity: 0; transform: translateY(-160px) }
       <button class="ghost" id="ln-restart">Von vorn</button>
     </div>
   </div>
+  <div class="card" id="orig" style="margin-top:10px" hidden>
+    <b>Originalnoten</b>
+    <p class="small muted" style="margin:0">Antippen für den ganzen Bildschirm. Handy quer halten, dann werden die Noten grösser.</p>
+    <p class="loading" id="orig-load"></p>
+    <div id="orig-pages"></div>
+  </div>
 </section>
 
+</div>
+<div id="viewer" hidden>
+  <div class="v-bar"><button type="button" id="v-out" aria-label="Kleiner">−</button><button type="button" id="v-in" aria-label="Grösser">+</button><button type="button" id="v-x" aria-label="Schliessen">✕</button></div>
+  <div id="v-pages"></div>
 </div>
 
 <script src="abcjs-basic-min.js"></script>
@@ -380,17 +401,7 @@ const VALVE = {52:"1+2+3",53:"1+3",54:"1+2+3",55:"1+3",56:"2+3",57:"1+2",58:"1",
 // Zugpositionen Posaune (klingend, Bassschlüssel)
 const SLIDE = {40:"7",41:"6",42:"5",43:"4",44:"3",45:"2",46:"1",47:"7",48:"6",49:"5",50:"4",51:"3",52:"2",53:"1",54:"5",55:"4",56:"3",57:"2",58:"1",59:"4",60:"3",61:"2",62:"1",63:"3",64:"2",65:"1",66:"3",67:"2",68:"3",69:"2",70:"1"};
 
-const SONGS = [
-  { id: "demo", title: "Mery-Marsch", sub: "Beispiellied zum Ausprobieren", qpm: 116,
-    parts: [
-      { id: "trp1", instr: "trp", name: "Trompete 1. Stimme", abc: "X:1\nM:4/4\nL:1/8\nK:C\n|: !f! G2 GA G2 E2 | c2 c2 B2 A2 | G2 GA GE CE | D4 z4 | G2 GA G2 E2 | c2 cd e2 c2 | d2 B2 G2 B2 | c4 z2 G2 :| !ff! e2 e2 dc d2 | c2 c2 BA B2 | A2 AB c2 A2 | G6 z2 | e2 ed c2 A2 | G2 GA c2 e2 | d2 d2 B2 G2 | c4 z4 |]" },
-      { id: "trp2", instr: "trp", name: "Trompete 2. Stimme", abc: "X:1\nM:4/4\nL:1/8\nK:C\n|: !f! E2 EF E2 C2 | A2 A2 G2 F2 | E2 EF EC CC | B,4 z4 | E2 EF E2 C2 | E2 EF G2 E2 | B2 G2 D2 G2 | E4 z2 E2 :| !ff! c2 c2 BA B2 | A2 A2 GF G2 | F2 FG A2 F2 | E6 z2 | c2 cB A2 F2 | E2 EF A2 c2 | B2 B2 G2 D2 | E4 z4 |]" },
-      { id: "pos", instr: "pos", name: "Posaune", abc: "X:1\nM:4/4\nL:1/8\nK:Bb clef=bass\n|: !mf! D,4 F,4 | G,4 G,2 B,2 | F,4 D,4 | C,2 E,2 F,4 | D,6 F,2 | B,4 A,2 G,2 | F,4 E,2 C,2 | D,4 z2 F,2 :| !f! D,3 F, z2 B,2 | C3 A, z2 F,2 | B,3 G, z2 E,2 | F,6 z2 | G,3 B, z2 D2 | F,3 B, z2 D2 | C3 A, F,2 E,2 | D,4 z4 |]" },
-      { id: "eup", instr: "eup", name: "Euphi", abc: "X:1\nM:4/4\nL:1/8\nK:C\n|: !f! z4 C2 E2 | F2 A2 F2 C2 | E2 G2 E2 C2 | B,2 D2 G2 F2 | E4 C2 E2 | G2 E2 C2 E2 | F2 D2 B,2 D2 | C2 G,2 C2 z2 :| !ff! G2 E2 G2 c2 | B2 G2 D2 G2 | A2 F2 C2 F2 | E2 G2 c2 z2 | c2 A2 E2 C2 | E2 G2 c2 G2 | B2 G2 D2 B,2 | C4 z4 |]" },
-      { id: "sou", instr: "sou", name: "Susi", abc: "X:1\nM:4/4\nL:1/8\nK:C\n|: !f! C2 z2 G,2 z2 | F2 z2 C2 z2 | C2 z2 G,2 z2 | G,2 z2 D2 z2 | C2 z2 G,2 z2 | C2 z2 G,2 z2 | G,2 z2 D2 z2 | C2 G,2 C2 z2 :| !ff! C2 z2 G,2 z2 | G,2 z2 D2 z2 | F2 z2 C2 z2 | C2 z2 G,2 z2 | A,2 z2 E2 z2 | C2 z2 G,2 z2 | G,2 z2 D2 z2 | C2 G,2 C2 z2 |]" },
-      { id: "tutti", instr: "tutti", name: "Tutti", abc: "X:1\nM:4/4\nL:1/8\nK:C\n|: !f! G2 GA G2 E2 | c2 c2 B2 A2 | G2 GA GE CE | D4 z4 | G2 GA G2 E2 | c2 cd e2 c2 | d2 B2 G2 B2 | c4 z2 G2 :| !ff! e2 e2 dc d2 | c2 c2 BA B2 | A2 AB c2 A2 | G6 z2 | e2 ed c2 A2 | G2 GA c2 e2 | d2 d2 B2 G2 | c4 z4 |]" }
-    ] }
-];
+const SONGS = [];  // eure Lieder kommen verschlüsselt aus daten/lieder.bin
 
 /* ---------- Theorie ---------- */
 const L = (abc) => `X:1\nL:1/4\n${abc}`;
@@ -563,6 +574,7 @@ function show(s) {
   if (s !== "song") stopAll();
   if (s !== "metro" && typeof mtStop === "function") mtStop();
   SCREENS.forEach(n => $("s-" + n).hidden = n !== s);
+  if (typeof landUpd === "function") landUpd();
   window.scrollTo(0, 0);
   if (s === "theory") renderLessons();
   if (s === "songs") renderSongs();
@@ -577,6 +589,7 @@ function go(s) {
 }
 history.replaceState({ s: "home", d: 1 }, "");
 window.addEventListener("popstate", e => {
+  if (!$("viewer").hidden) { viewerClose(); return; }
   const st = e.state || { s: "home", d: 1 };
   navStack.length = Math.max(1, st.d); navStack[navStack.length - 1] = st.s;
   if (st.s === "song" && !curPart) { show("home"); return; }
@@ -705,6 +718,7 @@ function openPart() {
   $("tutti-hint").hidden = !tutti;
   $("tutti-hint").textContent = cur.song.real ? `Die ganze Gugge zusammen. Die Noten oben zeigen die Melodie (${curPart.melody}).` : "Alle Stimmen zusammen mit Schlagzeug (Drum-and-Bass-Beat). Die Noten oben zeigen die Melodie (Trompete 1. Stimme).";
   go("song"); srcUI(); setMode(tutti ? "play" : store.get("mode", "play"));
+  showOrig();
 }
 // Griffe aus den Noten-Daten (wie in den Noten der Gugge): "12" -> "1+2", Doppelgriff "12/1"
 const fmtF = f => f.split("/").map(x => x.length > 1 && instrObj().kind !== "slide" ? x.split("").join("+") : x).join("/");
@@ -740,6 +754,7 @@ function setMode(m) {
   $("p-play").hidden = m !== "play"; $("p-learn").hidden = m !== "learn";
   renderScore();
   if (m === "learn") startLearn();
+  landUpd();
 }
 $("m-play").onclick = () => setMode("play");
 $("m-learn").onclick = () => setMode("learn");
@@ -948,8 +963,10 @@ async function playRec() {
   const el = R.el;
   if (el.dataset.k !== url) { el.dataset.k = url; el.src = url; await new Promise(res => { el.addEventListener("loadedmetadata", res, { once: true }); el.load(); }); }
   el.playbackRate = $("tempo").value / 100;
-  el.currentTime = preroll ? Math.max(0, tOf(start - P.barBeats)) : tOf(start);
-  R.clicks = preroll ? Array.from({ length: P.barBeats }, (_, i) => ({ b: start - P.barBeats + i, acc: i === 0 })) : [];
+  // Am Liedanfang zählt die Aufnahme selbst ein, sonst zählt die App einen Takt vor
+  const fromTop = preroll && start <= 0;
+  el.currentTime = fromTop ? 0 : preroll ? Math.max(0, tOf(start - P.barBeats)) : tOf(start);
+  R.clicks = preroll && !fromTop ? Array.from({ length: P.barBeats }, (_, i) => ({ b: start - P.barBeats + i, acc: i === 0 })) : [];
   try { await el.play(); } catch (e) { $("src-load").textContent = "Tippe nochmals auf Abspielen."; return; }
   playing = true; R.on = true; $("play").textContent = "❚❚ Pause"; R.raf = requestAnimationFrame(recTick);
 }
@@ -968,6 +985,59 @@ function recTick() {
   }
   R.raf = requestAnimationFrame(recTick);
 }
+
+/* Originalnoten (verschlüsselte Bilder der PDF-Seiten) */
+async function pageUrl(nm) {
+  const k = "pg/" + nm; if (AUD[k]) return AUD[k];
+  const r = await fetch("daten/" + nm); if (!r.ok) throw new Error("net");
+  const plain = await decryptWith(GUGGE.key, await r.arrayBuffer());
+  return AUD[k] = URL.createObjectURL(new Blob([plain], { type: "image/png" }));
+}
+async function showOrig() {
+  const pages = curPart && curPart.pages; const box = $("orig-pages");
+  $("orig").hidden = !pages || !GUGGE.key; box.innerHTML = "";
+  if ($("orig").hidden) return;
+  const part = curPart; $("orig-load").textContent = "Noten werden geladen …";
+  try {
+    const urls = await Promise.all(pages.map(pageUrl));
+    if (curPart !== part) return;
+    urls.forEach((u, i) => { const im = document.createElement("img"); im.src = u; im.alt = `Originalnoten Seite ${i + 1}`; im.onclick = () => viewerOpen(urls, i); box.appendChild(im); });
+    $("orig-load").textContent = "";
+  } catch (e) { $("orig-load").textContent = "Die Noten konnten nicht geladen werden. Prüfe die Internetverbindung."; }
+}
+let VZ = 1;
+function viewerOpen(urls, i) {
+  stopAll(false);
+  const v = $("v-pages"); v.innerHTML = "";
+  urls.forEach(u => { const im = document.createElement("img"); im.src = u; im.alt = ""; v.appendChild(im); });
+  VZ = 1; v.style.width = "100%";
+  $("viewer").hidden = false; history.pushState({ viewer: 1, s: "song", d: navStack.length }, "");
+  const el = document.documentElement; if (el.requestFullscreen) el.requestFullscreen().catch(() => {});
+  setTimeout(() => { const im = v.children[i]; if (im) $("viewer").scrollTop = im.offsetTop; }, 50);
+}
+function viewerClose() {
+  $("viewer").hidden = true;
+  if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
+}
+$("v-x").onclick = () => history.back();
+const vZoom = f => { const vw = $("viewer"), y = vw.scrollTop / vw.scrollHeight; VZ = Math.max(1, Math.min(3, VZ * f)); $("v-pages").style.width = (VZ * 100) + "%"; vw.scrollTop = y * vw.scrollHeight; };
+$("v-in").onclick = () => vZoom(1.4);
+$("v-out").onclick = () => vZoom(1 / 1.4);
+
+/* Querformat beim Mitspielen: Noten über den ganzen Bildschirm */
+const LANDQ = matchMedia("(orientation: landscape) and (max-height: 560px)");
+function landUpd() {
+  const on = LANDQ.matches && !$("s-song").hidden && cur.mode === "play" && $("viewer").hidden;
+  document.body.classList.toggle("landplay", on);
+  const pa = $("paper"); pa.style.zoom = "";
+  if (on) { const sv = pa.querySelector("svg"); if (sv) { const hh = sv.getBoundingClientRect().height; if (hh > 0) pa.style.zoom = Math.max(0.6, Math.min(2.4, (innerHeight - 24) / hh)); } }
+  if (lastEls.length) setTimeout(() => scrollToEl(lastEls[0]), 60);
+}
+LANDQ.addEventListener ? LANDQ.addEventListener("change", landUpd) : LANDQ.addListener(landUpd);
+window.addEventListener("resize", () => { clearTimeout(landUpd.t); landUpd.t = setTimeout(landUpd, 150); });
+$("l-play").onclick = () => $("play").click();
+$("l-stop").onclick = () => $("stop").click();
+new MutationObserver(() => { $("l-play").textContent = playing ? "❚❚" : "▶"; }).observe($("play"), { childList: true, characterData: true, subtree: true });
 
 /* Metronom */
 const MT = { bpm: store.get("mt-bpm", 110), meter: store.get("mt-meter", 4), on: false, next: 0, beat: 0, iv: null, taps: [] };

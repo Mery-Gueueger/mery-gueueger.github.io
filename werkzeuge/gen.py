@@ -97,7 +97,7 @@ def run():
             bad = [(i + 1, b["tot"]) for i, b in enumerate(m["bars"]) if b["tot"] != 16]
             assert not bad, (pdf, bad)
             abc, fings = part_abc(m, s, s["title"])
-            song["parts"].append(dict(id=pid, instr=instr, name=name, abc=abc, fing=fings, bars=len(m["bars"])))
+            song["parts"].append(dict(id=pid, instr=instr, name=name, abc=abc, fing=fings, bars=len(m["bars"]), pdf=SRC + pdf))
             for x in m["issues"]:
                 if x["pdf"] is not None:
                     report.append((s["title"], name, x))
