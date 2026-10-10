@@ -274,12 +274,12 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
     <h1>Mery-Güüger<span>Übungs-App für Noten, Ventile und Lieder</span></h1>
   </div>
   <div class="tiles" style="margin-top:14px">
-    <button class="tile red" id="go-songs"><div><b>Lieder üben</b><span>Mitspielen, Ventile lernen, auswendig üben</span></div><i>›</i></button>
+    <button class="tile red" id="go-songs"><div><b>Lieder üben</b><span>Mitspielen, Originalnoten und Ventil-Spiel</span></div><i>›</i></button>
     <button class="tile" id="go-metro"><div><b>Metronom</b><span>Den Takt halten üben</span></div><i>›</i></button>
     <button class="tile" id="go-tuner"><div><b>Stimmgerät</b><span>Instrument stimmen über das Mikrofon</span></div><i>›</i></button>
     <button class="tile" id="go-theory"><div><b>Musiktheorie</b><span>Notenwerte, Pausen, Zeichen – mit Quiz</span></div><i>›</i></button>
   </div>
-  <p class="ver" id="ver">Version 39</p>
+  <p class="ver" id="ver">Version 40</p>
   <div class="card" id="lt" hidden>
     <b>Startlogo einstellen</b>
     <p class="val"><span id="lt-v">180</span> px</p>
@@ -406,7 +406,7 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
   <p class="voice" id="sg-crumb"></p>
   <div class="modes" role="group" aria-label="Übungsart" style="margin-top:10px">
     <button type="button" id="m-play" aria-pressed="true">Mitspielen</button>
-    <button type="button" id="m-learn" aria-pressed="false">Auswendig lernen</button>
+    <button type="button" id="m-learn" aria-pressed="false">Spiel</button>
   </div>
 
   <div class="card scorecard" style="margin-top:10px">
@@ -1349,7 +1349,7 @@ $("mt-tap").onclick = () => { const t = performance.now(); MT.taps = MT.taps.fil
   if (MT.taps.length >= 3) { const d = (MT.taps[MT.taps.length - 1] - MT.taps[0]) / (MT.taps.length - 1); mtSet(60000 / d); } };
 mtRender();
 
-/* Auswendig lernen als Spiel: Punkte fliegen auf die Ventile (bzw. Zugpositionen) zu, im richtigen Moment drücken */
+/* Spiel: Punkte fliegen auf die Ventile (bzw. Zugpositionen) zu, im richtigen Moment drücken */
 let LN = { items: [], j: 0, ok: 0, done: 0, streak: 0, best: 0, held: new Set(), raf: 0, xs: null, lanes: {}, fx: [] };
 const learnHeld = () => instrObj().kind === "slide" ? ([...LN.held][0] || "") : ([...LN.held].sort().join("+") || "0");
 const LANE_COL = { "1": "#C4161C", "2": "#1F6FD1", "3": "#1E9A5A" };
