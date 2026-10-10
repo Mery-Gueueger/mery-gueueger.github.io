@@ -252,7 +252,7 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
     <button class="tile" id="go-tuner"><div><b>Stimmgerät</b><span>Instrument stimmen über das Mikrofon</span></div><i>›</i></button>
     <button class="tile" id="go-theory"><div><b>Musiktheorie</b><span>Notenwerte, Pausen, Zeichen – mit Quiz</span></div><i>›</i></button>
   </div>
-  <p class="ver" id="ver">Version 33</p>
+  <p class="ver" id="ver">Version 34</p>
   <div class="card" id="lt" hidden>
     <b>Startlogo einstellen</b>
     <p class="val"><span id="lt-v">180</span> px</p>
@@ -829,7 +829,7 @@ function renderScore() {
     clickListener: (el) => { if (cur.mode === "play") hint(el); } })[0];
   cur.tune = tune;
   const pa = $("paper"), sv = pa.querySelector("svg");
-  if (sv) { pa.style.width = Math.ceil(sv.getAttribute("width") * 1.5) + "px"; pa.style.overflow = "visible"; }
+  if (sv) { try { const bw = sv.getBBox(); sv.setAttribute("width", Math.ceil(bw.x + bw.width + 16)); } catch (e) {} pa.style.width = Math.ceil(sv.getBoundingClientRect().width) + "px"; pa.style.overflow = "visible"; }
   cur.notes = [...pa.querySelectorAll(".abcjs-note")];
   P.tracks = []; P.pos = 0; if (cur.mode === "play") preparePlayer();
   $("scroller").scrollLeft = 0;
