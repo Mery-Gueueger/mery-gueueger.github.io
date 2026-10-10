@@ -222,7 +222,7 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
     <button class="tile" id="go-metro"><div><b>Metronom</b><span>Den Takt halten üben</span></div><i>›</i></button>
     <button class="tile" id="go-theory"><div><b>Musiktheorie</b><span>Notenwerte, Pausen, Zeichen – mit Quiz</span></div><i>›</i></button>
   </div>
-  <p class="ver" id="ver">Version 26</p>
+  <p class="ver" id="ver">Version 27</p>
   <div class="card" id="lt" hidden>
     <b>Startlogo einstellen</b>
     <p class="val"><span id="lt-v">180</span> px</p>
@@ -882,8 +882,9 @@ function tick() {
   if (tutti && !cur.song.real) while (P.step / 4 < limit) { drumStep(P.step, Math.max(a.currentTime, at(P.step / 4))); P.step++; }
   // Schleife: am Ende des Bereichs nahtlos zum Anfang springen
   if (lr && horizon >= lr[1]) {
-    const tEnd = at(lr[1]); P.aPos = lr[0]; P.aT = tEnd + P.barBeats / P.rate;
-    for (let i = 0; i < P.barBeats; i++) click(i === 0, tEnd + i / P.rate);
+    const tEnd = at(lr[1]), W = 0.4; P.aPos = lr[0]; P.aT = tEnd + W + P.barBeats / P.rate;
+    for (let i = 0; i < P.barBeats; i++) click(i === 0, tEnd + W + i / P.rate);
+    setTimeout(() => { if (!playing) return; mark(lastEls, false); lastEls = []; const f = P.tracks[0].events.find(e => e.b >= lr[0] - 1e-6); if (f) scrollToEl(f.els[0]); }, Math.max(0, (tEnd - a.currentTime) * 1000 + 30));
     P.tracks.forEach(t => { t.idx = t.events.findIndex(e => e.b >= lr[0] - 1e-6); if (t.idx < 0) t.idx = t.events.length; });
     P.step = Math.ceil(lr[0] * 4 - 1e-6);
   }
@@ -973,10 +974,24 @@ async function playRec() {
   el.playbackRate = $("tempo").value / 100;
   // Am Liedanfang zählt die Aufnahme selbst ein, sonst zählt die App einen Takt vor
   const fromTop = preroll && start <= 0;
-  el.currentTime = fromTop ? 0 : preroll ? Math.max(0, tOf(start - P.barBeats)) : tOf(start);
-  R.clicks = preroll && !fromTop ? Array.from({ length: P.barBeats }, (_, i) => ({ b: start - P.barBeats + i, acc: i === 0 })) : [];
+  el.currentTime = fromTop ? 0 : tOf(start);
+  R.clicks = [];
+  if (preroll && !fromTop) {
+    // mitten im Lied: zuerst einen Takt Klicks (ohne Musik), dann geht es los
+    el.muted = true; try { await el.play(); } catch (e) {} el.pause(); el.muted = false; el.currentTime = tOf(start);
+    playing = true; R.on = true; $("play").textContent = "❚❚ Pause"; recGap(start, 0.05); R.raf = requestAnimationFrame(recTick); return;
+  }
   try { await el.play(); } catch (e) { $("src-load").textContent = "Tippe nochmals auf Abspielen."; return; }
   playing = true; R.on = true; $("play").textContent = "❚❚ Pause"; R.raf = requestAnimationFrame(recTick);
+}
+// Pause, dann ein Takt Klicks, dann spielt die Aufnahme ab "start"
+function recGap(start, wait) {
+  const el = R.el; el.pause(); el.currentTime = tOf(start); seek(start);
+  mark(lastEls, false); lastEls = [];
+  const first = P.tracks[0].events[P.tracks[0].idx]; if (first) scrollToEl(first.els[0]);
+  const a = ctx(), sp = spbSong() / el.playbackRate, t0 = a.currentTime + wait;
+  for (let i = 0; i < P.barBeats; i++) click(i === 0, t0 + i * sp);
+  R.gap = setTimeout(() => { R.gap = 0; if (R.on) el.play().catch(() => {}); }, (wait + P.barBeats * sp) * 1000 - 10);
 }
 function recTick() {
   if (!R.on) return;
@@ -985,11 +1000,8 @@ function recTick() {
   const lr = loopRange();
   if (R.gap) { R.raf = requestAnimationFrame(recTick); return; }
   if (lr && b >= lr[1]) {
-    // ein Takt Klicks zwischen den Durchgängen, dann von vorn
-    el.pause(); el.currentTime = tOf(lr[0]); seek(lr[0]); mark(lastEls, false); lastEls = [];
-    const a = ctx(), sp = spbSong() / el.playbackRate, t0 = a.currentTime + 0.03;
-    for (let i = 0; i < P.barBeats; i++) click(i === 0, t0 + i * sp);
-    R.gap = setTimeout(() => { R.gap = 0; if (R.on) el.play().catch(() => {}); }, (0.03 + P.barBeats * sp) * 1000);
+    // zurück zum Anfang der Schleife, kurze Pause, ein Takt Klicks, dann von vorn
+    recGap(lr[0], 0.4);
   }
   else if (!lr && (b >= P.end || el.ended)) { stopAll(true); return; }
   else if (b >= -0.01) {
