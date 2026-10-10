@@ -220,10 +220,27 @@ body.learning .ln-zone { display: block }
 body.learning .scroller { scroll-behavior: auto }
 .abcjs-note.ln-ok, .abcjs-note.ln-ok path { fill: var(--ok) !important; stroke: var(--ok) }
 .abcjs-note.ln-bad, .abcjs-note.ln-bad path { fill: var(--bad) !important; stroke: var(--bad) }
-#ln-input .valves { gap: 10px }
-#ln-input .valve { height: 64px }
-#ln-input .valve .cap { height: 60px }
-#ln-input .slide button.down { border-color: var(--accent); background: var(--accent); color: var(--accent-fg) }
+.ln-body { display: flex; gap: 14px; align-items: center }
+.ln-btns { display: flex; flex-direction: column; gap: 10px; flex: 1 1 0; min-width: 0 }
+.ln-btns button { width: 100%; min-height: 56px }
+#ln-input { flex: 0 0 auto }
+.ln-body.slide-mode { flex-direction: column-reverse; align-items: stretch }
+.ln-body.slide-mode .ln-btns { flex-direction: row }
+/* Ventile von oben: runde Knöpfe, 1 unten */
+.tv-valves { display: flex; flex-direction: column-reverse; gap: 14px; touch-action: none; user-select: none; -webkit-user-select: none }
+.tv { width: 86px; height: 86px; border-radius: 50%; border: 5px solid var(--brass-2); background: radial-gradient(circle at 38% 34%, #FFFDF6 0, var(--pearl) 55%, var(--pearl-edge) 100%); box-shadow: 0 5px 0 var(--brass-2), 0 7px 12px rgba(0,0,0,.25); font-family: var(--f-display); font-weight: 900; font-size: 1.9rem; color: #18202E; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: transform 50ms, box-shadow 50ms, background 50ms; touch-action: none }
+.tv.down { transform: translateY(5px) scale(.96); box-shadow: 0 0 0 var(--brass-2), inset 0 3px 8px rgba(0,0,0,.35); background: var(--accent); color: var(--accent-fg); border-color: var(--accent) }
+/* Posaunenzug: Haltesteg auf der Skala 1–7 */
+.tb { position: relative; height: 128px; touch-action: none; user-select: none; -webkit-user-select: none; cursor: pointer; margin: 4px 6px 0 }
+.tb .tube { position: absolute; left: 0; right: 0; height: 10px; border-radius: 5px; background: linear-gradient(var(--brass), var(--brass-2)) }
+.tb .t1 { top: 18px } .tb .t2 { top: 62px }
+.tb .bow { position: absolute; left: -6px; top: 18px; width: 28px; height: 54px; border: 10px solid var(--brass-2); border-right: 0; border-radius: 28px 0 0 28px }
+.tb .brace { position: absolute; top: 4px; width: 46px; height: 84px; margin-left: -23px; border-radius: 14px; background: var(--card); border: 5px solid var(--brass-2); box-shadow: 0 3px 8px rgba(0,0,0,.25); transition: left 60ms linear, background 60ms }
+.tb .brace::after { content: ""; position: absolute; left: 50%; top: 10px; bottom: 10px; width: 6px; margin-left: -3px; border-radius: 3px; background: var(--brass-2) }
+.tb.down .brace { background: var(--accent); border-color: var(--accent) }
+.tb .scale { position: absolute; left: 0; right: 0; bottom: 0; height: 28px }
+.tb .scale span { position: absolute; width: 30px; margin-left: -15px; text-align: center; font-family: var(--f-display); font-weight: 900; font-size: 1.15rem; color: var(--muted) }
+.tb .scale span.on { color: var(--accent) }
 .seek { display: flex; align-items: center; gap: 10px; padding: 4px 12px 0 }
 .seek input { flex: 1; min-width: 0; accent-color: var(--accent); height: 36px }
 .seek span { font-size: .85rem; color: var(--muted); font-weight: 700; min-width: 4.8em; text-align: right; font-variant-numeric: tabular-nums }
@@ -263,7 +280,7 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
     <button class="tile" id="go-tuner"><div><b>Stimmgerät</b><span>Instrument stimmen über das Mikrofon</span></div><i>›</i></button>
     <button class="tile" id="go-theory"><div><b>Musiktheorie</b><span>Notenwerte, Pausen, Zeichen – mit Quiz</span></div><i>›</i></button>
   </div>
-  <p class="ver" id="ver">Version 36</p>
+  <p class="ver" id="ver">Version 37</p>
   <div class="card" id="lt" hidden>
     <b>Startlogo einstellen</b>
     <p class="val"><span id="lt-v">180</span> px</p>
@@ -402,10 +419,12 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
 
   <div id="p-learn" class="card" style="margin-top:10px" hidden>
     <div class="stat"><span>Richtig <b id="ln-ok">0</b> von <b id="ln-done">0</b></span><span id="ln-pct"></span><span>Serie <b id="ln-st">0</b></span></div>
-    <div id="ln-input"></div>
-    <div class="ctrl">
-      <button class="main" id="ln-play">▶ Los</button>
-      <button class="ghost" id="ln-stop">■ Stopp</button>
+    <div class="ln-body" id="ln-body">
+      <div class="ln-btns">
+        <button class="main" id="ln-play">▶ Los</button>
+        <button class="ghost" id="ln-stop">■ Stopp</button>
+      </div>
+      <div id="ln-input"></div>
     </div>
     <p class="small muted" id="ln-help" style="margin:0"></p>
     <p class="err" id="ln-msg" aria-live="polite"></p>
@@ -1341,25 +1360,32 @@ function startLearn() {
   $("ln-help").textContent = ins.kind === "slide"
     ? "Das Lied läuft. Halte die richtige Zugposition gedrückt, wenn die Note im Feld ist."
     : "Das Lied läuft. Halte die richtigen Ventile gedrückt, wenn die Note im Feld ist, wie bei einem echten Instrument. Bei 0 drückst du keines.";
-  const hold = (b, v) => {
-    const down = e => {
-      e.preventDefault(); try { b.setPointerCapture(e.pointerId); } catch (x) {}
-      if (ins.kind === "slide") { LN.held.clear(); box.querySelectorAll("button").forEach(o => o.classList.remove("down")); }
-      LN.held.add(v); b.classList.add("down");
-    };
-    const up = () => { LN.held.delete(v); b.classList.remove("down"); };
-    b.addEventListener("pointerdown", down); b.addEventListener("pointerup", up); b.addEventListener("pointercancel", up); b.addEventListener("lostpointercapture", up);
-    b.addEventListener("contextmenu", e => e.preventDefault());
-  };
+  $("ln-body").classList.toggle("slide-mode", ins.kind === "slide");
   if (ins.kind === "slide") {
-    const s = document.createElement("div"); s.className = "slide";
-    for (let p = 1; p <= 7; p++) { const b = document.createElement("button"); b.type = "button"; b.textContent = p; hold(b, String(p)); s.appendChild(b); }
-    box.appendChild(s);
+    // Zug: Finger auf die Leiste = Zug aktiv an der nächsten Position, loslassen = nicht aktiv
+    const tb = document.createElement("div"); tb.className = "tb"; tb.setAttribute("role", "slider"); tb.setAttribute("aria-label", "Zugposition 1 bis 7");
+    tb.innerHTML = `<div class="tube t1"></div><div class="tube t2"></div><div class="bow"></div><div class="brace"></div><div class="scale">${[1,2,3,4,5,6,7].map(n => `<span>${n}</span>`).join("")}</div>`;
+    const brace = tb.querySelector(".brace"), nums = [...tb.querySelectorAll(".scale span")];
+    const px = n => 34 + (n - 1) * (tb.clientWidth - 68) / 6;
+    const place = n => { brace.style.left = px(n) + "px"; nums.forEach((s, i) => { s.style.left = px(i + 1) + "px"; s.classList.toggle("on", i + 1 === n && tb.classList.contains("down")); }); tb.setAttribute("aria-valuenow", n); };
+    let pos = 1;
+    const at = e => { const r = tb.getBoundingClientRect(); return Math.max(1, Math.min(7, Math.round((e.clientX - r.left - 34) / ((r.width - 68) / 6)) + 1)); };
+    tb.addEventListener("pointerdown", e => { e.preventDefault(); try { tb.setPointerCapture(e.pointerId); } catch (x) {} tb.classList.add("down"); pos = at(e); LN.held = new Set([String(pos)]); place(pos); });
+    tb.addEventListener("pointermove", e => { if (!tb.classList.contains("down")) return; pos = at(e); LN.held = new Set([String(pos)]); place(pos); });
+    const up = () => { tb.classList.remove("down"); LN.held = new Set(); place(pos); };
+    tb.addEventListener("pointerup", up); tb.addEventListener("pointercancel", up); tb.addEventListener("lostpointercapture", up);
+    box.appendChild(tb); requestAnimationFrame(() => place(pos));
+    window.addEventListener("resize", () => place(pos));
   } else {
-    const v = document.createElement("div"); v.className = "valves";
+    // Ventile von oben: nur gedrückt, solange der Finger darauf liegt
+    const v = document.createElement("div"); v.className = "tv-valves";
     ["1", "2", "3"].forEach(n => {
-      const b = document.createElement("button"); b.type = "button"; b.className = "valve"; b.setAttribute("aria-label", "Ventil " + n);
-      b.innerHTML = `<span class="casing"></span><span class="top"><span class="stem"></span><span class="cap">${n}</span></span>`; hold(b, n); v.appendChild(b);
+      const b = document.createElement("button"); b.type = "button"; b.className = "tv"; b.textContent = n; b.setAttribute("aria-label", "Ventil " + n);
+      const up = () => { LN.held.delete(n); b.classList.remove("down"); };
+      b.addEventListener("pointerdown", e => { e.preventDefault(); try { b.setPointerCapture(e.pointerId); } catch (x) {} LN.held.add(n); b.classList.add("down"); });
+      b.addEventListener("pointerup", up); b.addEventListener("pointercancel", up); b.addEventListener("lostpointercapture", up);
+      b.addEventListener("contextmenu", e => e.preventDefault());
+      v.appendChild(b);
     });
     box.appendChild(v);
   }
