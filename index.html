@@ -220,27 +220,26 @@ body.learning .ln-zone { display: block }
 body.learning .scroller { scroll-behavior: auto }
 .abcjs-note.ln-ok, .abcjs-note.ln-ok path { fill: var(--ok) !important; stroke: var(--ok) }
 .abcjs-note.ln-bad, .abcjs-note.ln-bad path { fill: var(--bad) !important; stroke: var(--bad) }
-.ln-body { display: flex; gap: 14px; align-items: center }
-.ln-btns { display: flex; flex-direction: column; gap: 10px; flex: 1 1 0; min-width: 0 }
-.ln-btns button { width: 100%; min-height: 56px }
+.ln-stage { display: flex; align-items: stretch; gap: 0; margin: 4px -6px 0 0 }
+#ln-cv { flex: 1 1 auto; min-width: 0; width: 100%; height: auto; display: block }
 #ln-input { flex: 0 0 auto }
-.ln-body.slide-mode { flex-direction: column-reverse; align-items: stretch }
-.ln-body.slide-mode .ln-btns { flex-direction: row }
+.ln-btns { display: flex; gap: 10px }
+.ln-btns button { flex: 1 1 0; min-height: 52px }
 /* Ventile von oben: runde Knöpfe, 1 unten */
 .tv-valves { display: flex; flex-direction: column-reverse; gap: 14px; touch-action: none; user-select: none; -webkit-user-select: none }
-.tv { width: 86px; height: 86px; border-radius: 50%; border: 5px solid var(--brass-2); background: radial-gradient(circle at 38% 34%, #FFFDF6 0, var(--pearl) 55%, var(--pearl-edge) 100%); box-shadow: 0 5px 0 var(--brass-2), 0 7px 12px rgba(0,0,0,.25); font-family: var(--f-display); font-weight: 900; font-size: 1.9rem; color: #18202E; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: transform 50ms, box-shadow 50ms, background 50ms; touch-action: none }
+.tv { width: 84px; height: 84px; border-color: var(--lane, var(--brass-2)); border-radius: 50%; border: 5px solid var(--brass-2); background: radial-gradient(circle at 38% 34%, #FFFDF6 0, var(--pearl) 55%, var(--pearl-edge) 100%); box-shadow: 0 5px 0 var(--brass-2), 0 7px 12px rgba(0,0,0,.25); font-family: var(--f-display); font-weight: 900; font-size: 1.9rem; color: #18202E; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: transform 50ms, box-shadow 50ms, background 50ms; touch-action: none }
 .tv.down { transform: translateY(5px) scale(.96); box-shadow: 0 0 0 var(--brass-2), inset 0 3px 8px rgba(0,0,0,.35); background: var(--accent); color: var(--accent-fg); border-color: var(--accent) }
-/* Posaunenzug: Haltesteg auf der Skala 1–7 */
-.tb { position: relative; height: 128px; touch-action: none; user-select: none; -webkit-user-select: none; cursor: pointer; margin: 4px 6px 0 }
-.tb .tube { position: absolute; left: 0; right: 0; height: 10px; border-radius: 5px; background: linear-gradient(var(--brass), var(--brass-2)) }
-.tb .t1 { top: 18px } .tb .t2 { top: 62px }
-.tb .bow { position: absolute; left: -6px; top: 18px; width: 28px; height: 54px; border: 10px solid var(--brass-2); border-right: 0; border-radius: 28px 0 0 28px }
-.tb .brace { position: absolute; top: 4px; width: 46px; height: 84px; margin-left: -23px; border-radius: 14px; background: var(--card); border: 5px solid var(--brass-2); box-shadow: 0 3px 8px rgba(0,0,0,.25); transition: left 60ms linear, background 60ms }
-.tb .brace::after { content: ""; position: absolute; left: 50%; top: 10px; bottom: 10px; width: 6px; margin-left: -3px; border-radius: 3px; background: var(--brass-2) }
-.tb.down .brace { background: var(--accent); border-color: var(--accent) }
-.tb .scale { position: absolute; left: 0; right: 0; bottom: 0; height: 28px }
-.tb .scale span { position: absolute; width: 30px; margin-left: -15px; text-align: center; font-family: var(--f-display); font-weight: 900; font-size: 1.15rem; color: var(--muted) }
-.tb .scale span.on { color: var(--accent) }
+/* Posaunenzug senkrecht: Haltesteg auf der Skala 1–7 */
+.tbv { position: relative; width: 112px; height: 330px; touch-action: none; user-select: none; -webkit-user-select: none; cursor: pointer }
+.tbv .tube { position: absolute; top: 0; bottom: 0; width: 10px; border-radius: 5px; background: linear-gradient(90deg, var(--brass), var(--brass-2)) }
+.tbv .t1 { left: 46px } .tbv .t2 { left: 90px }
+.tbv .bow { position: absolute; left: 46px; bottom: -6px; width: 54px; height: 28px; border: 10px solid var(--brass-2); border-top: 0; border-radius: 0 0 28px 28px }
+.tbv .brace { position: absolute; left: 34px; width: 78px; height: 40px; margin-top: -20px; border-radius: 12px; background: var(--card); border: 5px solid var(--brass-2); box-shadow: 0 3px 8px rgba(0,0,0,.25); transition: top 60ms linear, background 60ms }
+.tbv .brace::after { content: ""; position: absolute; top: 50%; left: 8px; right: 8px; height: 6px; margin-top: -3px; border-radius: 3px; background: var(--brass-2) }
+.tbv.down .brace { background: var(--accent); border-color: var(--accent) }
+.tbv .scale { position: absolute; left: 0; top: 0; bottom: 0; width: 30px }
+.tbv .scale span { position: absolute; left: 0; width: 28px; height: 24px; margin-top: -12px; text-align: center; font-family: var(--f-display); font-weight: 900; font-size: 1.15rem; line-height: 24px; color: var(--muted) }
+.tbv .scale span.on { color: var(--accent) }
 .seek { display: flex; align-items: center; gap: 10px; padding: 4px 12px 0 }
 .seek input { flex: 1; min-width: 0; accent-color: var(--accent); height: 36px }
 .seek span { font-size: .85rem; color: var(--muted); font-weight: 700; min-width: 4.8em; text-align: right; font-variant-numeric: tabular-nums }
@@ -280,7 +279,7 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
     <button class="tile" id="go-tuner"><div><b>Stimmgerät</b><span>Instrument stimmen über das Mikrofon</span></div><i>›</i></button>
     <button class="tile" id="go-theory"><div><b>Musiktheorie</b><span>Notenwerte, Pausen, Zeichen – mit Quiz</span></div><i>›</i></button>
   </div>
-  <p class="ver" id="ver">Version 37</p>
+  <p class="ver" id="ver">Version 38</p>
   <div class="card" id="lt" hidden>
     <b>Startlogo einstellen</b>
     <p class="val"><span id="lt-v">180</span> px</p>
@@ -419,12 +418,10 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
 
   <div id="p-learn" class="card" style="margin-top:10px" hidden>
     <div class="stat"><span>Richtig <b id="ln-ok">0</b> von <b id="ln-done">0</b></span><span id="ln-pct"></span><span>Serie <b id="ln-st">0</b></span></div>
-    <div class="ln-body" id="ln-body">
-      <div class="ln-btns">
-        <button class="main" id="ln-play">▶ Los</button>
-        <button class="ghost" id="ln-stop">■ Stopp</button>
-      </div>
-      <div id="ln-input"></div>
+    <div class="ln-stage"><canvas id="ln-cv"></canvas><div id="ln-input"></div></div>
+    <div class="ln-btns">
+      <button class="main" id="ln-play">▶ Los</button>
+      <button class="ghost" id="ln-stop">■ Stopp</button>
     </div>
     <p class="small muted" id="ln-help" style="margin:0"></p>
     <p class="err" id="ln-msg" aria-live="polite"></p>
@@ -1352,58 +1349,74 @@ $("mt-tap").onclick = () => { const t = performance.now(); MT.taps = MT.taps.fil
   if (MT.taps.length >= 3) { const d = (MT.taps[MT.taps.length - 1] - MT.taps[0]) / (MT.taps.length - 1); mtSet(60000 / d); } };
 mtRender();
 
-/* Auswendig lernen: Lied läuft, Ventile wie echte Ventile halten, im Feld zählt es */
-let LN = { items: [], j: 0, ok: 0, done: 0, streak: 0, held: new Set(), raf: 0, xs: null };
+/* Auswendig lernen als Spiel: Punkte fliegen auf die Ventile (bzw. Zugpositionen) zu, im richtigen Moment drücken */
+let LN = { items: [], j: 0, ok: 0, done: 0, streak: 0, best: 0, held: new Set(), raf: 0, xs: null, lanes: {}, fx: [] };
 const learnHeld = () => instrObj().kind === "slide" ? ([...LN.held][0] || "") : ([...LN.held].sort().join("+") || "0");
+const LANE_COL = { "1": "#C4161C", "2": "#1F6FD1", "3": "#1E9A5A" };
 function startLearn() {
   const ins = instrObj(), box = $("ln-input"); box.innerHTML = ""; LN.held = new Set();
-  $("ln-help").textContent = ins.kind === "slide"
-    ? "Das Lied läuft. Halte die richtige Zugposition gedrückt, wenn die Note im Feld ist."
-    : "Das Lied läuft. Halte die richtigen Ventile gedrückt, wenn die Note im Feld ist, wie bei einem echten Instrument. Bei 0 drückst du keines.";
-  $("ln-body").classList.toggle("slide-mode", ins.kind === "slide");
-  if (ins.kind === "slide") {
-    // Zug: Finger auf die Leiste = Zug aktiv an der nächsten Position, loslassen = nicht aktiv
-    const tb = document.createElement("div"); tb.className = "tb"; tb.setAttribute("role", "slider"); tb.setAttribute("aria-label", "Zugposition 1 bis 7");
-    tb.innerHTML = `<div class="tube t1"></div><div class="tube t2"></div><div class="bow"></div><div class="brace"></div><div class="scale">${[1,2,3,4,5,6,7].map(n => `<span>${n}</span>`).join("")}</div>`;
+  const slide = ins.kind === "slide";
+  $("ln-help").textContent = slide
+    ? "Die Punkte fliegen von links auf die Zugpositionen zu. Wenn ein Punkt ankommt, halte den Zug auf dieser Position."
+    : "Die Punkte fliegen von links auf die Ventile zu. Wenn ein Punkt ankommt, drücke dieses Ventil und halte es so lange, wie du es brauchst.";
+  if (slide) {
+    // Senkrechter Posaunenzug: Haltesteg auf der Skala 1–7, Finger drauf = aktiv
+    const tb = document.createElement("div"); tb.className = "tbv"; tb.setAttribute("role", "slider"); tb.setAttribute("aria-label", "Zugposition 1 bis 7");
+    tb.innerHTML = `<div class="tube t1"></div><div class="tube t2"></div><div class="bow"></div><div class="brace"></div><div class="scale">${[1, 2, 3, 4, 5, 6, 7].map(n => `<span>${n}</span>`).join("")}</div>`;
     const brace = tb.querySelector(".brace"), nums = [...tb.querySelectorAll(".scale span")];
-    const px = n => 34 + (n - 1) * (tb.clientWidth - 68) / 6;
-    const place = n => { brace.style.left = px(n) + "px"; nums.forEach((s, i) => { s.style.left = px(i + 1) + "px"; s.classList.toggle("on", i + 1 === n && tb.classList.contains("down")); }); tb.setAttribute("aria-valuenow", n); };
+    const TOP = 22, py = n => TOP + (n - 1) * (tb.clientHeight - 2 * TOP) / 6;
     let pos = 1;
-    const at = e => { const r = tb.getBoundingClientRect(); return Math.max(1, Math.min(7, Math.round((e.clientX - r.left - 34) / ((r.width - 68) / 6)) + 1)); };
+    const place = n => { brace.style.top = py(n) + "px"; nums.forEach((s, i) => { s.style.top = py(i + 1) + "px"; s.classList.toggle("on", i + 1 === n && tb.classList.contains("down")); }); tb.setAttribute("aria-valuenow", n); };
+    const at = e => { const r = tb.getBoundingClientRect(); return Math.max(1, Math.min(7, Math.round((e.clientY - r.top - TOP) / ((r.height - 2 * TOP) / 6)) + 1)); };
     tb.addEventListener("pointerdown", e => { e.preventDefault(); try { tb.setPointerCapture(e.pointerId); } catch (x) {} tb.classList.add("down"); pos = at(e); LN.held = new Set([String(pos)]); place(pos); });
     tb.addEventListener("pointermove", e => { if (!tb.classList.contains("down")) return; pos = at(e); LN.held = new Set([String(pos)]); place(pos); });
     const up = () => { tb.classList.remove("down"); LN.held = new Set(); place(pos); };
     tb.addEventListener("pointerup", up); tb.addEventListener("pointercancel", up); tb.addEventListener("lostpointercapture", up);
-    box.appendChild(tb); requestAnimationFrame(() => place(pos));
-    window.addEventListener("resize", () => place(pos));
+    box.appendChild(tb); requestAnimationFrame(() => { place(pos); learnLanes(); });
   } else {
-    // Ventile von oben: nur gedrückt, solange der Finger darauf liegt
     const v = document.createElement("div"); v.className = "tv-valves";
     ["1", "2", "3"].forEach(n => {
-      const b = document.createElement("button"); b.type = "button"; b.className = "tv"; b.textContent = n; b.setAttribute("aria-label", "Ventil " + n);
+      const b = document.createElement("button"); b.type = "button"; b.className = "tv"; b.textContent = n; b.dataset.v = n; b.setAttribute("aria-label", "Ventil " + n);
+      b.style.setProperty("--lane", LANE_COL[n]);
       const up = () => { LN.held.delete(n); b.classList.remove("down"); };
       b.addEventListener("pointerdown", e => { e.preventDefault(); try { b.setPointerCapture(e.pointerId); } catch (x) {} LN.held.add(n); b.classList.add("down"); });
       b.addEventListener("pointerup", up); b.addEventListener("pointercancel", up); b.addEventListener("lostpointercapture", up);
       b.addEventListener("contextmenu", e => e.preventDefault());
       v.appendChild(b);
     });
-    box.appendChild(v);
+    box.appendChild(v); requestAnimationFrame(learnLanes);
   }
   learnReset();
   if (!LN.raf) LN.raf = requestAnimationFrame(learnLoop);
 }
+// Höhe der Bahnen = Mitte der Ventile bzw. der Zahlen auf der Skala
+function learnLanes() {
+  const cv = $("ln-cv"); cv.style.height = Math.max(200, $("ln-input").offsetHeight) + "px";
+  const r0 = cv.getBoundingClientRect(); LN.lanes = {};
+  const dpr = window.devicePixelRatio || 1;
+  cv.width = Math.round(r0.width * dpr); cv.height = Math.round(r0.height * dpr);
+  if (instrObj().kind === "slide") document.querySelectorAll("#ln-input .scale span").forEach((s, i) => { const r = s.getBoundingClientRect(); LN.lanes[String(i + 1)] = r.top + r.height / 2 - r0.top; });
+  else document.querySelectorAll("#ln-input .tv").forEach(b => { const r = b.getBoundingClientRect(); LN.lanes[b.dataset.v] = r.top + r.height / 2 - r0.top; });
+}
+window.addEventListener("resize", () => { if (cur.mode === "learn") requestAnimationFrame(learnLanes); });
 function learnItems() {
-  const ev = P.tracks[0] ? P.tracks[0].events : [], idx = new Map(cur.notes.map((el, k) => [el, k])), out = [];
+  const ev = P.tracks[0] ? P.tracks[0].events : [], idx = new Map(cur.notes.map((el, k) => [el, k])), out = [], slide = instrObj().kind === "slide";
   ev.forEach(e => {
     const el = e.els[0]; const k = idx.get(el); if (k == null) return;
-    const f = (cur.labels[k] || "").split("/")[0]; if (!f) return;
-    out.push({ b: e.b, fing: f.length > 1 && instrObj().kind !== "slide" && !f.includes("+") ? f.split("").join("+") : f, el });
+    let f = (cur.labels[k] || "").split("/")[0]; if (!f) return;
+    if (!slide && f.length > 1 && !f.includes("+")) f = f.split("").join("+");
+    const lanes = slide ? [f] : (f === "0" ? [] : f.split("+"));
+    out.push({ b: e.b, fing: f, el, lanes });
   });
+  // Länge bis zur nächsten Note (für die Striche hinter den Punkten)
+  out.forEach((x, i) => { x.len = out[i + 1] ? Math.min(out[i + 1].b - x.b, 4) : 1; });
   return out;
 }
 function learnReset() {
   cur.notes.forEach(n => n.classList.remove("ln-ok", "ln-bad"));
-  LN.items = learnItems(); LN.j = 0; LN.ok = 0; LN.done = 0; LN.streak = 0; LN.xs = null;
+  LN.items = learnItems(); LN.j = 0;
+  const gaps = LN.items.filter(x => x.lanes.length).map((x, i, a) => i ? x.b - a[i - 1].b : 9).filter(g => g > 0.01).sort((a, b) => a - b);
+  LN.minGap = gaps.length ? Math.max(0.25, gaps[Math.floor(gaps.length * 0.05)]) : 1; LN.ok = 0; LN.done = 0; LN.streak = 0; LN.best = 0; LN.xs = null; LN.fx = [];
   learnStats(); $("ln-msg").textContent = "";
 }
 function learnStats() {
@@ -1411,62 +1424,99 @@ function learnStats() {
   $("ln-pct").textContent = LN.done ? Math.round(LN.ok / LN.done * 100) + " %" : "";
 }
 const learnBeat = () => R.on ? bOf(R.el.currentTime) : (actx ? curPos(actx) : 0);
-// Sekunden pro Schlag beim aktuellen Tempo
-const learnSpb = () => R.on ? spbSong() / R.el.playbackRate : 1 / P.rate;
+const learnSpb = () => R.on ? spbSong() / R.el.playbackRate : 1 / (P.rate || 2);
 function learnXs() {
   if (LN.xs) return LN.xs;
   const pl = $("paper").getBoundingClientRect().left;
   return LN.xs = P.tracks[0].events.map(e => e.els[0] ? e.els[0].getBoundingClientRect().left - pl + 8 : null);
 }
+function learnDraw(b, sp) {
+  const cv = $("ln-cv"), c = cv.getContext("2d"), dpr = window.devicePixelRatio || 1;
+  const W = cv.width / dpr, H = cv.height / dpr; c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, W, H);
+  const slide = instrObj().kind === "slide", hitX = W - 10, r = slide ? 13 : 17;
+  // etwa 2 Sekunden sichtbar, aber schnelle Noten nie übereinander
+  const ppb = Math.max((W - 30) / (2.2 / sp), (2 * r + 6) / (LN.minGap || 1));
+  const fg = getComputedStyle(document.body).color;
+  // Bahnen
+  Object.entries(LN.lanes).forEach(([k, y]) => {
+    c.strokeStyle = slide ? "rgba(128,128,128,.25)" : (LANE_COL[k] + "40"); c.lineWidth = slide ? 2 : 6; c.lineCap = "round";
+    c.beginPath(); c.moveTo(8, y); c.lineTo(hitX, y); c.stroke();
+  });
+  // Ziellinie
+  c.strokeStyle = fg; c.globalAlpha = .25; c.lineWidth = 3; c.beginPath(); c.moveTo(hitX, 4); c.lineTo(hitX, H - 4); c.stroke(); c.globalAlpha = 1;
+  // Punkte
+  const it = LN.items;
+  for (let k = Math.max(0, LN.j - 3); k < it.length; k++) {
+    const x = it[k]; const dx = (x.b - b) * ppb; if (dx > W) break;
+    const X = hitX - dx; if (X < -r - x.len * ppb) continue;
+    x.lanes.forEach(l => {
+      const y = LN.lanes[l]; if (y == null) return;
+      const col = x.res === "ok" ? "#1E7A4C" : x.res === "bad" ? "#999" : (slide ? "#C4161C" : LANE_COL[l]);
+      // Haltebalken bis zur nächsten Note
+      const tail = Math.max(0, x.len * ppb - r * 2.4);
+      if (tail > 4 && x.len >= 1) { c.strokeStyle = col; c.globalAlpha = .35; c.lineWidth = r * 0.9; c.lineCap = "round"; c.beginPath(); c.moveTo(X, y); c.lineTo(Math.min(hitX, X - tail), y); c.stroke(); c.globalAlpha = 1; }
+      c.fillStyle = col; c.beginPath(); c.arc(X, y, r, 0, Math.PI * 2); c.fill();
+      c.fillStyle = "#fff"; c.font = `900 ${slide ? 14 : 17}px system-ui, sans-serif`; c.textAlign = "center"; c.textBaseline = "middle"; c.fillText(l, X, y + 1);
+    });
+    if (!x.lanes.length) { c.fillStyle = fg; c.globalAlpha = .3; c.font = "700 13px system-ui, sans-serif"; c.textAlign = "center"; c.fillText("0", X, H / 2); c.globalAlpha = 1; }
+  }
+  // Treffer-Blitze
+  const now = performance.now();
+  LN.fx = LN.fx.filter(f => now - f.t < 350);
+  LN.fx.forEach(f => { const a = 1 - (now - f.t) / 350; c.strokeStyle = f.ok ? "#1E9A5A" : "#B4322A"; c.globalAlpha = a; c.lineWidth = 4; c.beginPath(); c.arc(hitX, f.y, 20 + (1 - a) * 18, 0, Math.PI * 2); c.stroke(); c.globalAlpha = 1; });
+}
 function learnLoop() {
   if (cur.mode !== "learn") { LN.raf = 0; return; }
-  if (playing && P.tracks.length) {
-    const b = learnBeat(), sp = learnSpb(), it = LN.items;
-    const eB = 0.15 / sp, lB = 0.28 / sp;  // Toleranz vor und nach der Note, in Schlägen
-    // Sprung zurück (Schleife, Balken): ab dort neu werten
-    if (LN.j > 0 && it[LN.j - 1] && it[LN.j - 1].b > b + 0.5) {
-      LN.j = it.findIndex(x => x.b >= b - 0.01); if (LN.j < 0) LN.j = it.length;
-      it.forEach(x => { if (x.b >= b - 0.01) { x.hit = false; x.el.classList.remove("ln-ok", "ln-bad"); } });
+  if (P.tracks.length && LN.items.length) {
+    const b = playing ? learnBeat() : P.pos, sp = learnSpb(), it = LN.items;
+    if (playing) {
+      const eB = 0.15 / sp, lB = 0.28 / sp;  // Toleranz vor und nach der Note, in Schlägen
+      if (LN.j > 0 && it[LN.j - 1] && it[LN.j - 1].b > b + 0.5) {  // Sprung zurück (Schleife, Balken)
+        LN.j = it.findIndex(x => x.b >= b - 0.01); if (LN.j < 0) LN.j = it.length;
+        it.forEach(x => { if (x.b >= b - 0.01) { x.hit = false; x.res = null; x.el.classList.remove("ln-ok", "ln-bad"); } });
+      }
+      while (LN.j < it.length && it[LN.j].b < b - 1) LN.j++;  // Sprung nach vorn
+      const want = learnHeld();
+      for (let k = LN.j; k < it.length && it[k].b <= b + eB + 0.01; k++) {
+        const x = it[k], prev = it[k - 1], next = it[k + 1];
+        const early = Math.min(eB, prev ? (x.b - prev.b) / 2 : 1), late = Math.min(lB, next ? (next.b - x.b) * 0.6 : 1);
+        if (b >= x.b - early && b <= x.b + late && want === x.fing) x.hit = true;
+      }
+      while (LN.j < it.length) {
+        const x = it[LN.j], next = it[LN.j + 1], late = Math.min(lB, next ? (next.b - x.b) * 0.6 : 1);
+        if (b <= x.b + late) break;
+        if (x.lanes.length) {  // 0 (keine Ventile) zählt nicht als Punkt
+          LN.done++;
+          if (x.hit) { LN.ok++; LN.streak++; x.res = "ok"; x.el.classList.add("ln-ok"); } else { LN.streak = 0; x.res = "bad"; x.el.classList.add("ln-bad"); }
+          LN.best = Math.max(LN.best, LN.streak);
+          x.lanes.forEach(l => LN.fx.push({ y: LN.lanes[l], ok: x.hit, t: performance.now() }));
+          learnStats();
+        }
+        x.hit = false; LN.j++;
+      }
+      // Noten oben gleichmässig mitschieben
+      const ev = P.tracks[0].events, xs = learnXs(); let k = 0;
+      while (k + 1 < ev.length && ev[k + 1].b <= b) k++;
+      if (xs[k] != null) {
+        let x = xs[k];
+        if (b >= ev[k].b && ev[k + 1] && xs[k + 1] != null && xs[k + 1] > xs[k]) x += (xs[k + 1] - xs[k]) * Math.min(1, (b - ev[k].b) / (ev[k + 1].b - ev[k].b));
+        if (b < ev[0].b) x = xs[0] - (ev[0].b - b) * 40;
+        const sc = $("scroller"); sc.scrollLeft = Math.max(0, x - sc.clientWidth * 0.3);
+      }
     }
-    // Sprung nach vorn: übersprungene Noten nicht werten
-    while (LN.j < it.length && it[LN.j].b < b - 1) LN.j++;
-    const want = learnHeld();
-    for (let k = LN.j; k < it.length && it[k].b <= b + eB + 0.01; k++) {
-      const x = it[k], prev = it[k - 1], next = it[k + 1];
-      const early = Math.min(eB, prev ? (x.b - prev.b) / 2 : 1), late = Math.min(lB, next ? (next.b - x.b) * 0.6 : 1);
-      if (b >= x.b - early && b <= x.b + late && want === x.fing) x.hit = true;
-    }
-    while (LN.j < it.length) {
-      const x = it[LN.j], next = it[LN.j + 1], late = Math.min(lB, next ? (next.b - x.b) * 0.6 : 1);
-      if (b <= x.b + late) break;
-      LN.done++;
-      if (x.hit) { LN.ok++; LN.streak++; x.el.classList.add("ln-ok"); } else { LN.streak = 0; x.el.classList.add("ln-bad"); }
-      x.hit = false; LN.j++; learnStats();
-    }
-    // Noten gleichmässig durch das Feld schieben
-    const ev = P.tracks[0].events, xs = learnXs(); let k = 0;
-    while (k + 1 < ev.length && ev[k + 1].b <= b) k++;
-    if (xs[k] != null) {
-      let x = xs[k];
-      if (b >= ev[k].b && ev[k + 1] && xs[k + 1] != null && xs[k + 1] > xs[k]) x += (xs[k + 1] - xs[k]) * Math.min(1, (b - ev[k].b) / (ev[k + 1].b - ev[k].b));
-      if (b < ev[0].b) x = xs[0] - (ev[0].b - b) * 40;
-      const sc = $("scroller"); sc.scrollLeft = Math.max(0, x - sc.clientWidth * 0.3);
-    }
+    learnDraw(b, sp);
   }
   LN.raf = requestAnimationFrame(learnLoop);
 }
-$("ln-play").onclick = () => { if (!playing && P.pos <= 0) learnReset(); $("play").click(); };
-$("ln-stop").onclick = () => {
-  $("stop").click();
-  if (LN.done) $("ln-msg").innerHTML = `<span style="color:var(--ok)">${LN.ok} von ${LN.done} Noten richtig gegriffen (${Math.round(LN.ok / LN.done * 100)} %).</span>`;
-};
+$("ln-play").onclick = () => { if (!playing && P.pos <= 0) learnReset(); learnLanes(); $("play").click(); };
+$("ln-stop").onclick = () => { $("stop").click(); };
 new MutationObserver(() => {
   $("ln-play").textContent = playing ? "❚❚ Pause" : (P.pos > 0 ? "▶ Weiter" : "▶ Los");
-  if (!playing && cur.mode === "learn" && LN.done) $("ln-msg").innerHTML = `<span style="color:var(--ok)">${LN.ok} von ${LN.done} Noten richtig gegriffen (${Math.round(LN.ok / LN.done * 100)} %).</span>`;
+  if (!playing && cur.mode === "learn" && LN.done) $("ln-msg").innerHTML = `<span style="color:var(--ok)">${LN.ok} von ${LN.done} Punkten getroffen (${Math.round(LN.ok / LN.done * 100)} %). Längste Serie: ${LN.best}.</span>`;
 }).observe($("play"), { childList: true, characterData: true, subtree: true });
 // Am Computer: Tasten 1, 2, 3 (Posaune 1–7) gedrückt halten
 document.addEventListener("keydown", e => {
-  if (cur.mode !== "learn" || $("s-song").hidden || e.repeat || !"1234567".includes(e.key) || !e.key) return;
+  if (cur.mode !== "learn" || $("s-song").hidden || e.repeat || !e.key || !"1234567".includes(e.key)) return;
   if (instrObj().kind !== "slide" && !"123".includes(e.key)) return;
   if (instrObj().kind === "slide") LN.held.clear();
   LN.held.add(e.key);
