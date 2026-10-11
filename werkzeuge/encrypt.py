@@ -25,6 +25,17 @@ def enc(raw):
 
 
 songs = json.load(open(songs_path))
+# Noch geheime Lieder (z.B. GEHEIM=wanegbt) werden weggelassen und ihre Dateien entfernt
+geheim = [x for x in os.environ.get("GEHEIM", "").split(",") if x]
+for s in [s for s in songs if s["id"] in geheim]:
+    for pid in s["audio"]:
+        f = os.path.join(data_dir, hashlib.sha256(key + f"{s['id']}-{pid}".encode()).hexdigest()[:16] + ".bin")
+        if os.path.exists(f): os.remove(f)
+    for pt in s["parts"]:
+        for i in range(1, 10):
+            f = os.path.join(data_dir, hashlib.sha256(key + f"{s['id']}-{pt['id']}-s{i}".encode()).hexdigest()[:16] + ".bin")
+            if os.path.exists(f): os.remove(f)
+songs = [s for s in songs if s["id"] not in geheim]
 # Dateinamen der Aufnahmen: zufällig wirkend, aber stabil (aus Schlüssel + Name abgeleitet)
 for s in songs:
     names = {}
