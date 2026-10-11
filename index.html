@@ -279,7 +279,7 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
     <button class="tile" id="go-tuner"><div><b>Stimmgerät</b><span>Instrument stimmen über das Mikrofon</span></div><i>›</i></button>
     <button class="tile" id="go-theory"><div><b>Musiktheorie</b><span>Notenwerte, Pausen, Zeichen – mit Quiz</span></div><i>›</i></button>
   </div>
-  <p class="ver" id="ver">Version 42</p>
+  <p class="ver" id="ver">Version 43</p>
   <div class="card" id="lt" hidden>
     <b>Startlogo einstellen</b>
     <p class="val"><span id="lt-v">180</span> px</p>
@@ -791,7 +791,7 @@ function renderSongs() {
   $("sl-load").textContent = GUGGE.busy ? "Lieder werden geladen …" : "";
   $("songlist").innerHTML = "";
   SONGS.forEach((s, i) => { const b = document.createElement("button"); b.className = "row"; b.type = "button";
-    const sub = s.real ? `${s.sub} · ${s.parts.filter(p => p.instr !== "tutti").length} Stimmen mit Noten` : s.sub;
+    const sub = s.real ? `${s.sub} · ${s.parts.filter(p => p.instr !== "tutti" && p.instr !== "drums").length} Stimmen mit Noten` : s.sub;
     b.innerHTML = `<span class="txt"><b class="fit">${s.title}</b><small>${sub}</small></span><span class="num">›</span>`;
     b.onclick = () => { cur.song = SONGS[i]; go("instr"); }; $("songlist").appendChild(b); });
   requestAnimationFrame(() => fitText($("songlist")));
