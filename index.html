@@ -279,7 +279,7 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
     <button class="tile" id="go-tuner"><div><b>Stimmgerät</b><span>Instrument stimmen über das Mikrofon</span></div><i>›</i></button>
     <button class="tile" id="go-theory"><div><b>Musiktheorie</b><span>Notenwerte, Pausen, Zeichen – mit Quiz</span></div><i>›</i></button>
   </div>
-  <p class="ver" id="ver">Version 45</p>
+  <p class="ver" id="ver">Version 46</p>
   <div class="card" id="lt" hidden>
     <b>Startlogo einstellen</b>
     <p class="val"><span id="lt-v">180</span> px</p>
@@ -880,10 +880,31 @@ $("m-learn").onclick = () => setMode("learn");
 $("showv").onchange = () => { stopAll(); renderScore(); };
 
 function scrollToEl(el) {
-  if (cur.mode === "learn" && playing) return;  // beim Lernen scrollt die Anzeige gleichmässig selbst
+  if (playing) return;  // beim Abspielen scrollt die Anzeige gleichmässig selbst (flowLoop)
   if (!el) return; const sc = $("scroller"); const r = el.getBoundingClientRect(), sr = sc.getBoundingClientRect();
   const x = r.left - sr.left + sc.scrollLeft; sc.scrollLeft = Math.max(0, x - sc.clientWidth * 0.3);
 }
+// Noten beim Abspielen flüssig durchlaufen lassen (zwischen den Noten weich verschieben)
+let FXS = null;
+function flowXs() {
+  if (FXS) return FXS;
+  const pl = $("paper").getBoundingClientRect().left;
+  return FXS = P.tracks[0].events.map(e => e.els[0] ? e.els[0].getBoundingClientRect().left - pl + 8 : null);
+}
+function flowLoop() {
+  if (playing && cur.mode !== "learn" && P.tracks.length && !$("s-song").hidden) {
+    const b = learnBeat(), ev = P.tracks[0].events, xs = flowXs(); let k = 0;
+    while (k + 1 < ev.length && ev[k + 1].b <= b) k++;
+    if (xs[k] != null) {
+      let x = xs[k];
+      if (b >= ev[k].b && ev[k + 1] && xs[k + 1] != null && xs[k + 1] > xs[k]) x += (xs[k + 1] - xs[k]) * Math.min(1, (b - ev[k].b) / (ev[k + 1].b - ev[k].b));
+      const sc = $("scroller"), to = Math.max(0, x - sc.clientWidth * 0.3);
+      if (Math.abs(sc.scrollLeft - to) >= 0.3) sc.scrollTo({ left: to, behavior: "instant" });
+    }
+  }
+  requestAnimationFrame(flowLoop);
+}
+requestAnimationFrame(flowLoop);
 function mark(els, on) { els.forEach(e => e.classList.toggle("abcjs-cursor-on", on)); }
 
 /* Abspielen */
@@ -953,7 +974,7 @@ function preparePlayer() {
   const fill = (sel, val) => { const old = sel.value; sel.innerHTML = ""; for (let i = 1; i <= P.bars; i++) { const o = document.createElement("option"); o.value = i; o.textContent = i; sel.appendChild(o); } sel.value = old && +old <= P.bars ? old : val; };
   fill($("lp-a"), 1); fill($("lp-b"), Math.min(20, P.bars));
   lpSync();
-  $("seek").max = Math.max(1, P.end); seekUI(0, true); XMAP = null;
+  $("seek").max = Math.max(1, P.end); seekUI(0, true); XMAP = null; FXS = null;
   P.pos = 0;
 }
 // Schleife: zwei Regler (Anfang und Ende) auf einer Leiste, je ein Takt
@@ -1242,7 +1263,7 @@ $("v-out").onclick = () => vZoom(1 / 1.4);
 /* Querformat beim Mitspielen: Noten über den ganzen Bildschirm */
 const LANDQ = matchMedia("(orientation: landscape) and (max-height: 560px)");
 function landUpd() {
-  XMAP = null;
+  XMAP = null; FXS = null;
   const on = LANDQ.matches && !$("s-song").hidden && cur.mode === "play" && $("viewer").hidden;
   document.body.classList.toggle("landplay", on);
   const pa = $("paper"); pa.style.zoom = "";
