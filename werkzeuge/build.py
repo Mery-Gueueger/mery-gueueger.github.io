@@ -117,8 +117,15 @@ def build(path, kind="valve", meter16=16, sel=None):
             if c["t"] == "c":
                 c["notes"].sort(key=lambda n: -n["midi"])  # oben zuerst
                 c["dur"] = base_dur(c["notes"][0])
+                ups = {n["stem"]["up"] for n in c["notes"] if "stem" in n}
+                if len(ups) > 1:  # zwei Stimmen (Hals oben und unten): kürzere Note bestimmt den Schritt
+                    c["dur"] = min(base_dur(n) for n in c["notes"])
             else:
                 c["dur"] = base_dur(c)
+        # Zweite Stimme: Pause genau unter/über einer Note gehört zur anderen Stimme (nur wenn der Takt sonst zu lang wäre)
+        if not bar.get("mm") and sum(e["dur"] for e in out) > meter16:
+            notes_x = [c["x"] for c in out if c["t"] == "c"]
+            out = [e for e in out if e["t"] != "r" or not any(abs(e["x"] - x) < 1.0 for x in notes_x)]
         bar["ev"] = out
     # Bindebögen (je Ton zum nächsten Ereignis)
     seq = [(bi, e) for bi, bar in enumerate(bars) for e in bar["ev"]]
@@ -129,6 +136,11 @@ def build(path, kind="valve", meter16=16, sel=None):
         sa = systems[bars[bi]["sys"]]
         for n in a["notes"]:
             m = [x for x in b["notes"] if x["midi"] == n["midi"]]
+            carry = False
+            if not m and bi != bj:
+                # über den Taktstrich gebundene Note behält ihr Vorzeichen (z.B. B gebunden in den nächsten Takt)
+                m = [x for x in b["notes"] if x["d"] == n["d"] and "acc" not in x]
+                carry = bool(m)
             if not m:
                 continue
             u = sa["half"] / 2.3
@@ -138,6 +150,8 @@ def build(path, kind="valve", meter16=16, sel=None):
                 ok = any(n["x"] - 2 * u <= c["x0"] <= n["x"] + 14 * u and c["x1"] > sa["x1"] - 30 * u and abs((c["y0"] + c["y1"]) / 2 - n["y"]) < 14 * u for c in sa["curves"])
             if ok:
                 n["tie"] = True
+                if carry:
+                    m[0]["alt"] = n["alt"]; m[0]["midi"] = n["midi"]
     # Fortsetzungen von Bindebögen markieren
     prev_tied = set()
     for bar in bars:

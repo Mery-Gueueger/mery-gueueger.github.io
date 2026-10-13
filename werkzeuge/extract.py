@@ -144,7 +144,11 @@ def analyze(path, clef_override=None):
             if tsig:
                 firstx = min(firstx, min(g["x"] for g in tsig))
             clefx = clefg[0]["x1"] if clefg else st["x0"]
-            keyacc = [g for g in G if g["c"] in "#b" and clefx - 1 <= g["x"] < firstx]
+            allheads = [g for g in G if g["c"] in HEADS]
+            # Vorzeichen direkt vor einem (Vorschlag-)Notenkopf gehören zur Note, nicht zur Tonart
+            noteacc = [g for g in G if g["c"] in "#bn" and clefx - 1 <= g["x"] < firstx
+                       and any(0 < h["x"] - g["x"] < 2.2 * sp and abs(h["y"] - g["y"]) < sp for h in allheads)]
+            keyacc = [g for g in G if g["c"] in "#b" and clefx - 1 <= g["x"] < firstx and g not in noteacc]
             keysig = {}
             for g in keyacc:
                 d = refd + round((refy - g["y"]) / half)
@@ -208,7 +212,7 @@ def analyze(path, clef_override=None):
             rep = []
             for g in dots0:
                 for o in dots0:
-                    if o is not g and abs(o["x"] - g["x"]) < 0.6 and abs(abs(o["y"] - g["y"]) - sp) < 1.2 and abs((o["y"] + g["y"]) / 2 - (top + bot) / 2) < 1.5:
+                    if o is not g and abs(o["x"] - g["x"]) < 0.6 and abs(abs(o["y"] - g["y"]) - sp) < 1.2 and abs((o["y"] + g["y"]) / 2 - (top + bot) / 2) < 1.5 and any(min(abs(b[0] - g["x"]), abs(b[1] - g["x"])) < 2.2 * sp for b in barxs):
                         rep.append(g)
             dots = [g for g in dots0 if g not in rep]
             repeats = []
@@ -223,13 +227,14 @@ def analyze(path, clef_override=None):
                 for ev in events:
                     dx = g["x"] - ev["x"]
                     if 0.85 * sp < dx < 3.5 * sp and abs(g["y"] - ev["y"]) <= half * 1.6 + 0.5:
-                        if dx < bd:
-                            best, bd = ev, dx
+                        sc = dx + 2 * abs(g["y"] - ev["y"])  # bei Akkorden: Punkt gehört zum Kopf auf gleicher Höhe
+                        if sc < bd:
+                            best, bd = ev, sc
                 if best is not None:
                     best["dot"] = best.get("dot", 0) + 1
             # Versetzungszeichen
             for g in G:
-                if g["c"] in ACC and g["x"] >= firstx - 0.5:
+                if g["c"] in ACC and (g["x"] >= firstx - 0.5 or g in noteacc):
                     best, bd = None, 99
                     for ev in events:
                         if ev["t"] != "n":

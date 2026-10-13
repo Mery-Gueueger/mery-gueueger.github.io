@@ -1,7 +1,7 @@
 """Erzeugt die Lieddaten (ABC + Griffe + Aufnahmen) für die App."""
 import sys, json, os
 sys.path.insert(0, __file__.rsplit("/", 1)[0])
-from build import build, abc_pitch, dur_str, NAMES
+from build import build, abc_pitch, dur_str, NAMES, VALVE, WSLIDE
 from extract import DIA
 
 SRC = "/tmp/claude-0/-home-claude-mery-gueueger-github-io/f3f07ede-7612-5b84-8871-ed1e6a2a1a4a/scratchpad/songs2/"
@@ -33,6 +33,42 @@ SONGS = [
          tutti="sowk/audio/Somewhere Only We Know - Tutti.mp3", drums="sowk/audio/Somewhere Only We Know - Drums.mp3",
          # Wiederholung Takt 33-52, 1. Klammer 47-52, 2. Klammer ab 53 (Taktindex 0-basiert)
          marks={32: dict(pre="|:"), 46: dict(volta="[1"), 51: dict(post=":|"), 52: dict(volta="[2")}),
+    dict(id="fy", title="Forever Young", sub="Alphaville, Ava Max, David Guetta", qpm=130, key="Bb", offset=0.022 + 8 * 60 / 130,
+         parts=[("trp1", "trp", "Trompete 1", "fy/forever-young-trompete-1-v3.pdf", "fy/forever-young-trompete-1.mp3"),
+                ("trp2", "trp", "Trompete 2", "fy/forever-young-trompete-2-v3.pdf", "fy/forever-young-trompete-2.mp3"),
+                ("pos1", "pos", "Posaune 1", "fy/forever-young-posaune-1.pdf", "fy/forever-young-posaune-1.mp3"),
+                ("pos2", "pos", "Posaune 2", "fy/forever-young-posaune-2.pdf", "fy/forever-young-posaune-2.mp3"),
+                ("eup", "eup", "Euphi", "fy/forever-young-euphonium.pdf", "fy/forever-young-euphonium.mp3"),
+                ("sou", "sou", "Susi", "fy/forever-young-sousaphon-v3.pdf", "fy/forever-young-sousaphon.mp3")],
+         tutti="fy/forever-young-tutti.mp3", drums="fy/forever-young-drums-all.mp3", marks={}),
+    dict(id="italo", title="Italo Disco", sub="The Kolors", qpm=123, key="D", offset=0.022 + 8 * 60 / 123,
+         parts=[("trp1", "trp", "Trompete 1", "id/italodisco-trompete-1-v2.pdf", "id/italo-disco-trompete-1-v2.mp3"),
+                ("trp2", "trp", "Trompete 2", "id/italodisco-trompete-2-v2.pdf", "id/italo-disco-trompete-2-v2.mp3"),
+                ("pos1", "pos", "Posaune 1", "id/italodisco-posaune-1-v2.pdf", "id/italo-disco-posaune-1-v2.mp3"),
+                ("pos2", "pos", "Posaune 2", "id/italodisco-posaune-2-v2.pdf", "id/italo-disco-posaune-2-v2.mp3"),
+                ("eup1", "eup", "Euphi 1", "id/italodisco-euphonium-1-v2.pdf", "id/italo-disco-euphonium-1-v2.mp3"),
+                ("eup2", "eup", "Euphi 2", "id/italodisco-euphonium-v2-2.pdf", "id/italo-disco-euphonium-v2-2.mp3"),
+                ("sou", "sou", "Susi", "id/italodisco-sousaphon-v2.pdf", "id/italo-disco-sousaphon-v2.mp3")],
+         tutti="id/italo-disco-tutti-v2.mp3", drums="id/italo-disco-drums-all-v2.mp3", marks={}),
+    dict(id="maneater", title="Maneater", sub="Nelly Furtado", qpm=130, key="C", offset=0.022 + 12 * 60 / 130,
+         parts=[("trp1", "trp", "Trompete 1", "me/maneater-trompete-1.pdf", "me/maneater-trompete-1.mp3"),
+                ("trp2", "trp", "Trompete 2", "me/maneater-trompete-2.pdf", "me/maneater-trompete-2.mp3"),
+                ("pos1", "pos", "Posaune 1", "me/maneater-posaune-1.pdf", "me/maneater-posaune-1.mp3"),
+                ("pos2", "pos", "Posaune 2", "me/maneater-posaune-2.pdf", "me/maneater-posaune-2.mp3"),
+                ("eup", "eup", "Euphi", "me/maneater-euphonium.pdf", "me/maneater-euphonium.mp3"),
+                ("sou", "sou", "Susi", "me/maneater-sousaphon.pdf", "me/maneater-sousaphon.mp3")],
+         tutti="me/maneater-tutti.mp3", drums="me/maneater-drums-all.mp3", marks={}),
+    dict(id="wlto", title="When Love Takes Over", sub="David Guetta", qpm=130, key="Eb", offset=0.022 + 8 * 60 / 130,
+         parts=[("trp1", "trp", "Trompete 1", "wl/when-love-takes-over-trompete-1.pdf", "wl/when-love-takes-over-trompete-1.mp3"),
+                ("trp2", "trp", "Trompete 2", "wl/when-love-takes-over-trompete-2.pdf", "wl/when-love-takes-over-trompete-2.mp3"),
+                ("pos1", "pos", "Posaune 1", "wl/when-love-takes-over-posaune-1.pdf", "wl/when-love-takes-over-posaune-1.mp3"),
+                ("pos2", "pos", "Posaune 2", "wl/when-love-takes-over-posaune-2.pdf", "wl/when-love-takes-over-posaune-2.mp3"),
+                ("eup", "eup", "Euphi", "wl/when-love-takes-over-euphonium.pdf", "wl/when-love-takes-over-euphonium.mp3"),
+                ("trp3", "trp", "Euphi 2 / Trompete 3", "wl/when-love-takes-over-euphonium-2-trp-3.pdf", None, dict(sub="Eigene Aufnahme gibt es keine")),
+                ("sou", "sou", "Susi", "wl/when-love-takes-over-sousaphon-v2.pdf", "wl/when-love-takes-over-sousaphon.mp3"),
+                ("sou0", "sou", "Susi (andere Fassung)", "wl/when-love-takes-over-sousaphon.pdf", None,
+                 dict(sub="Ältere Fassung ohne eigene Aufnahme. Griffe von der App berechnet", calc=True))],
+         tutti="wl/when-love-takes-over-tutti.mp3", drums=None, marks={}),
 ]
 
 
@@ -87,23 +123,33 @@ def run():
     report = []
     for s in SONGS:
         song = dict(id=s["id"], title=s["title"], sub=s["sub"], qpm=s["qpm"], offset=round(s["offset"], 4), parts=[], audio={})
-        for pid, instr, name, pdf, mp3 in s["parts"]:
+        for pt in s["parts"]:
+            pid, instr, name, pdf, mp3 = pt[:5]; opt = pt[5] if len(pt) > 5 else {}
             if mp3 and os.path.getsize(SRC + mp3) > 0:
                 song["audio"][pid] = mp3
             if not pdf or not os.path.exists(SRC + pdf) or os.path.getsize(SRC + pdf) == 0:
                 continue
             kind = "slide" if instr == "pos" else "valve"
             m = build(SRC + pdf, kind)
+            if opt.get("calc"):  # gedruckte Zahlen passen nicht zum Instrument: Griffe aus der Tonhöhe
+                fmap = WSLIDE if kind == "slide" else VALVE
+                m["issues"] = []
+                for bar in m["bars"]:
+                    for e in bar["ev"]:
+                        if e["t"] == "c":
+                            for n in e["notes"]:
+                                n["fing"] = "" if n["cont"] else fmap.get(n["midi"], "?")
+                            e["fing"] = [n["fing"] for n in e["notes"] if n["fing"]]
             bad = [(i + 1, b["tot"]) for i, b in enumerate(m["bars"]) if b["tot"] != 16]
             assert not bad, (pdf, bad)
             abc, fings = part_abc(m, s, s["title"])
-            song["parts"].append(dict(id=pid, instr=instr, name=name, abc=abc, fing=fings, bars=len(m["bars"]), pdf=SRC + pdf))
+            song["parts"].append(dict(id=pid, instr=instr, name=name, abc=abc, fing=fings, bars=len(m["bars"]), pdf=SRC + pdf, **({"sub": opt["sub"]} if opt.get("sub") else {})))
             for x in m["issues"]:
                 if x["pdf"] is not None:
                     report.append((s["title"], name, x))
         if s.get("tutti"):
             song["audio"]["tutti"] = s["tutti"]
-        if s.get("drums") and os.path.getsize(SRC + s["drums"]) > 0:
+        if s.get("drums") and os.path.exists(SRC + s["drums"]) and os.path.getsize(SRC + s["drums"]) > 0:
             song["audio"]["drums"] = s["drums"]
         out.append(song)
     return out, report

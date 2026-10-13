@@ -1,6 +1,6 @@
 // Offline-Unterstützung: Dateien der App zwischenspeichern.
 // Bei jeder neuen Version VERSION erhöhen, damit alle Handys die neuen Dateien holen.
-const VERSION = "v47";
+const VERSION = "v48";
 // Verschlüsselte Aufnahmen ändern sich nie (neue Aufnahme = neuer Dateiname), darum eigener, dauerhafter Speicher
 const DATEN = "mg-daten-1";
 const FILES = ["./", "index.html", "abcjs-basic-min.js", "logo.png", "splash-logo-w.png", "manifest.webmanifest", "icon-192.png", "icon-512.png", "apple-touch-icon.png", "favicon.png"];
