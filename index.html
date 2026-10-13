@@ -279,7 +279,7 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
     <button class="tile" id="go-tuner"><div><b>Stimmgerät</b><span>Instrument stimmen über das Mikrofon</span></div><i>›</i></button>
     <button class="tile" id="go-theory"><div><b>Musiktheorie</b><span>Notenwerte, Pausen, Zeichen – mit Quiz</span></div><i>›</i></button>
   </div>
-  <p class="ver" id="ver">Version 48</p>
+  <p class="ver" id="ver">Version 49</p>
   <div class="card" id="lt" hidden>
     <b>Startlogo einstellen</b>
     <p class="val"><span id="lt-v">180</span> px</p>
@@ -603,8 +603,8 @@ function prepSong(s) {
   s.real = true;
   s.parts.forEach(p => { p.transpose = T[p.instr]; });
   const mel = s.parts.find(p => p.id === "trp1") || s.parts.find(p => p.id === "eup") || s.parts[0];
-  s.parts.push({ id: "tutti", instr: "tutti", name: "Tutti", sub: "Die ganze Gugge", abc: mel.abc, fing: mel.fing, melody: mel.name });
   if (s.audio.drums) s.parts.push({ id: "drums", instr: "drums", name: "Schlagzeug & Pauken", sub: "Aufnahme vom Schlagzeug, eigene Noten gibt es noch keine", abc: mel.abc, fing: mel.fing, melody: mel.name });
+  s.parts.push({ id: "tutti", instr: "tutti", name: "Tutti", sub: "Die ganze Gugge", abc: mel.abc, fing: mel.fing, melody: mel.name });  // Tutti ganz unten
   s.missing = Object.keys(s.audio).filter(k => k !== "tutti" && k !== "drums" && !s.parts.some(p => p.id === k)).map(k => VOICE_NAMES[k] || k);
   if (!s.audio.drums) s.missing.push("Schlagzeug & Pauken|Aufnahme fehlt noch");
   return s;
@@ -711,12 +711,15 @@ function renderInstr() {
   $("vi-crumb").textContent = cur.song.title;
   const last = store.get("part-" + cur.song.id, null);
   $("instr").innerHTML = "";
-  cur.song.parts.forEach(pt => { const ins = INSTR.find(i => i.id === pt.instr); const b = document.createElement("button"); b.type = "button"; b.className = "chip"; b.setAttribute("aria-pressed", pt.id === last);
+  const tuttiPt = cur.song.parts.find(p => p.id === "tutti");
+  const addPart = pt => { const ins = INSTR.find(i => i.id === pt.instr); const b = document.createElement("button"); b.type = "button"; b.className = "chip"; b.setAttribute("aria-pressed", pt.id === last);
     b.innerHTML = `${pt.name}<small>${pt.sub || ins.sub}${pt.id === last ? " · zuletzt gespielt" : ""}</small>`;
-    b.onclick = () => { curPart = pt; store.set("part-" + cur.song.id, pt.id); openPart(); }; $("instr").appendChild(b); });
+    b.onclick = () => { curPart = pt; store.set("part-" + cur.song.id, pt.id); openPart(); }; $("instr").appendChild(b); };
+  cur.song.parts.filter(p => p !== tuttiPt).forEach(addPart);
   (cur.song.missing || []).forEach(n => { const b = document.createElement("button"); b.type = "button"; b.className = "chip"; b.disabled = true;
     const [nm, why] = n.split("|");
     b.innerHTML = `${nm}<small>${why || "Noten fehlen noch, nur die Aufnahme ist da"}</small>`; $("instr").appendChild(b); });
+  if (tuttiPt) addPart(tuttiPt);
 }
 $("go-theory").onclick = () => go("theory");
 $("go-metro").onclick = () => go("metro");
@@ -827,7 +830,7 @@ function openPart() {
   $("m-learn").hidden = tutti; $("m-play").parentElement.hidden = tutti; $("showv").parentElement.hidden = tutti && !cur.song.real; $("sound").parentElement.hidden = tutti;
   $("tv-box").hidden = !(tutti && cur.song.real);
   if (tutti && cur.song.real) {
-    const opts = cur.song.parts.filter(p => p.instr !== "tutti");
+    const opts = cur.song.parts.filter(p => p.instr !== "tutti" && p.instr !== "drums");
     $("tv").innerHTML = opts.map(p => `<option value="${p.id}">${p.name}</option>`).join("");
     const keep = store.get("tv-" + cur.song.id, null); setTuttiVoice(opts.find(p => p.id === keep) ? keep : opts[0].id, false);
   }
