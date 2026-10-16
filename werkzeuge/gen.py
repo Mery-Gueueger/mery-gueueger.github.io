@@ -40,7 +40,9 @@ SONGS = [
                 ("pos2", "pos", "Posaune 2", "fy/forever-young-posaune-2.pdf", "fy/forever-young-posaune-2.mp3"),
                 ("eup", "eup", "Euphi", "fy/forever-young-euphonium.pdf", "fy/forever-young-euphonium.mp3"),
                 ("sou", "sou", "Susi", "fy/forever-young-sousaphon-v3.pdf", "fy/forever-young-sousaphon.mp3")],
-         tutti="fy/forever-young-tutti.mp3", drums="fy/forever-young-drums-all.mp3", marks={}),
+         tutti="fy/forever-young-tutti.mp3", drums="fy/forever-young-drums-all.mp3", marks={},
+         # So spielt die Gugge es: zuerst Takt 75 bis Schluss, dann von vorne bis und mit Takt 75
+         order=[(75, 83), (1, 75)], audio_id="fy2"),
     dict(id="italo", title="Italo Disco", sub="The Kolors", qpm=123, key="D", offset=0.022 + 8 * 60 / 123,
          parts=[("trp1", "trp", "Trompete 1", "id/italodisco-trompete-1-v2.pdf", "id/italo-disco-trompete-1-v2.mp3"),
                 ("trp2", "trp", "Trompete 2", "id/italodisco-trompete-2-v2.pdf", "id/italo-disco-trompete-2-v2.mp3"),
@@ -78,7 +80,31 @@ def grace_abc(g, keysig, local):
     return abc_pitch(n, keysig, local)
 
 
-def part_abc(model, song, title):
+def reorder(model, order, kind):
+    """Takte in neuer Reihenfolge; Haltebögen an den Schnittstellen lösen, dort Griffe neu setzen."""
+    import copy
+    fmap = WSLIDE if kind == "slide" else VALVE
+    src = [i for a, b in order for i in range(a - 1, b)]
+    bars = [copy.deepcopy(model["bars"][i]) for i in src]
+    for k, bar in enumerate(bars):
+        chords = [e for e in bar["ev"] if e["t"] == "c"]
+        # Anfang eines Abschnitts: gebundene Töne werden hier neu angespielt
+        if (k == 0 or src[k - 1] != src[k] - 1) and bar["ev"] and bar["ev"][0]["t"] == "c":
+            e = bar["ev"][0]
+            for n in e["notes"]:
+                if n.get("cont"):
+                    n["cont"] = False; n["fing"] = n.get("pdf") or fmap.get(n["midi"], "?")
+            e["cont"] = False
+            e["fing"] = [n["fing"] for n in e["notes"] if n.get("fing")]
+        # Ende eines Abschnitts: kein Haltebogen ins Leere
+        if (k == len(bars) - 1 or src[k + 1] != src[k] + 1) and chords and chords[-1] is bar["ev"][-1]:
+            for n in chords[-1]["notes"]:
+                n["tie"] = False
+    m = dict(model); m["bars"] = bars
+    return m, [i + 1 for i in src]
+
+
+def part_abc(model, song, title, barnames=None):
     marks = song["marks"]
     toks_all, fings = [], []
     for bi, bar in enumerate(model["bars"]):
@@ -102,6 +128,8 @@ def part_abc(model, song, title):
             fings.append("/".join(e["fing"]))
         m = marks.get(bi, {})
         s = ""
+        if barnames and bi > 0 and barnames[bi] != barnames[bi - 1] + 1:
+            s += f"[I:setbarnb {barnames[bi]}] "
         if m.get("pre"):
             s += m["pre"] + " "
         if m.get("volta"):
@@ -115,6 +143,8 @@ def part_abc(model, song, title):
     if body.endswith("|"):
         body = body[:-1] + "|]"
     head = ["X:1", f"T:{title}", "M:4/4", "L:1/16", f"Q:1/4={song['qpm']}", f"K:{song['key']}"]
+    if barnames and barnames[0] != 1:
+        head.append(f"%%setbarnb {barnames[0]}")
     return "\n".join(head) + "\n" + body, fings
 
 
@@ -122,7 +152,7 @@ def run():
     out = []
     report = []
     for s in SONGS:
-        song = dict(id=s["id"], title=s["title"], sub=s["sub"], qpm=s["qpm"], offset=round(s["offset"], 4), parts=[], audio={})
+        song = dict(id=s.get("audio_id", s["id"]), title=s["title"], sub=s["sub"], qpm=s["qpm"], offset=round(s["offset"], 4), parts=[], audio={})
         for pt in s["parts"]:
             pid, instr, name, pdf, mp3 = pt[:5]; opt = pt[5] if len(pt) > 5 else {}
             if mp3 and os.path.getsize(SRC + mp3) > 0:
@@ -142,7 +172,11 @@ def run():
                             e["fing"] = [n["fing"] for n in e["notes"] if n["fing"]]
             bad = [(i + 1, b["tot"]) for i, b in enumerate(m["bars"]) if b["tot"] != 16]
             assert not bad, (pdf, bad)
-            abc, fings = part_abc(m, s, s["title"])
+            names = None
+            if s.get("order"):
+                m, names = reorder(m, s["order"], kind)
+                song["barnames"] = names
+            abc, fings = part_abc(m, s, s["title"], names)
             song["parts"].append(dict(id=pid, instr=instr, name=name, abc=abc, fing=fings, bars=len(m["bars"]), pdf=SRC + pdf, **({"sub": opt["sub"]} if opt.get("sub") else {})))
             for x in m["issues"]:
                 if x["pdf"] is not None:
