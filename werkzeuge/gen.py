@@ -42,7 +42,7 @@ SONGS = [
                 ("sou", "sou", "Susi", "fy/forever-young-sousaphon-v3.pdf", "fy/forever-young-sousaphon.mp3")],
          tutti="fy/forever-young-tutti.mp3", drums="fy/forever-young-drums-all.mp3", marks={},
          # So spielt die Gugge es: zuerst Takt 75 bis 82 (83 fällt weg), dann von vorne bis und mit Takt 75
-         order=[(75, 82), (1, 75)], audio_id="fy3"),
+         order=[(75, 82), (1, 75)], hold_last=True, audio_id="fy4"),
     dict(id="italo", title="Italo Disco", sub="The Kolors", qpm=123, key="D", offset=0.022 + 8 * 60 / 123,
          parts=[("trp1", "trp", "Trompete 1", "id/italodisco-trompete-1-v2.pdf", "id/italo-disco-trompete-1-v2.mp3"),
                 ("trp2", "trp", "Trompete 2", "id/italodisco-trompete-2-v2.pdf", "id/italo-disco-trompete-2-v2.mp3"),
@@ -80,7 +80,7 @@ def grace_abc(g, keysig, local):
     return abc_pitch(n, keysig, local)
 
 
-def reorder(model, order, kind):
+def reorder(model, order, kind, hold_last=False):
     """Takte in neuer Reihenfolge; Haltebögen an den Schnittstellen lösen, dort Griffe neu setzen."""
     import copy
     fmap = WSLIDE if kind == "slide" else VALVE
@@ -100,6 +100,12 @@ def reorder(model, order, kind):
         if (k == len(bars) - 1 or src[k + 1] != src[k] + 1) and chords and chords[-1] is bar["ev"][-1]:
             for n in chords[-1]["notes"]:
                 n["tie"] = False
+    if hold_last:  # Schlusstakt: nur den ersten Ton (oder die Pause) über den ganzen Takt halten
+        last = bars[-1]; e = last["ev"][0]; e["dur"] = 16
+        if e["t"] == "c":
+            for n in e["notes"]:
+                n["tie"] = False
+        last["ev"] = [e]; last["graces"] = []; last["tot"] = 16
     m = dict(model); m["bars"] = bars
     return m, [i + 1 for i in src]
 
@@ -174,9 +180,12 @@ def run():
             assert not bad, (pdf, bad)
             names = None
             if s.get("order"):
-                m, names = reorder(m, s["order"], kind)
+                m, names = reorder(m, s["order"], kind, s.get("hold_last", False))
                 song["barnames"] = names
             abc, fings = part_abc(m, s, s["title"], names)
+            if s.get("hold_last"):  # Fermate auf dem gehaltenen Schlusston
+                i = abc.rstrip().rfind("| ") + 2
+                abc = abc[:i] + "!fermata!" + abc[i:]
             song["parts"].append(dict(id=pid, instr=instr, name=name, abc=abc, fing=fings, bars=len(m["bars"]), pdf=SRC + pdf, **({"sub": opt["sub"]} if opt.get("sub") else {})))
             for x in m["issues"]:
                 if x["pdf"] is not None:
