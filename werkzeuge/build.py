@@ -61,8 +61,55 @@ def norm_f(s):
     return s
 
 
+def tuplets(path, systems, bars, allsys=None):
+    """Triolen: kursive 3 mit Klammer; die Ereignisse unter der Klammer dauern 2/3 ihres geschriebenen Werts."""
+    import pymupdf
+    doc = pymupdf.open(path)
+    marks = {}
+    for pi, pg in enumerate(doc):
+        threes = []
+        for b in pg.get_text("dict")["blocks"]:
+            for l in b.get("lines", []):
+                for sp in l["spans"]:
+                    if sp["text"].strip() == "3" and "Italic" in sp["font"]:
+                        x0, y0, x1, y1 = sp["bbox"]; threes.append((x0, x1, (y0 + y1) / 2))
+        if not threes:
+            continue
+        segs = [(min(it[1].x, it[2].x), max(it[1].x, it[2].x), (it[1].y + it[2].y) / 2) for dr in pg.get_drawings() for it in dr["items"]
+                if it[0] == "l" and abs(it[1].x - it[2].x) > 2 and abs(it[1].y - it[2].y) < abs(it[1].x - it[2].x) * 0.3]
+        marks[pi] = (threes, segs)
+    gid = 0
+    for si, sy in enumerate(systems):
+        if sy["page"] not in marks:
+            continue
+        threes, segs = marks[sy["page"]]
+        evs = [(bar, e) for bar in bars if bar["sys"] == si and not bar.get("mm") for e in bar["ev"]]
+        for x0, x1, yc in threes:
+            # zu diesem System gehörig? (knapp über oder unter den Notenlinien; nächstes System gewinnt)
+            dist = 0 if sy["top"] - 30 <= yc <= sy["bot"] + 30 else 99
+            if dist or min(abs(yc - (o["top"] + o["bot"]) / 2) for o in (allsys or systems) if o["page"] == sy["page"]) < abs(yc - (sy["top"] + sy["bot"]) / 2) - 1:
+                continue
+            left = [s for s in segs if abs(s[2] - yc) < 5 and -1 < x0 - s[1] < 6]
+            right = [s for s in segs if abs(s[2] - yc) < 5 and -1 < s[0] - x1 < 6]
+            if left and right:
+                a, b = min(s[0] for s in left) - 2, max(s[1] for s in right) + 2
+                mem = [(bar, e) for bar, e in evs if a <= e["x"] + e.get("hw", 0) / 2 <= b]
+            else:
+                cx = (x0 + x1) / 2
+                mem = sorted(evs, key=lambda be: abs(be[1]["x"] + be[1].get("hw", 0) / 2 - cx))[:3]
+                mem.sort(key=lambda be: be[1]["x"])
+            if not mem:
+                continue
+            gid += 1
+            for k, (bar, e) in enumerate(mem):
+                if "tup" in e:
+                    continue
+                e["wdur"] = e["dur"]; e["dur"] = e["dur"] * 2 / 3; e["tup"] = gid
+                e["tupn"] = len(mem) if k == 0 else 0
+
+
 def build(path, kind="valve", meter16=16, sel=None):
-    systems = analyze(path)
+    systems = analyze(path); allsys = systems
     if sel:
         systems = [s for k, s in enumerate(systems) if k % sel[1] == sel[0]]
     bars, keysig = [], {}
@@ -102,6 +149,7 @@ def build(path, kind="valve", meter16=16, sel=None):
                 c = out[-1]; f = c["notes"][0]
                 same_stem = "stem" in e and "stem" in f and abs(e["stem"]["x"] - f["stem"]["x"]) < 0.8
                 whole = e["head"] == "w" and f["head"] == "w" and abs(e["x"] - f["x"]) < e["hw"] + 1.5
+                whole = whole or (e["head"] == f["head"] and abs(e["x"] - f["x"]) < 1.0 and "stem" not in e)
                 if same_stem or whole:
                     c["notes"].append(e)
                     c["x"] = min(c["x"], e["x"])
@@ -122,11 +170,18 @@ def build(path, kind="valve", meter16=16, sel=None):
                     c["dur"] = min(base_dur(n) for n in c["notes"])
             else:
                 c["dur"] = base_dur(c)
+        # Akkord ohne erkannten Hals (z.B. Balken unten) im zu langen Takt: als Achtel lesen, wenn es dann aufgeht
+        tot = sum(e["dur"] for e in out)
+        if not bar.get("mm") and tot > meter16:
+            for c in out:
+                if c["t"] == "c" and c["dur"] == 4 and all("stem" not in n for n in c["notes"]) and abs(tot - 2 - meter16) < 1e-6:
+                    c["dur"] = 2; break
         # Zweite Stimme: Pause genau unter/über einer Note gehört zur anderen Stimme (nur wenn der Takt sonst zu lang wäre)
         if not bar.get("mm") and sum(e["dur"] for e in out) > meter16:
             notes_x = [c["x"] for c in out if c["t"] == "c"]
             out = [e for e in out if e["t"] != "r" or not any(abs(e["x"] - x) < 1.0 for x in notes_x)]
         bar["ev"] = out
+    tuplets(path, systems, bars, allsys)
     # Bindebögen (je Ton zum nächsten Ereignis)
     seq = [(bi, e) for bi, bar in enumerate(bars) for e in bar["ev"]]
     for i in range(len(seq) - 1):

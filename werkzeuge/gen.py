@@ -71,6 +71,15 @@ SONGS = [
                 ("sou0", "sou", "Susi (andere Fassung)", "wl/when-love-takes-over-sousaphon.pdf", None,
                  dict(sub="Ältere Fassung ohne eigene Aufnahme. Griffe von der App berechnet", calc=True))],
          tutti="wl/when-love-takes-over-tutti.mp3", drums=None, marks={}),
+    dict(id="sas", title="Scream And Shout", sub="will.i.am, Britney Spears", qpm=130, key="Bb", offset=0.022 + 8 * 60 / 130,
+         parts=[("trp1", "trp", "Trompete 1", "ss/scream-and-shout-trompete-1.pdf", "ss/scream-and-shout-trompete-1.mp3"),
+                ("trp2", "trp", "Trompete 2", "ss/scream-and-shout-trompete-2.pdf", "ss/scream-and-shout-trompete-2.mp3"),
+                ("pos1", "pos", "Posaune 1", "ss/scream-and-shout-posaune-1.pdf", "ss/scream-and-shout-posaune-1.mp3"),
+                ("pos2", "pos", "Posaune 2", "ss/scream-and-shout-posaune-2.pdf", "ss/scream-and-shout-posaune-2.mp3"),
+                ("eup", "eup", "Euphi", "ss/scream-and-shout-euphonium.pdf", "ss/scream-and-shout-euphonium.mp3"),
+                ("souh", "sou", "Susi hoch", "ss/scream-and-shout-sousaphon.pdf", "ss/scream-and-shout-sousaphon-hoch.mp3", dict(split="top", sub="Eine Oktave höher, Ventile 1–3")),
+                ("sout", "sou", "Susi tief", "ss/scream-and-shout-sousaphon.pdf", "ss/scream-and-shout-sousaphon-tief.mp3", dict(split="bottom", sub="Tiefe Lage, Ventile 1–3"))],
+         tutti="ss/scream-and-shout-tutti.mp3", drums="ss/scream-and-shout-drums-all.mp3", marks={}),
 ]
 
 
@@ -121,15 +130,18 @@ def part_abc(model, song, title, barnames=None):
             gs = [g for g in graces if g["x"] < e["x"]]
             graces = [g for g in graces if g["x"] >= e["x"]]
             pre = ("{" + "".join(grace_abc(g, bar["keysig"], local) for g in gs) + "}") if gs else ""
+            if e.get("tupn"):  # Triole: n Noten im Raum von 2/3
+                pre = f"(3:2:{e['tupn']}" + pre
+            wd = e.get("wdur", e["dur"])
             if e["t"] == "r":
-                toks.append(pre + "z" + dur_str(e["dur"]))
+                toks.append(pre + "z" + dur_str(wd))
                 continue
             ps = [abc_pitch(n, bar["keysig"], local) for n in e["notes"]]
             ties = [bool(n.get("tie")) for n in e["notes"]]
             if len(ps) == 1:
-                tok = ps[0] + dur_str(e["dur"]) + ("-" if ties[0] else "")
+                tok = ps[0] + dur_str(wd) + ("-" if ties[0] else "")
             else:
-                tok = "[" + "".join(p + ("-" if t else "") for p, t in zip(ps, ties)) + "]" + dur_str(e["dur"])
+                tok = "[" + "".join(p + ("-" if t else "") for p, t in zip(ps, ties)) + "]" + dur_str(wd)
             toks.append(pre + tok)
             fings.append("/".join(e["fing"]))
         m = marks.get(bi, {})
@@ -176,7 +188,20 @@ def run():
                             for n in e["notes"]:
                                 n["fing"] = "" if n["cont"] else fmap.get(n["midi"], "?")
                             e["fing"] = [n["fing"] for n in e["notes"] if n["fing"]]
-            bad = [(i + 1, b["tot"]) for i, b in enumerate(m["bars"]) if b["tot"] != 16]
+            if opt.get("split"):  # Doppelnoten aufteilen: nur obere oder untere Note
+                for bar in m["bars"]:
+                    for e in bar["ev"]:
+                        if e["t"] != "c":
+                            continue
+                        if len(e["notes"]) > 1:
+                            e["notes"] = [e["notes"][0] if opt["split"] == "top" else e["notes"][-1]]
+                        elif opt["split"] == "top":
+                            # hohe Stimme spielt einzelne Noten eine Oktave höher (so in der Aufnahme)
+                            n = e["notes"][0]; n["midi"] += 12; n["d"] += 7
+                            if n.get("fing"):
+                                n["fing"] = (WSLIDE if kind == "slide" else VALVE).get(n["midi"], "?")
+                        e["fing"] = [n["fing"] for n in e["notes"] if n.get("fing")]
+            bad = [(i + 1, b["tot"]) for i, b in enumerate(m["bars"]) if abs(b["tot"] - 16) > 1e-6]
             assert not bad, (pdf, bad)
             names = None
             if s.get("order"):
