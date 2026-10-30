@@ -223,8 +223,12 @@ def run():
     return out, report
 
 
+FIRST = ["sas"]  # diese Lieder stehen in der App zuoberst
+
+
 if __name__ == "__main__":
     songs, report = run()
+    songs.sort(key=lambda s: 0 if s["id"] in FIRST else 1)
     json.dump(songs, open(sys.argv[1], "w"), ensure_ascii=False, indent=1)
     for s in songs:
         print(s["title"], [(p["id"], p["bars"], len(p["fing"])) for p in s["parts"]], list(s["audio"]))
