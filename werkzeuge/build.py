@@ -235,6 +235,18 @@ def build(path, kind="valve", meter16=16, sel=None):
                 if len(fresh) == 1:
                     rows = ["".join(rows)]
                 c["pdfrows"] = rows
+                if len(rows) > len(fresh) > 1:
+                    # Griffe untereinander geschrieben (1 über 2 = 1+2): Zeilen so gruppieren, dass sie zu den Tönen passen
+                    import itertools
+                    best = None
+                    for cut in itertools.combinations(range(1, len(rows)), len(fresh) - 1):
+                        idx = (0,) + cut + (len(rows),)
+                        grp = ["".join(rows[idx[i]:idx[i + 1]]) for i in range(len(fresh))]
+                        score = sum(norm_f(g) == fmap.get(n["midi"]) for g, n in zip(grp, fresh))
+                        if best is None or score > best[0]:
+                            best = (score, grp)
+                    if best and best[0] == len(fresh):
+                        rows = best[1]
                 if len(rows) == len(fresh):
                     for n, r in zip(fresh, rows):
                         n["pdf"] = norm_f(r)
