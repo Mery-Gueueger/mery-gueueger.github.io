@@ -279,7 +279,7 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
     <button class="tile" id="go-tuner"><div><b>Stimmgerät</b><span>Instrument stimmen über das Mikrofon</span></div><i>›</i></button>
     <button class="tile" id="go-theory"><div><b>Musiktheorie</b><span>Notenwerte, Pausen, Zeichen – mit Quiz</span></div><i>›</i></button>
   </div>
-  <p class="ver" id="ver">Version 56</p>
+  <p class="ver" id="ver">Version 57</p>
   <div class="card" id="lt" hidden>
     <b>Startlogo einstellen</b>
     <p class="val"><span id="lt-v">180</span> px</p>
@@ -851,15 +851,22 @@ function buildAbc(withLabels) {
   // Eure Lieder: Griffe so kurz wie in euren Noten (12 statt 1+2)
   const disp = real && curPart.fing && curPart.fing.length === ps.length ? curPart.fing : cur.labels;
   if (withLabels) abc += "\nw: " + disp.map(l => l || "*").join(" ");
+  cur.labelRows = withLabels ? Math.max(1, ...disp.map(l => (l || "").split("/").length)) : 1;
   return abc;
 }
 function renderScore() {
   const showLabels = cur.mode === "play" && $("showv").checked && (instrObj().kind !== "tutti" || cur.song.real);
   const abc = buildAbc(showLabels);
   const tune = ABCJS.renderAbc("paper", abc, { add_classes: true, scale: 1.5, staffwidth: Math.max(520, cur.labels.length * (showLabels ? (cur.song.real ? 68 : 62) : (cur.song.real ? 40 : 44)) + 140),
-    foregroundColor: fgColor(), paddingleft: 6, paddingright: 16, paddingbottom: 8,
+    foregroundColor: fgColor(), paddingleft: 6, paddingright: 16, paddingbottom: 8 + (cur.labelRows - 1) * 24,
     clickListener: (el) => { if (cur.mode === "play") hint(el); } })[0];
   cur.tune = tune;
+  // Zwei oder mehr Stimmen: Ventile übereinander wie in den Originalnoten (oberste Note zuoberst)
+  $("paper").querySelectorAll(".abcjs-lyric").forEach(t => {
+    const parts = t.textContent.split("/"); if (parts.length < 2) return;
+    const x = t.getAttribute("x"); t.textContent = "";
+    parts.forEach((s, i) => { const ts = document.createElementNS("http://www.w3.org/2000/svg", "tspan"); ts.setAttribute("x", x); if (i) ts.setAttribute("dy", "1.15em"); ts.textContent = s; t.appendChild(ts); });
+  });
   const pa = $("paper"), sv = pa.querySelector("svg");
   if (sv) { try { const bw = sv.getBBox(); sv.setAttribute("width", Math.ceil(bw.x + bw.width + 16)); } catch (e) {} pa.style.width = Math.ceil(sv.getBoundingClientRect().width) + "px"; pa.style.overflow = "visible"; }
   cur.notes = [...pa.querySelectorAll(".abcjs-note")];
