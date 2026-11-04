@@ -279,7 +279,7 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
     <button class="tile" id="go-tuner"><div><b>Stimmgerät</b><span>Instrument stimmen über das Mikrofon</span></div><i>›</i></button>
     <button class="tile" id="go-theory"><div><b>Musiktheorie</b><span>Notenwerte, Pausen, Zeichen – mit Quiz</span></div><i>›</i></button>
   </div>
-  <p class="ver" id="ver">Version 58</p>
+  <p class="ver" id="ver">Version 59</p>
   <div class="card" id="lt" hidden>
     <b>Startlogo einstellen</b>
     <p class="val"><span id="lt-v">180</span> px</p>
@@ -317,7 +317,7 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
   <div class="card metro" style="margin-top:12px">
     <div class="beats" id="mt-beats" aria-hidden="true"></div>
     <div class="bpm"><button class="ghost round" id="mt-minus" aria-label="Langsamer">−</button><div><b id="mt-bpm">110</b><span>Schläge pro Minute</span></div><button class="ghost round" id="mt-plus" aria-label="Schneller">+</button></div>
-    <input type="range" id="mt-range" min="40" max="220" value="110" aria-label="Tempo">
+    <input type="range" id="mt-range" min="40" max="400" value="110" aria-label="Tempo">
     <div>
       <p class="label" style="margin:0 0 6px">Schläge pro Takt</p>
       <div class="modes" id="mt-meter" role="group" aria-label="Schläge pro Takt"></div>
@@ -1375,7 +1375,7 @@ function mtRender() {
   [2, 3, 4, 6].forEach(n => { const b = document.createElement("button"); b.type = "button"; b.textContent = n; b.setAttribute("aria-pressed", n === MT.meter);
     b.onclick = () => { MT.meter = n; store.set("mt-meter", n); MT.beat = 0; mtRender(); }; $("mt-meter").appendChild(b); });
 }
-function mtSet(v) { MT.bpm = Math.max(40, Math.min(220, Math.round(v))); store.set("mt-bpm", MT.bpm); $("mt-bpm").textContent = MT.bpm; $("mt-range").value = MT.bpm; }
+function mtSet(v) { MT.bpm = Math.max(40, Math.min(400, Math.round(v))); store.set("mt-bpm", MT.bpm); $("mt-bpm").textContent = MT.bpm; $("mt-range").value = MT.bpm; }
 function mtSched() {
   const a = ctx(); if (!a) return;
   while (MT.next < a.currentTime + 0.12) {
