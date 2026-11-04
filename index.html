@@ -279,7 +279,7 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
     <button class="tile" id="go-tuner"><div><b>Stimmgerät</b><span>Instrument stimmen über das Mikrofon</span></div><i>›</i></button>
     <button class="tile" id="go-theory"><div><b>Musiktheorie</b><span>Notenwerte, Pausen, Zeichen – mit Quiz</span></div><i>›</i></button>
   </div>
-  <p class="ver" id="ver">Version 59</p>
+  <p class="ver" id="ver">Version 60</p>
   <div class="card" id="lt" hidden>
     <b>Startlogo einstellen</b>
     <p class="val"><span id="lt-v">180</span> px</p>
@@ -1209,9 +1209,20 @@ function recGap(start, wait) {
   const el = R.el; el.pause(); seek(start);
   mark(lastEls, false); lastEls = [];
   const first = P.tracks[0].events[P.tracks[0].idx]; if (first) scrollToEl(first.els[0]);
-  el.currentTime = Math.max(0, tOf(start - P.barBeats)); el.muted = true; R.unmuteAt = start;
+  const target = Math.max(0, tOf(start - P.barBeats));
+  el.currentTime = target; el.muted = true; R.unmuteAt = start;
   R.clicks = Array.from({ length: P.barBeats }, (_, i) => ({ b: start - P.barBeats + i, acc: i === 0 }));
-  R.gap = setTimeout(() => { R.gap = 0; if (R.on) el.play().catch(() => {}); }, wait * 1000);
+  // iPhone: erst weiterspielen, wenn der Sprung wirklich fertig ist, sonst spielt Safari an der alten Stelle weiter
+  let tries = 0;
+  const go = () => {
+    if (!R.on) { R.gap = 0; return; }
+    if ((el.seeking || Math.abs(el.currentTime - target) > 0.3) && tries++ < 60) {
+      if (!el.seeking) el.currentTime = target;
+      R.gap = setTimeout(go, 40); return;
+    }
+    R.gap = 0; el.play().catch(() => {});
+  };
+  R.gap = setTimeout(go, wait * 1000);
 }
 function recTick() {
   if (!R.on) return;
