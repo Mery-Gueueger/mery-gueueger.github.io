@@ -279,7 +279,7 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
     <button class="tile" id="go-tuner"><div><b>Stimmgerät</b><span>Instrument stimmen über das Mikrofon</span></div><i>›</i></button>
     <button class="tile" id="go-theory"><div><b>Musiktheorie</b><span>Notenwerte, Pausen, Zeichen – mit Quiz</span></div><i>›</i></button>
   </div>
-  <p class="ver" id="ver">Version 60</p>
+  <p class="ver" id="ver">Version 61</p>
   <div class="card" id="lt" hidden>
     <b>Startlogo einstellen</b>
     <p class="val"><span id="lt-v">180</span> px</p>
@@ -349,7 +349,7 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
       </div>
     </div>
     <div class="loopbox"><span class="small muted">Stimmton A =</span><select id="tn-a" aria-label="Stimmton A in Hertz"><option>438</option><option>439</option><option selected>440</option><option>441</option><option>442</option><option>443</option></select><span class="small muted">Hz</span></div>
-    <p class="small muted">„Wie in euren Noten“ zeigt den Ton so, wie er bei Trompete, Posaune, Euphi und Susi in den Noten steht. Gestimmt wird meistens auf das geschriebene C (klingend B). Grün heisst: der Ton stimmt. Ist er zu tief, Zug oder Stimmzug etwas hineinschieben, ist er zu hoch, etwas herausziehen.</p>
+    <p class="small muted">„Wie in euren Noten“ zeigt den Ton so, wie er bei Trompete, Posaune, Euphi und Sousi in den Noten steht. Gestimmt wird meistens auf das geschriebene C (klingend B). Grün heisst: der Ton stimmt. Ist er zu tief, Zug oder Stimmzug etwas hineinschieben, ist er zu hoch, etwas herausziehen.</p>
   </div>
 </section>
 
@@ -486,7 +486,7 @@ const INSTR = [
   { id: "trp", name: "Trompete", sub: "Ventile 1–3", kind: "valve", transpose: -2 },
   { id: "pos", name: "Posaune", sub: "Zugpositionen 1–7", kind: "slide", transpose: 0 },
   { id: "eup", name: "Euphi", sub: "Ventile 1–3", kind: "valve", transpose: -14 },
-  { id: "sou", name: "Susi", sub: "Ventile 1–3", kind: "valve", transpose: -26 },
+  { id: "sou", name: "Sousi", sub: "Ventile 1–3", kind: "valve", transpose: -26 },
   { id: "tutti", name: "Tutti", sub: "Alle Stimmen mit Schlagzeug", kind: "tutti", transpose: 0 },
   { id: "drums", name: "Schlagzeug & Pauken", sub: "Aufnahme vom Schlagzeug", kind: "tutti", transpose: 0 }
 ];
@@ -594,7 +594,7 @@ LESSONS[4].q = [
 
 /* ---------- Gugge-Lieder (verschlüsselt, nur mit Passwort) ---------- */
 const GUGGE = { key: null, ok: false, busy: false };
-const VOICE_NAMES = { trp1: "Trompete 1", trp2: "Trompete 2", pos1: "Posaune 1", pos2: "Posaune 2", eup: "Euphi", sou: "Susi" };
+const VOICE_NAMES = { trp1: "Trompete 1", trp2: "Trompete 2", pos1: "Posaune 1", pos2: "Posaune 2", eup: "Euphi", sou: "Sousi" };
 const b64e = u8 => btoa(String.fromCharCode(...u8));
 const b64d = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
 async function decryptWith(key, buf) { return crypto.subtle.decrypt({ name: "AES-GCM", iv: new Uint8Array(buf, 0, 12) }, key, new Uint8Array(buf, 12)); }
