@@ -279,7 +279,7 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
     <button class="tile" id="go-tuner"><div><b>Stimmgerät</b><span>Instrument stimmen über das Mikrofon</span></div><i>›</i></button>
     <button class="tile" id="go-theory"><div><b>Musiktheorie</b><span>Notenwerte, Pausen, Zeichen – mit Quiz</span></div><i>›</i></button>
   </div>
-  <p class="ver" id="ver">Version 62</p>
+  <p class="ver" id="ver">Version 63</p>
   <div class="card" id="lt" hidden>
     <b>Startlogo einstellen</b>
     <p class="val"><span id="lt-v">180</span> px</p>
@@ -1036,7 +1036,7 @@ function seekTo(b) {
   seekQuiet = Date.now() + 900;
   seek(b); mark(lastEls, false); lastEls = [];
   const t = P.tracks[0], e = t && t.events[t.idx]; if (e) { lastEls = e.els; mark(lastEls, true); scrollToEl(lastEls[0]); }
-  if (R.on && !R.gap) { R.el.currentTime = tOf(b); R.clicks = []; R.unmuteAt = null; R.el.muted = false; }
+  if (R.on && !R.gap) { R.el.currentTime = tOf(b); R.seekT = tOf(b); R.seekAt = performance.now(); R.clicks = []; R.unmuteAt = null; R.el.muted = false; }
   else if (playing && !R.on && actx) { P.aPos = b; P.aT = actx.currentTime + 0.05; P.step = Math.ceil(b * 4 - 1e-6); }
   P.pos = b; seekUI(b, true);
   $("play").textContent = playing ? "❚❚ Pause" : (b > 0 ? "▶ Weiter" : "▶ Abspielen");
@@ -1110,7 +1110,7 @@ function tick() {
   }
 }
 function stopAll(reset) {
-  if (R.on) { R.on = false; cancelAnimationFrame(R.raf); if (R.gap) { clearTimeout(R.gap); R.gap = 0; } R.el.muted = false; R.unmuteAt = null; R.clicks = []; const b = bOf(R.el.currentTime); R.el.pause(); if (b > 0) P.pos = b; }
+  if (R.on) { R.on = false; R.seekT = null; cancelAnimationFrame(R.raf); if (R.gap) { clearTimeout(R.gap); R.gap = 0; } R.el.muted = false; R.unmuteAt = null; R.clicks = []; const b = bOf(R.el.currentTime); R.el.pause(); if (b > 0) P.pos = b; }
   else if (playing && actx && P.aT && actx.currentTime >= P.aT) P.pos = curPos(actx);
   playing = false; if (P.iv) { clearInterval(P.iv); P.iv = null; }
   mark(lastEls, false); lastEls = [];
@@ -1128,6 +1128,7 @@ $("tempo").oninput = () => { $("tempo-o").textContent = $("tempo").value + " %";
 // iPhone: Ton und Aufnahme nur freigeschaltet, wenn sie direkt im Tipp starten; später (Schleife, Einzählen) spielt sonst nichts
 const SILENT = "data:audio/wav;base64,UklGRkQDAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YSADAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgA==";
 function unlockAudio() {
+  try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch (e) {}
   ctx();
   if (R.unlocked) return;
   R.unlocked = true;
@@ -1219,31 +1220,29 @@ async function playRec() {
 // Zurück an "start", kurz warten, dann ein Takt Einzählen. Die Aufnahme läuft dabei stumm einen Takt vorher mit,
 // so kommen Klicks und Musik genau im Takt ohne Lücke.
 function recGap(start, wait) {
-  const el = R.el; el.pause(); seek(start);
+  // iPhone-sicher: die Aufnahme läuft ohne Pause weiter (Safari startet sie nach einer Pause oft nicht mehr von selbst).
+  // Sie springt stumm vor den Schleifenanfang: zuerst die kurze Pause, dann ein Takt Klicks, dann nahtlos die Musik.
+  const el = R.el; seek(start);
   mark(lastEls, false); lastEls = [];
   const first = P.tracks[0].events[P.tracks[0].idx]; if (first) scrollToEl(first.els[0]);
-  const target = Math.max(0, tOf(start - P.barBeats));
-  el.currentTime = target; el.muted = true; R.unmuteAt = start;
+  const perSec = bOf(tOf(0) + 1) - bOf(tOf(0));  // Schläge pro Sekunde in der Aufnahme
+  const target = Math.max(0, tOf(start - P.barBeats - wait * el.playbackRate * perSec));
+  el.muted = true; R.unmuteAt = start;
+  el.currentTime = target; R.seekT = target; R.seekAt = performance.now();
   R.clicks = Array.from({ length: P.barBeats }, (_, i) => ({ b: start - P.barBeats + i, acc: i === 0 }));
-  // iPhone: erst weiterspielen, wenn der Sprung wirklich fertig ist, sonst spielt Safari an der alten Stelle weiter
-  let tries = 0;
-  const go = () => {
-    if (!R.on) { R.gap = 0; return; }
-    if ((el.seeking || Math.abs(el.currentTime - target) > 0.3) && tries++ < 60) {
-      if (!el.seeking) el.currentTime = target;
-      R.gap = setTimeout(go, 40); return;
-    }
-    R.gap = 0; el.play().catch(() => {});
-  };
-  R.gap = setTimeout(go, wait * 1000);
+  if (el.paused) el.play().catch(() => {});
 }
 function recTick() {
   if (!R.on) return;
   const el = R.el, b = bOf(el.currentTime);
-  if (R.unmuteAt != null && b >= R.unmuteAt - 0.02) { el.muted = false; R.unmuteAt = null; }
-  while (R.clicks.length && b >= R.clicks[0].b - 0.03) { const c = R.clicks.shift(); if (b - c.b < 0.3) click(c.acc); }
+  if (R.seekT == null && R.unmuteAt != null && b >= R.unmuteAt - 0.02) { el.muted = false; R.unmuteAt = null; }
+  while (R.seekT == null && R.clicks.length && b >= R.clicks[0].b - 0.03) { const c = R.clicks.shift(); if (b - c.b < 0.3) click(c.acc); }
   const lr = loopRange();
-  if (R.gap) { R.raf = requestAnimationFrame(recTick); return; }
+  // während Safari noch springt: alte Position nicht als "Schleifenende erreicht" werten
+  if (R.seekT != null) {
+    if (Math.abs(el.currentTime - R.seekT) < 1.5 || performance.now() - R.seekAt > 1500) R.seekT = null;
+    else { R.raf = requestAnimationFrame(recTick); return; }
+  }
   if (lr && b >= lr[1]) {
     // zurück zum Anfang der Schleife, kurze Pause, ein Takt Klicks, dann von vorn
     recGap(lr[0], 0.4);
