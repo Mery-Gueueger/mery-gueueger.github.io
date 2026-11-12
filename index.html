@@ -279,7 +279,7 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
     <button class="tile" id="go-tuner"><div><b>Stimmgerät</b><span>Instrument stimmen über das Mikrofon</span></div><i>›</i></button>
     <button class="tile" id="go-theory"><div><b>Musiktheorie</b><span>Notenwerte, Pausen, Zeichen – mit Quiz</span></div><i>›</i></button>
   </div>
-  <p class="ver" id="ver">Version 63</p>
+  <p class="ver" id="ver">Version 64</p>
   <div class="card" id="lt" hidden>
     <b>Startlogo einstellen</b>
     <p class="val"><span id="lt-v">180</span> px</p>
@@ -1125,18 +1125,8 @@ $("tempo").oninput = () => { $("tempo-o").textContent = $("tempo").value + " %";
   if (!actx) return;
   const pos = curPos(actx); if (pos < lr[0] || pos >= lr[1]) { seek(lr[0]); P.aPos = lr[0]; P.aT = actx.currentTime + 0.05; }
 }));
-// iPhone: Ton und Aufnahme nur freigeschaltet, wenn sie direkt im Tipp starten; später (Schleife, Einzählen) spielt sonst nichts
-const SILENT = "data:audio/wav;base64,UklGRkQDAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YSADAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgA==";
-function unlockAudio() {
-  try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch (e) {}
-  ctx();
-  if (R.unlocked) return;
-  R.unlocked = true;
-  const el = R.el; if (!el.getAttribute("src")) el.src = SILENT;
-  el.muted = true;
-  const p = el.play();
-  if (p) p.then(() => { if (!R.on) { el.pause(); } if (R.unmuteAt == null) el.muted = false; }).catch(() => { R.unlocked = false; if (R.unmuteAt == null) el.muted = false; });
-}
+// Ton für die Klicks direkt im Tipp starten (iPhone erlaubt ihn sonst nicht)
+function unlockAudio() { ctx(); }
 $("play").onclick = async () => {
   if (playing) { stopAll(false); return; }
   unlockAudio();
