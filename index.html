@@ -107,6 +107,13 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
 .fb.no { background: var(--bad-soft); color: var(--bad) }
 /* Song */
 .modes { display: flex; gap: 6px }
+.jump { display: flex; align-items: center; gap: 6px; margin-top: 8px; font-size: .88rem; font-weight: 700; color: var(--muted) }
+.jump label { flex: 1 1 auto; min-width: 0; line-height: 1.2 }
+.jump .jp-b, .jump .jp-go { touch-action: manipulation; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; height: 38px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--card); color: var(--fg); font-weight: 800; cursor: pointer }
+.jump .jp-b { width: 40px; font-size: 1.2rem }
+.jump .jp-go { white-space: nowrap; padding: 0 14px; background: var(--accent); border-color: var(--accent); color: #fff; font-size: .95rem }
+.jump input { width: 64px; height: 38px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--card); color: var(--fg); font: inherit; font-size: 1.05rem; font-weight: 800; text-align: center; -moz-appearance: textfield }
+.jump input::-webkit-inner-spin-button, .jump input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0 }
 .modes button { flex: 1 1 0; min-width: 0; border: 2px solid var(--line); background: var(--card); border-radius: 10px; padding: 9px 4px; font-weight: 700; cursor: pointer; font-size: .92rem }
 .modes button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft) }
 .scorecard { padding: 12px 0 8px }
@@ -279,7 +286,7 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
     <button class="tile" id="go-tuner"><div><b>Stimmgerät</b><span>Instrument stimmen über das Mikrofon</span></div><i>›</i></button>
     <button class="tile" id="go-theory"><div><b>Musiktheorie</b><span>Notenwerte, Pausen, Zeichen – mit Quiz</span></div><i>›</i></button>
   </div>
-  <p class="ver" id="ver">Version 64</p>
+  <p class="ver" id="ver">Version 65</p>
   <div class="card" id="lt" hidden>
     <b>Startlogo einstellen</b>
     <p class="val"><span id="lt-v">180</span> px</p>
@@ -407,6 +414,13 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
   <div class="modes" role="group" aria-label="Übungsart" style="margin-top:10px">
     <button type="button" id="m-play" aria-pressed="true">Mitspielen</button>
     <button type="button" id="m-learn" aria-pressed="false">Spiel</button>
+  </div>
+  <div class="jump">
+    <label for="jp-n">Ab Takt</label>
+    <button type="button" class="jp-b" data-d="-1" aria-label="Einen Takt früher">−</button>
+    <input type="number" id="jp-n" inputmode="numeric" min="1" value="1">
+    <button type="button" class="jp-b" data-d="1" aria-label="Einen Takt später">+</button>
+    <button type="button" class="jp-go" id="jp-go">▶ Los</button>
   </div>
 
   <div class="card scorecard" style="margin-top:10px">
@@ -824,6 +838,7 @@ function partAbc() { return curPart.abc.replace(/\n[TQ]:[^\n]*/g, ""); }
 
 function openPart() {
   const ins = instrObj();
+  $("jp-n").value = barName(1);
   $("sg-title").textContent = cur.song.title; $("sg-crumb").textContent = curPart.name;
   $("showv-l").textContent = ins.kind === "slide" ? "Zugpositionen zeigen" : "Ventilzahlen zeigen";
   const tutti = ins.kind === "tutti";
@@ -1025,6 +1040,34 @@ document.querySelectorAll(".lp-fine button").forEach(bt => {
   // Tastatur (Enter/Leertaste) löst nur click aus, ohne pointerdown
   bt.addEventListener("click", e => { if (e.detail === 0) { step(); done(); } });
 });
+// Einsteigen ab Takt: Nummer wie in den Noten (auch bei umgestellter Reihenfolge)
+function songBars() { const ev = P.tracks[0] && P.tracks[0].events; return ev && ev.length ? Math.max(...ev.map(e => e.m || 0)) + 1 : 1; }
+function jumpNames() { const n = []; for (let i = 1; i <= songBars(); i++) n.push(barName(i)); return n; }
+function jumpSet(v) {
+  const names = jumpNames(), lo = Math.min(...names), hi = Math.max(...names);
+  $("jp-n").value = Math.max(lo, Math.min(hi, Math.round(+v || lo)));
+}
+function jumpGo() {
+  if (!P.tracks.length) preparePlayer();
+  jumpSet($("jp-n").value);
+  const i = jumpNames().indexOf(+$("jp-n").value); if (i < 0) return;
+  if (playing) $(cur.mode === "learn" ? "ln-stop" : "stop").click();
+  seekTo(i * P.barBeats);
+  $(cur.mode === "learn" ? "ln-play" : "play").click();
+}
+document.querySelectorAll(".jump .jp-b").forEach(bt => {
+  const d = +bt.dataset.d, step = () => jumpSet(+$("jp-n").value + d);
+  let t = 0, n = 0, held = false;
+  const rep = () => { step(); n++; t = setTimeout(rep, n < 6 ? 180 : n < 16 ? 110 : 60); };
+  const stop = () => { held = false; clearTimeout(t); };
+  bt.addEventListener("pointerdown", e => { e.preventDefault(); held = true; n = 0; try { bt.setPointerCapture(e.pointerId); } catch (x) {} step(); t = setTimeout(rep, 450); });
+  ["pointerup", "pointercancel", "lostpointercapture"].forEach(ev => bt.addEventListener(ev, stop));
+  bt.addEventListener("contextmenu", e => e.preventDefault());
+  bt.addEventListener("click", e => { if (e.detail === 0) step(); });
+});
+$("jp-go").onclick = jumpGo;
+$("jp-n").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); $("jp-n").blur(); jumpGo(); } });
+$("jp-n").addEventListener("change", () => jumpSet($("jp-n").value));
 // Fortschrittsbalken: Position in Schlägen (mit Wiederholungen), Anzeige als Takt
 let seekDrag = false;
 // Taktnummer wie in den Noten (bei umgestellter Reihenfolge, z.B. Forever Young: 75 … 83, dann 1 … 75)
