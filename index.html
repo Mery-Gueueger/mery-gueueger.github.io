@@ -296,7 +296,7 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
     <button class="tile" id="go-tuner"><div><b>Stimmgerät</b><span>Instrument stimmen über das Mikrofon</span></div><i>›</i></button>
     <button class="tile" id="go-theory"><div><b>Musiktheorie</b><span>Notenwerte, Pausen, Zeichen – mit Quiz</span></div><i>›</i></button>
   </div>
-  <p class="ver" id="ver">Version 66</p>
+  <p class="ver" id="ver">Version 67</p>
   <div class="card" id="lt" hidden>
     <b>Startlogo einstellen</b>
     <p class="val"><span id="lt-v">180</span> px</p>
@@ -314,6 +314,14 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
       <button type="button" id="lt-reset">Zurücksetzen</button>
       <button type="button" id="lt-close">Schliessen</button>
     </div>
+    <b style="margin-top:8px">Fehlerprotokoll</b>
+    <p class="muted" style="margin:0;font-size:.85rem">Hält fest, was die Wiedergabe macht (Start, Sprünge, Fehler). Problem nachstellen, dann kopieren und an Claude schicken.</p>
+    <textarea id="dg-t" readonly rows="8" style="width:100%;font:12px/1.35 ui-monospace,Menlo,monospace;border:1.5px solid var(--line);border-radius:10px;padding:8px;background:var(--bg);color:var(--fg)"></textarea>
+    <div class="ltr">
+      <button type="button" class="pri" id="dg-copy">Protokoll kopieren</button>
+      <button type="button" id="dg-clear">Leeren</button>
+    </div>
+    <p class="muted" id="dg-s" style="margin:0;text-align:center"></p>
     <p class="muted" style="margin:0;font-size:.85rem">Nach dem Speichern die App ganz schliessen (auch aus der Liste der offenen Apps wegwischen) und neu öffnen. Dann siehst du den echten Start mit dem Android-Ladelogo. Wenn es passt, schick mir die Zahl.</p>
   </div>
 
@@ -506,6 +514,19 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
 
 <script src="abcjs-basic-min.js"></script>
 <script>
+/* ---------- Fehlerprotokoll (für die Fehlersuche, im versteckten Bereich: 5× auf die Versionsnummer tippen) ---------- */
+const DG = { t0: performance.now(), lines: [] };
+try { DG.lines = JSON.parse(localStorage.getItem("mg-diag") || "[]"); } catch (e) {}
+function dlog(msg) {
+  const s = ((performance.now() - DG.t0) / 1000).toFixed(2).padStart(7) + "  " + msg;
+  DG.lines.push(s); if (DG.lines.length > 400) DG.lines.splice(0, DG.lines.length - 400);
+  clearTimeout(DG.sv); DG.sv = setTimeout(() => { try { localStorage.setItem("mg-diag", JSON.stringify(DG.lines)); } catch (e) {} }, 300);
+  const ta = document.getElementById("dg-t"); if (ta && !document.getElementById("lt").hidden) { ta.value = DG.lines.join("\n"); ta.scrollTop = ta.scrollHeight; }
+}
+dlog("—— App gestartet · " + (document.getElementById("ver") || {}).textContent + " · " + navigator.userAgent + (navigator.standalone || matchMedia("(display-mode: standalone)").matches ? " · installiert" : " · Browser"));
+window.addEventListener("error", e => dlog("JS-FEHLER " + e.message + " @" + (e.lineno || "")));
+window.addEventListener("unhandledrejection", e => dlog("PROMISE-FEHLER " + (e.reason && (e.reason.name + ": " + e.reason.message) || e.reason)));
+document.addEventListener("visibilitychange", () => dlog("Sichtbar: " + !document.hidden));
 /* ---------- Daten ---------- */
 const INSTR = [
   { id: "trp", name: "Trompete", sub: "Ventile 1–3", kind: "valve", transpose: -2 },
@@ -945,7 +966,7 @@ function mark(els, on) { els.forEach(e => e.classList.toggle("abcjs-cursor-on", 
 
 /* Abspielen */
 let actx = null, playing = false, lastEls = [];
-function ctx() { if (!actx) { const C = window.AudioContext || window.webkitAudioContext; if (C) actx = new C(); } if (actx && actx.state === "suspended") actx.resume(); return actx; }
+function ctx() { if (!actx) { const C = window.AudioContext || window.webkitAudioContext; if (C) { actx = new C(); dlog("AudioContext neu: " + actx.state); actx.onstatechange = () => dlog("AudioContext: " + actx.state); } } if (actx && actx.state === "suspended") actx.resume(); return actx; }
 function tone(midi, sec, vol, type, at) {
   const a = ctx(); if (!a) return; const t = at || a.currentTime;
   const o = a.createOscillator(), g = a.createGain(); o.type = type || "sawtooth";
@@ -1182,6 +1203,7 @@ $("tempo").oninput = () => { $("tempo-o").textContent = $("tempo").value + " %";
 // Ton für die Klicks direkt im Tipp starten (iPhone erlaubt ihn sonst nicht)
 function unlockAudio() { ctx(); }
 $("play").onclick = async () => {
+  dlog(`Tipp Abspielen (${playing ? "Pause" : "Start"}) · ${cur.song && cur.song.id}/${curPart && curPart.id} · Schleife ${JSON.stringify(typeof loopRange === "function" ? loopRange() : null)} · pos ${P.pos}`);
   if (playing) { stopAll(false); return; }
   unlockAudio();
   if (recKey()) { playRec(); return; }
@@ -1203,6 +1225,23 @@ $("play").onclick = async () => {
 let SRC = store.get("src", "mine");
 const AUD = {};
 const R = { el: new Audio(), on: false, raf: 0, clicks: [] };
+(function diagAudio() {
+  const el = R.el, f = x => (x == null || isNaN(x)) ? "-" : (+x).toFixed(2);
+  const st = () => `t=${f(el.currentTime)} b=${typeof bOf === "function" && P && P.barBeats ? f(bOf(el.currentTime)) : "-"} paused=${el.paused} muted=${el.muted} seeking=${el.seeking} rs=${el.readyState} rate=${f(el.playbackRate)}`;
+  ["play", "playing", "pause", "seeking", "seeked", "waiting", "stalled", "suspend", "ended", "emptied", "loadedmetadata", "canplay", "volumechange", "ratechange"].forEach(ev =>
+    el.addEventListener(ev, () => { if (ev === "suspend" || ev === "canplay") return; dlog("Audio " + ev + " · " + st()); }));
+  el.addEventListener("error", () => dlog("Audio FEHLER " + (el.error ? el.error.code + " " + el.error.message : "")));
+  const play0 = HTMLMediaElement.prototype.play;
+  el.play = function () {
+    dlog("play() aufgerufen · " + st());
+    const p = play0.call(this);
+    if (p && p.then) p.then(() => dlog("play() ok"), e => dlog("play() FEHLER " + e.name + ": " + e.message));
+    return p;
+  };
+  const pause0 = HTMLMediaElement.prototype.pause;
+  el.pause = function () { dlog("pause() aufgerufen · " + st()); return pause0.call(this); };
+  R.diagSt = st;
+})();
 R.el.preload = "auto"; R.el.preservesPitch = true; R.el.mozPreservesPitch = true; R.el.webkitPreservesPitch = true;
 const spbSong = () => 60 / cur.song.qpm;
 const tOf = b => cur.song.offset + b * spbSong();
@@ -1264,6 +1303,7 @@ async function playRec() {
 // Zurück an "start", kurz warten, dann ein Takt Einzählen. Die Aufnahme läuft dabei stumm einen Takt vorher mit,
 // so kommen Klicks und Musik genau im Takt ohne Lücke.
 function recGap(start, wait) {
+  dlog(`Sprung (Schleife/Einstieg) zu Schlag ${start}, Pause ${wait}s · ` + R.diagSt());
   // iPhone-sicher: die Aufnahme läuft ohne Pause weiter (Safari startet sie nach einer Pause oft nicht mehr von selbst).
   // Sie springt stumm vor den Schleifenanfang: zuerst die kurze Pause, dann ein Takt Klicks, dann nahtlos die Musik.
   const el = R.el; seek(start);
@@ -1279,15 +1319,16 @@ function recGap(start, wait) {
 function recTick() {
   if (!R.on) return;
   const el = R.el, b = bOf(el.currentTime);
-  if (R.seekT == null && R.unmuteAt != null && b >= R.unmuteAt - 0.02) { el.muted = false; R.unmuteAt = null; }
+  if (R.seekT == null && R.unmuteAt != null && b >= R.unmuteAt - 0.02) { el.muted = false; R.unmuteAt = null; dlog("Ton an · " + R.diagSt()); }
   while (R.seekT == null && R.clicks.length && b >= R.clicks[0].b - 0.03) { const c = R.clicks.shift(); if (b - c.b < 0.3) click(c.acc); }
   const lr = loopRange();
   // während Safari noch springt: alte Position nicht als "Schleifenende erreicht" werten
   if (R.seekT != null) {
-    if (Math.abs(el.currentTime - R.seekT) < 1.5 || performance.now() - R.seekAt > 1500) R.seekT = null;
+    if (Math.abs(el.currentTime - R.seekT) < 1.5 || performance.now() - R.seekAt > 1500) { dlog("Sprung fertig · " + R.diagSt()); R.seekT = null; }
     else { R.raf = requestAnimationFrame(recTick); return; }
   }
   if (lr && b >= lr[1]) {
+    dlog(`Schleifenende erreicht bei Schlag ${b.toFixed(2)} (Ende ${lr[1]})`);
     // zurück zum Anfang der Schleife, kurze Pause, ein Takt Klicks, dann von vorn
     recGap(lr[0], 0.4);
   }
@@ -1696,6 +1737,14 @@ runSplash(document.getElementById("splash"));
   document.getElementById("lt-save").onclick = () => { try { localStorage.setItem("mg-splashw", cur); } catch (e) {} sync(); };
   document.getElementById("lt-reset").onclick = () => { try { localStorage.removeItem("mg-splashw"); } catch (e) {} cur = splashW(); sync(); };
   document.getElementById("lt-close").onclick = () => lt.hidden = true;
+  const ta = document.getElementById("dg-t"), ds = document.getElementById("dg-s");
+  document.getElementById("ver").addEventListener("click", () => { ta.value = DG.lines.join("\n"); ta.scrollTop = ta.scrollHeight; });
+  document.getElementById("dg-copy").onclick = async () => {
+    ta.value = DG.lines.join("\n");
+    try { await navigator.clipboard.writeText(ta.value); ds.textContent = "Kopiert. Jetzt im Chat einfügen."; }
+    catch (e) { ta.focus(); ta.select(); ta.setSelectionRange(0, ta.value.length); ds.textContent = "Text ist markiert: lange drücken und „Kopieren“ wählen."; }
+  };
+  document.getElementById("dg-clear").onclick = () => { DG.lines = []; try { localStorage.removeItem("mg-diag"); } catch (e) {} ta.value = ""; ds.textContent = "Geleert."; };
   document.getElementById("lt-play").onclick = () => {
     const sp = document.createElement("div"); sp.id = "splash"; sp.setAttribute("aria-hidden", "true");
     sp.innerHTML = '<img src="splash-logo-w.png" alt="">';
