@@ -298,6 +298,7 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
   </div>
   <p class="ver" id="ver">Version 67</p>
   <div class="card" id="lt" hidden>
+    <div hidden>
     <b>Startlogo einstellen</b>
     <p class="val"><span id="lt-v">180</span> px</p>
     <input type="range" id="lt-r" min="40" max="320" step="2" aria-label="Grösse des Startlogos">
@@ -312,9 +313,9 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
     <p class="muted" id="lt-s" style="margin:0;text-align:center"></p>
     <div class="ltr">
       <button type="button" id="lt-reset">Zurücksetzen</button>
-      <button type="button" id="lt-close">Schliessen</button>
     </div>
-    <b style="margin-top:8px">Fehlerprotokoll</b>
+    </div>
+    <b>Fehlerprotokoll</b>
     <p class="muted" style="margin:0;font-size:.85rem">Hält fest, was die Wiedergabe macht (Start, Sprünge, Fehler). Problem nachstellen, dann kopieren und an Claude schicken.</p>
     <textarea id="dg-t" readonly rows="8" style="width:100%;font:12px/1.35 ui-monospace,Menlo,monospace;border:1.5px solid var(--line);border-radius:10px;padding:8px;background:var(--bg);color:var(--fg)"></textarea>
     <div class="ltr">
@@ -322,7 +323,7 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
       <button type="button" id="dg-clear">Leeren</button>
     </div>
     <p class="muted" id="dg-s" style="margin:0;text-align:center"></p>
-    <p class="muted" style="margin:0;font-size:.85rem">Nach dem Speichern die App ganz schliessen (auch aus der Liste der offenen Apps wegwischen) und neu öffnen. Dann siehst du den echten Start mit dem Android-Ladelogo. Wenn es passt, schick mir die Zahl.</p>
+    <div class="ltr"><button type="button" id="lt-close">Schliessen</button></div>
   </div>
 
 </section>
