@@ -41,7 +41,7 @@ def drums_clean():
         base = b * BL
         kicks = [0, 7, 8, 10] + ([13] if b == 1 else [])
         if b == 3: kicks = [0, 7, 8, 10]
-        for k in kicks: put(kick(1.0 if k in (0, 8) else 0.8), base + k * s16)
+        for k in kicks: put(kick(1.7 if k in (0, 8) else 1.4), base + k * s16)  # Pauke (Bassdrum) kräftig
         for k in (4, 12):
             if not (b == 3 and k == 12): put(snare(), base + k * s16)
         for k in range(0, 16, 2):
@@ -49,7 +49,11 @@ def drums_clean():
     base = 3 * BL
     for k, f in zip((11, 12, 13, 14, 15), (210, 180, 150, 120, 95)): put(tom(f), base + k * s16)
     put(snare(0.8), base + 12 * s16)
-    y = y[:smp(4 * BL)]
+    # im letzten Takt vor dem Einsatz: Klick auf jeden Schlag, damit alle wissen, wann es losgeht
+    for k in range(4):
+        n = smp(0.05); tt = np.arange(n) / SR
+        put(np.sin(2 * np.pi * (1760 if k == 0 else 1320) * tt) * env(n, 0.012) * 0.45, base + k * BL / 4)
+    y = np.tanh(y[:smp(4 * BL)] * 1.1) / np.tanh(1.1)
     return np.stack([y, y], 1).astype(np.float32) * 0.9
 DRUMS = drums_clean()
 def drum_block(gd, ge):
@@ -68,7 +72,7 @@ def build(item):
     # bis und mit Takt 62 (Position 75), dann Schlagzeug
     parts = [seg(x, 0, t(76), 0, 0.05), D, seg(x, t(40), t(48)), D, seg(x, t(40), t(48)), seg(x, t(75), len(x) / SR, 0.012, 0.3)]
     y = np.clip(np.concatenate(parts), -1, 1).astype(np.float32)
-    out = OUT + f"sowk3-{pid}.mp3"
+    out = OUT + f"sowk4-{pid}.mp3"
     subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "f32le", "-ar", str(SR), "-ac", "2", "-i", "-", "-b:a", "96k", out], input=y.tobytes(), check=True)
     return pid, round(len(y) / SR, 2)
 audio = json.loads(sys.argv[3])
