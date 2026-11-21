@@ -4,7 +4,7 @@ sys.path.insert(0, __file__.rsplit("/", 1)[0])
 from build import build, abc_pitch, dur_str, NAMES, VALVE, WSLIDE
 from extract import DIA
 
-SRC = "/tmp/claude-0/-home-claude-mery-gueueger-github-io/f3f07ede-7612-5b84-8871-ed1e6a2a1a4a/scratchpad/songs2/"
+SRC = "/home/claude/work/songs2/"
 
 SONGS = [
     dict(id="itd", title="In Too Deep", sub="Sum 41", qpm=116, key="C", offset=0.03 + 8 * 60 / 116,
@@ -32,7 +32,12 @@ SONGS = [
                 ("sou", "sou", "Sousi", None, "sowk/audio/Somewhere Only We Know - Tuba.mp3")],
          tutti="sowk/audio/Somewhere Only We Know - Tutti.mp3", drums="sowk/audio/Somewhere Only We Know - Drums.mp3",
          # Wiederholung Takt 33-52, 1. Klammer 47-52, 2. Klammer ab 53 (Taktindex 0-basiert)
-         marks={32: dict(pre="|:"), 46: dict(volta="[1"), 51: dict(post=":|"), 52: dict(volta="[2")}),
+         marks={32: dict(pre="|:"), 46: dict(volta="[1"), 51: dict(post=":|"), 52: dict(volta="[2")},
+         # So spielt die Gugge es: mit Wiederholung bis 61, 4 Takte Schlagzeug, 41–48, 4 Takte Schlagzeug, 41–48, 62 bis Schluss.
+         # Vor 41 spielt das Euphonium jeweils den Auftakt (letzter Schlag von Takt 40).
+         order=[(1, 52), (33, 46), (53, 61), ("S", 1), ("S", 2), ("S", 3), ("S", 4), (41, 48),
+                ("S", 1), ("S", 2), ("S", 3), ("S", 4), (41, 48), (62, 67)],
+         pickup={"eup": (40, 12)}, audio_id="sowk2"),
     dict(id="fy", title="Forever Young", sub="Alphaville, Ava Max, David Guetta", qpm=130, key="Bb", offset=0.022 + 8 * 60 / 130,
          parts=[("trp1", "trp", "Trompete 1", "fy/forever-young-trompete-1-v3.pdf", "fy/forever-young-trompete-1.mp3"),
                 ("trp2", "trp", "Trompete 2", "fy/forever-young-trompete-2-v3.pdf", "fy/forever-young-trompete-2.mp3"),
@@ -89,12 +94,39 @@ def grace_abc(g, keysig, local):
     return abc_pitch(n, keysig, local)
 
 
-def reorder(model, order, kind, hold_last=False):
-    """Takte in neuer Reihenfolge; Haltebögen an den Schnittstellen lösen, dort Griffe neu setzen."""
+def reorder(model, order, kind, hold_last=False, pid=None, pickup=None):
+    """Takte in neuer Reihenfolge; Haltebögen an den Schnittstellen lösen, dort Griffe neu setzen.
+    order: Bereiche (von, bis) und Schlagzeug-Takte ("S", n): dort spielen die Bläser nicht.
+    pickup: {stimme: (takt, ab16tel)} – diese Stimme spielt im letzten Schlagzeug-Takt den Auftakt aus jenem Takt."""
     import copy
     fmap = WSLIDE if kind == "slide" else VALVE
-    src = [i for a, b in order for i in range(a - 1, b)]
-    bars = [copy.deepcopy(model["bars"][i]) for i in src]
+    src, names = [], []
+    for it in order:
+        if it[0] == "S":
+            src.append(None); names.append(f"S{it[1]}")
+        else:
+            for i in range(it[0] - 1, it[1]):
+                src.append(i); names.append(i + 1)
+    bars = []
+    for k, i in enumerate(src):
+        if i is not None:
+            bars.append(copy.deepcopy(model["bars"][i])); continue
+        tpl = model["bars"][0]
+        bar = {kk: copy.deepcopy(v) for kk, v in tpl.items() if kk not in ("ev", "graces")}
+        bar["graces"] = []; bar["tot"] = 16
+        last_drum = k + 1 >= len(src) or src[k + 1] is not None
+        if pickup and pid in pickup and last_drum:
+            tb, frm = pickup[pid]
+            pb = copy.deepcopy(model["bars"][tb - 1]); t = 0; keep = []
+            for e in pb["ev"]:
+                if t >= frm: keep.append(e)
+                t += e["dur"]
+            bar["keysig"] = pb["keysig"]
+            bar["ev"] = [dict(t="r", dur=frm, x=keep[0]["x"] - 1 if keep else 0)] + keep
+        else:
+            bar["ev"] = [dict(t="r", dur=16, x=0)]
+        bars.append(bar)
+    src = [-99 if i is None else i for i in src]
     for k, bar in enumerate(bars):
         chords = [e for e in bar["ev"] if e["t"] == "c"]
         # Anfang eines Abschnitts: gebundene Töne werden hier neu angespielt
@@ -116,11 +148,11 @@ def reorder(model, order, kind, hold_last=False):
                 n["tie"] = False
         last["ev"] = [e]; last["graces"] = []; last["tot"] = 16
     m = dict(model); m["bars"] = bars
-    return m, [i + 1 for i in src]
+    return m, names
 
 
 def part_abc(model, song, title, barnames=None):
-    marks = song["marks"]
+    marks = {} if barnames else song["marks"]
     toks_all, fings = [], []
     for bi, bar in enumerate(model["bars"]):
         local = {}
@@ -146,7 +178,11 @@ def part_abc(model, song, title, barnames=None):
             fings.append("/".join(e["fing"]))
         m = marks.get(bi, {})
         s = ""
-        if barnames and bi > 0 and barnames[bi] != barnames[bi - 1] + 1:
+        if barnames and isinstance(barnames[bi], str):
+            if barnames[bi] == "S1":  # Schlagzeug-Takte: eigene Zählung 1–4 mit Hinweis
+                s += "[I:setbarnb 1] "
+                toks[0] = '"^Nur Schlagzeug, 4 Takte"' + toks[0]
+        elif barnames and bi > 0 and (isinstance(barnames[bi - 1], str) or barnames[bi] != barnames[bi - 1] + 1):
             s += f"[I:setbarnb {barnames[bi]}] "
         if m.get("pre"):
             s += m["pre"] + " "
@@ -161,7 +197,7 @@ def part_abc(model, song, title, barnames=None):
     if body.endswith("|"):
         body = body[:-1] + "|]"
     head = ["X:1", f"T:{title}", "M:4/4", "L:1/16", f"Q:1/4={song['qpm']}", f"K:{song['key']}"]
-    if barnames and barnames[0] != 1:
+    if barnames and isinstance(barnames[0], int) and barnames[0] != 1:
         head.append(f"%%setbarnb {barnames[0]}")
     return "\n".join(head) + "\n" + body, fings
 
@@ -205,7 +241,7 @@ def run():
             assert not bad, (pdf, bad)
             names = None
             if s.get("order"):
-                m, names = reorder(m, s["order"], kind, s.get("hold_last", False))
+                m, names = reorder(m, s["order"], kind, s.get("hold_last", False), pid, s.get("pickup"))
                 song["barnames"] = names
             abc, fings = part_abc(m, s, s["title"], names)
             if s.get("hold_last"):  # Fermate auf dem gehaltenen Schlusston

@@ -296,7 +296,7 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
     <button class="tile" id="go-tuner"><div><b>Stimmgerät</b><span>Instrument stimmen über das Mikrofon</span></div><i>›</i></button>
     <button class="tile" id="go-theory"><div><b>Musiktheorie</b><span>Notenwerte, Pausen, Zeichen – mit Quiz</span></div><i>›</i></button>
   </div>
-  <p class="ver" id="ver">Version 68</p>
+  <p class="ver" id="ver">Version 69</p>
   <div class="card" id="lt" hidden>
     <div hidden>
     <b>Startlogo einstellen</b>
@@ -1029,7 +1029,7 @@ function preparePlayer() {
   // Takte für die Schleife: erstes Auftreten jedes geschriebenen Takts
   P.bars = 0; P.measStart = [];
   ev.forEach(e => { if (e.m != null && P.measStart[e.m] == null) P.measStart[e.m] = Math.floor(e.b / P.barBeats + 1e-6) * P.barBeats; P.bars = Math.max(P.bars, (e.m || 0) + 1); });
-  const fill = (sel, val) => { const old = sel.value; sel.innerHTML = ""; for (let i = 1; i <= P.bars; i++) { const o = document.createElement("option"); o.value = i; o.textContent = barName(i); sel.appendChild(o); } sel.value = old && +old <= P.bars ? old : val; };
+  const fill = (sel, val) => { const old = sel.value; sel.innerHTML = ""; for (let i = 1; i <= P.bars; i++) { const o = document.createElement("option"); o.value = i; o.textContent = barShort(i); sel.appendChild(o); } sel.value = old && +old <= P.bars ? old : val; };
   fill($("lp-a"), 1); fill($("lp-b"), Math.min(20, P.bars));
   lpSync();
   $("seek").max = Math.max(1, P.end); seekUI(0, true); XMAP = null; FXS = null;
@@ -1042,7 +1042,7 @@ function lpSync() {
   $("lp-ra").value = a; $("lp-rb").value = b;
   const pa = n > 1 ? (a - 1) / (n - 1) : 0, pb = n > 1 ? (b - 1) / (n - 1) : 1;
   $("lp-fill").style.left = pa * 100 + "%"; $("lp-fill").style.width = Math.max(0, pb - pa) * 100 + "%";
-  $("lp-t").textContent = a === b ? `Takt ${barName(a)}` : `Takt ${barName(a)} bis ${barName(b)}`;
+  $("lp-t").textContent = a === b ? barLabel(a) : `${barLabel(a)} bis ${barShort(b)}`;
   $("lp-dual").classList.toggle("on", $("loop").checked);
 }
 function lpInput(which) {
@@ -1076,8 +1076,9 @@ document.querySelectorAll(".lp-fine button").forEach(bt => {
 // Einsteigen ab Takt: Nummer wie in den Noten (auch bei umgestellter Reihenfolge)
 function songBars() { const ev = P.tracks[0] && P.tracks[0].events; return ev && ev.length ? Math.max(...ev.map(e => e.m || 0)) + 1 : 1; }
 function jumpNames() { const n = []; for (let i = 1; i <= songBars(); i++) n.push(barName(i)); return n; }
+const numNames = () => jumpNames().filter(x => typeof x === "number");
 function jumpSet(v) {
-  const names = jumpNames(), lo = Math.min(...names), hi = Math.max(...names);
+  const names = numNames(), lo = Math.min(...names), hi = Math.max(...names);
   $("jp-n").value = Math.max(lo, Math.min(hi, Math.round(+v || lo)));
 }
 function jumpGo() {
@@ -1105,8 +1106,11 @@ $("jp-n").addEventListener("change", () => jumpSet($("jp-n").value));
 let seekDrag = false;
 // Taktnummer wie in den Noten (bei umgestellter Reihenfolge, z.B. Forever Young: 75 … 83, dann 1 … 75)
 function barName(i) { const n = cur.song && cur.song.barnames; return n && n[i - 1] != null ? n[i - 1] : i; }
+// Schlagzeug-Takte (z.B. "S2") heissen in der Anzeige "Schlagzeug 2"
+const barLabel = i => { const n = barName(i); return typeof n === "string" ? "Schlagzeug " + n.slice(1) : "Takt " + n; };
+const barShort = i => { const n = barName(i); return typeof n === "string" ? "Schlagz. " + n.slice(1) : String(n); };
 function barAt(b) { const ev = P.tracks[0] && P.tracks[0].events; if (!ev || !ev.length) return 1; let m = ev[0].m || 0; for (const e of ev) { if (e.b > b + 1e-6) break; m = e.m; } return (m || 0) + 1; }
-function seekUI(b, force) { if (seekDrag && !force) return; $("seek").value = Math.max(0, b); $("seek-t").textContent = "Takt " + barName(barAt(Math.max(0, b))); }
+function seekUI(b, force) { if (seekDrag && !force) return; $("seek").value = Math.max(0, b); $("seek-t").textContent = barLabel(barAt(Math.max(0, b))); }
 function seekTo(b) {
   b = Math.max(0, Math.min(P.end - 0.01, Math.floor(b / P.barBeats + 1e-6) * P.barBeats));
   seekQuiet = Date.now() + 900;
@@ -1135,7 +1139,7 @@ $("scroller").addEventListener("scroll", () => {
   P.pos = b; seek(b); seekUI(b, true);
   $("play").textContent = b > 0 ? "▶ Weiter" : "▶ Abspielen";
 }, { passive: true });
-$("seek").addEventListener("input", () => { seekDrag = true; const b = +$("seek").value; $("seek-t").textContent = "Takt " + barName(barAt(b)); });
+$("seek").addEventListener("input", () => { seekDrag = true; const b = +$("seek").value; $("seek-t").textContent = barLabel(barAt(b)); });
 $("seek").addEventListener("change", () => { seekDrag = false; if (!P.tracks.length) preparePlayer(); seekTo(+$("seek").value); });
 function loopRange() {
   if (!$("loop").checked || !P.bars) return null;
