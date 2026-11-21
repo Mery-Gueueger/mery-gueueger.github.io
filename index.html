@@ -296,7 +296,7 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
     <button class="tile" id="go-tuner"><div><b>Stimmgerät</b><span>Instrument stimmen über das Mikrofon</span></div><i>›</i></button>
     <button class="tile" id="go-theory"><div><b>Musiktheorie</b><span>Notenwerte, Pausen, Zeichen – mit Quiz</span></div><i>›</i></button>
   </div>
-  <p class="ver" id="ver">Version 67</p>
+  <p class="ver" id="ver">Version 68</p>
   <div class="card" id="lt" hidden>
     <div hidden>
     <b>Startlogo einstellen</b>
@@ -1204,6 +1204,7 @@ $("tempo").oninput = () => { $("tempo-o").textContent = $("tempo").value + " %";
 // Ton für die Klicks direkt im Tipp starten (iPhone erlaubt ihn sonst nicht)
 function unlockAudio() { ctx(); }
 $("play").onclick = async () => {
+  R.endFix = 0;
   dlog(`Tipp Abspielen (${playing ? "Pause" : "Start"}) · ${cur.song && cur.song.id}/${curPart && curPart.id} · Schleife ${JSON.stringify(typeof loopRange === "function" ? loopRange() : null)} · pos ${P.pos}`);
   if (playing) { stopAll(false); return; }
   unlockAudio();
@@ -1228,7 +1229,7 @@ const AUD = {};
 const R = { el: new Audio(), on: false, raf: 0, clicks: [] };
 (function diagAudio() {
   const el = R.el, f = x => (x == null || isNaN(x)) ? "-" : (+x).toFixed(2);
-  const st = () => `t=${f(el.currentTime)} b=${typeof bOf === "function" && P && P.barBeats ? f(bOf(el.currentTime)) : "-"} paused=${el.paused} muted=${el.muted} seeking=${el.seeking} rs=${el.readyState} rate=${f(el.playbackRate)}`;
+  const st = () => `t=${f(el.currentTime)} b=${typeof bOf === "function" && P && P.barBeats ? f(bOf(el.currentTime)) : "-"} paused=${el.paused} muted=${el.muted} seeking=${el.seeking} rs=${el.readyState} rate=${f(el.playbackRate)} dur=${f(el.duration)}`;
   ["play", "playing", "pause", "seeking", "seeked", "waiting", "stalled", "suspend", "ended", "emptied", "loadedmetadata", "canplay", "volumechange", "ratechange"].forEach(ev =>
     el.addEventListener(ev, () => { if (ev === "suspend" || ev === "canplay") return; dlog("Audio " + ev + " · " + st()); }));
   el.addEventListener("error", () => dlog("Audio FEHLER " + (el.error ? el.error.code + " " + el.error.message : "")));
@@ -1291,12 +1292,18 @@ async function playRec() {
   if (el.dataset.k !== url) { el.dataset.k = url; el.src = url; await new Promise(res => { el.addEventListener("loadedmetadata", res, { once: true }); el.load(); }); }
   el.playbackRate = $("tempo").value / 100;
   // Am Liedanfang zählt die Aufnahme selbst ein, sonst zählt die App einen Takt vor
-  const fromTop = preroll && start <= 0;
-  el.currentTime = fromTop ? 0 : tOf(start);
+  const fromTop = preroll && start <= 0, want = fromTop ? 0 : tOf(start);
   R.clicks = [];
   if (preroll && !fromTop) {
     // mitten im Lied: zuerst ein Takt Klicks (Musik noch stumm), dann geht es nahtlos los
     playing = true; R.on = true; $("play").textContent = "❚❚ Pause"; recGap(start, 0); R.raf = requestAnimationFrame(recTick); return;
+  }
+  if (Math.abs(el.currentTime - want) > 0.05) {
+    // iPhone: nie im Stillstand springen, sondern erst abspielen (stumm), dann springen
+    playing = true; R.on = true; $("play").textContent = "❚❚ Pause";
+    el.muted = true; R.seekT = want; R.seekAt = performance.now();
+    el.addEventListener("seeked", () => { if (R.unmuteAt == null) el.muted = false; }, { once: true });
+    playThenSeek(el, want); R.raf = requestAnimationFrame(recTick); return;
   }
   try { await el.play(); } catch (e) { $("src-load").textContent = "Tippe nochmals auf Abspielen."; return; }
   playing = true; R.on = true; $("play").textContent = "❚❚ Pause"; R.raf = requestAnimationFrame(recTick);
@@ -1313,10 +1320,25 @@ function recGap(start, wait) {
   const perSec = bOf(tOf(0) + 1) - bOf(tOf(0));  // Schläge pro Sekunde in der Aufnahme
   const target = Math.max(0, tOf(start - P.barBeats - wait * el.playbackRate * perSec));
   el.muted = true; R.unmuteAt = start;
-  el.currentTime = target; R.seekT = target; R.seekAt = performance.now();
   R.clicks = Array.from({ length: P.barBeats }, (_, i) => ({ b: start - P.barBeats + i, acc: i === 0 }));
-  if (el.paused) el.play().catch(() => {});
+  R.seekT = target; R.seekAt = performance.now();
+  // iPhone: Springen nur, während die Aufnahme schon läuft. Ein Sprung aus der Pause mit sofortigem play()
+  // lässt Safari gleich "ended" melden und stehen bleiben (Fehlerprotokoll 21.11.).
+  if (el.paused) playThenSeek(el, target); else el.currentTime = target;
 }
+function playThenSeek(el, target) {
+  let done = false;
+  const jump = () => { if (done) return; done = true; el.removeEventListener("playing", jump); R.seekAt = performance.now(); el.currentTime = target; };
+  el.addEventListener("playing", jump); setTimeout(jump, 1200);
+  el.play().catch(e => dlog("play() FEHLER beim Sprung " + e.name));
+}
+// Sicherheitsnetz: Safari meldet mitten im Lied "ended" → an derselben Stelle weiterspielen
+R.el.addEventListener("ended", () => {
+  const el = R.el;
+  if (!R.on || !(el.duration - el.currentTime > 2) || (R.endFix = (R.endFix || 0) + 1) > 3) return;
+  dlog(`Zu frühes Ende bei t=${el.currentTime.toFixed(2)} (Dauer ${el.duration.toFixed(2)}) → weiterspielen, Versuch ${R.endFix}`);
+  const t = el.currentTime; el.muted = R.unmuteAt != null; playThenSeek(el, t);
+});
 function recTick() {
   if (!R.on) return;
   const el = R.el, b = bOf(el.currentTime);
