@@ -37,7 +37,7 @@ SONGS = [
          # Vor 41 spielt das Euphonium jeweils den Auftakt (letzter Schlag von Takt 40).
          order=[(1, 52), (33, 46), (53, 62), ("S", 1), ("S", 2), ("S", 3), ("S", 4), (41, 48),
                 ("S", 1), ("S", 2), ("S", 3), ("S", 4), (41, 48), (62, 67)],
-         pickup={"eup": (40, 12)}, audio_id="sowk4"),
+         pickup={"eup": (40, 12)}, audio_id="sowk5"),
     dict(id="fy", title="Forever Young", sub="Alphaville, Ava Max, David Guetta", qpm=130, key="Bb", offset=0.022 + 8 * 60 / 130,
          parts=[("trp1", "trp", "Trompete 1", "fy/forever-young-trompete-1-v3.pdf", "fy/forever-young-trompete-1.mp3"),
                 ("trp2", "trp", "Trompete 2", "fy/forever-young-trompete-2-v3.pdf", "fy/forever-young-trompete-2.mp3"),
