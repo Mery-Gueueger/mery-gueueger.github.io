@@ -4,6 +4,7 @@ Einzählen + Takt 1–52, 33–46, 53–62 (mit Wiederholung) · 4 Takte Schlagz
 import numpy as np, subprocess, json, sys
 from concurrent.futures import ThreadPoolExecutor
 SRC = sys.argv[1]; OUT = sys.argv[2]; SR = 44100
+AID = sys.argv[4]; NJ = int(sys.argv[5])  # Lied-ID und Anzahl Sprünge (0 = durchspielen wie in den Noten)
 off = 0.725 + 8 * 60 / 86; BL = 4 * 60 / 86
 t = lambda p: off + p * BL               # p = Position in der Aufnahme (Takte, mit Wiederholung gezählt)
 smp = lambda s: int(round(s * SR))
@@ -70,9 +71,10 @@ def build(item):
     gd, ge = {"drums": (1, 0), "tutti": (1, 1.8), "eup": (0.7, 1.8)}.get(pid, (0.7, 0))  # Euphonium-Auftakt kräftig
     D = drum_block(gd, ge)
     # bis und mit Takt 62 (Position 75), dann Schlagzeug
-    parts = [seg(x, 0, t(76), 0, 0.05), D, seg(x, t(40), t(48)), D, seg(x, t(40), t(48)), seg(x, t(76), len(x) / SR, 0.012, 0.3)]  # zum Schluss ab Takt 63
+    if NJ == 0: parts = [x]  # Originalaufnahme, so wie es in den Noten steht
+    else: parts = [seg(x, 0, t(76), 0, 0.05)] + [D, seg(x, t(40), t(48))] * NJ + [seg(x, t(76), len(x) / SR, 0.012, 0.3)]  # zum Schluss ab Takt 63
     y = np.clip(np.concatenate(parts), -1, 1).astype(np.float32)
-    out = OUT + f"sowk6-{pid}.mp3"
+    out = OUT + f"{AID}-{pid}.mp3"
     subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "f32le", "-ar", str(SR), "-ac", "2", "-i", "-", "-b:a", "96k", out], input=y.tobytes(), check=True)
     return pid, round(len(y) / SR, 2)
 audio = json.loads(sys.argv[3])

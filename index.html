@@ -270,10 +270,23 @@ body.learning .scroller { scroll-behavior: auto }
 .seek-w { flex: 1; min-width: 0; position: relative; --th: 9px }
 @supports (-webkit-touch-callout: none) { .seek-w { --th: 14px } }
 .seek input { width: 100%; display: block; accent-color: var(--accent); height: 36px; margin: 0 }
+#seek-top { position: relative; height: 0; pointer-events: none }
+#seek-top.on { height: 16px; margin-bottom: -9px }
+#seek-top .vo { position: absolute; bottom: 0; height: 11px; border: 1.5px solid var(--fg); border-bottom: 0; font-size: .6rem; line-height: 10px; font-weight: 800; padding-left: 2px; color: var(--fg); white-space: nowrap; box-sizing: border-box }
+#seek-top .dr { position: absolute; bottom: 1px; height: 6px; border-radius: 3px; background: var(--muted) }
+#seek-top .dr b { position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); font-size: .72rem; line-height: 1 }
+.abl { margin: 10px 0 4px }
+.abl.card { margin: 6px 0 14px; padding: 12px }
+.abl .ttl { font-size: .8rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); margin: 0 0 6px }
+.abl .abl-n { display: flex; align-items: center; gap: 5px; margin-top: 8px; font-size: .85rem; font-weight: 700; color: var(--muted) }
+.abl .abl-n span { margin-right: 4px; white-space: nowrap }
+.abl .abl-n button { flex: 1 1 0; min-width: 0; border: 2px solid var(--line); background: var(--card); border-radius: 9px; padding: 7px 0; font-weight: 800; font-size: .9rem; cursor: pointer; color: inherit }
+.abl .abl-n button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--fg) }
+.abl .hint { font-size: .78rem; color: var(--muted); margin: 6px 0 0 }
 #seek-ticks { position: relative; height: 17px; margin-top: -9px; pointer-events: none }
 #seek-ticks i { position: absolute; top: 0; width: 1.5px; height: 5px; background: var(--muted); transform: translateX(-50%); opacity: .8 }
 #seek-ticks b { position: absolute; top: 7px; transform: translateX(-50%); font-size: .62rem; line-height: 1; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums }
-.seek span { align-self: flex-start; line-height: 36px; font-size: .85rem; color: var(--muted); font-weight: 700; min-width: 4.8em; text-align: right; font-variant-numeric: tabular-nums }
+.seek > span { align-self: flex-start; line-height: 36px; font-size: .85rem; color: var(--muted); font-weight: 700; min-width: 4.8em; text-align: right; font-variant-numeric: tabular-nums }
 body.landplay .scorecard { flex-direction: column; justify-content: center }
 body.landplay .seek { width: 100%; padding-right: 250px }
 body.landplay .scorecard { position: fixed; inset: 0; z-index: 900; margin: 0 !important; border-radius: 0; border: 0; padding: 6px 0; display: flex; align-items: center }
@@ -310,7 +323,7 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
     <button class="tile" id="go-tuner"><div><b>Stimmgerät</b><span>Instrument stimmen über das Mikrofon</span></div><i>›</i></button>
     <button class="tile" id="go-theory"><div><b>Musiktheorie</b><span>Notenwerte, Pausen, Zeichen – mit Quiz</span></div><i>›</i></button>
   </div>
-  <p class="ver" id="ver">Version 78</p>
+  <p class="ver" id="ver">Version 79</p>
   <div class="card" id="lt" hidden>
     <div hidden>
     <b>Startlogo einstellen</b>
@@ -345,6 +358,7 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
 <!-- INSTRUMENT -->
 <section id="s-instr" hidden>
   <div class="top"><button class="back" data-go="songs">‹ Lieder</button><span class="crumb" id="vi-crumb"></span></div>
+  <div class="abl card" id="abl-i" hidden></div>
   <h2>Welche Stimme spielst du?</h2>
   <p class="muted" style="margin:6px 0 12px">Die App merkt sich deine Stimme für jedes Lied einzeln.</p>
   <div class="instr" id="instr"></div>
@@ -444,6 +458,7 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
   <div class="top"><button class="back" data-go="instr">‹ Stimme</button></div>
   <h2 id="sg-title" class="fit"></h2>
   <p class="voice" id="sg-crumb"></p>
+  <div class="abl" id="abl-p" hidden></div>
   <div class="modes" role="group" aria-label="Übungsart" style="margin-top:10px">
     <button type="button" id="m-play" aria-pressed="true">Mitspielen</button>
     <button type="button" id="m-learn" aria-pressed="false">Spiel</button>
@@ -459,7 +474,7 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
   <div class="card scorecard" style="margin-top:10px">
     <div class="scroller" id="scroller"><div id="paper"></div></div>
     <div class="ln-zone" aria-hidden="true"></div>
-    <div class="seek" id="seek-box"><div class="seek-w"><input type="range" id="seek" min="0" max="1" step="0.25" value="0" aria-label="Stelle im Lied"><div id="seek-ticks" aria-hidden="true"></div></div><span id="seek-t">Takt 1</span></div>
+    <div class="seek" id="seek-box"><div class="seek-w"><div id="seek-top" aria-hidden="true"></div><input type="range" id="seek" min="0" max="1" step="0.25" value="0" aria-label="Stelle im Lied"><div id="seek-ticks" aria-hidden="true"></div></div><span id="seek-t">Takt 1</span></div>
     <div class="land-ctrl"><button type="button" id="l-takte" class="l-pill" aria-expanded="false">Takte</button><button type="button" id="l-play" aria-label="Abspielen oder Pause">▶</button><button type="button" id="l-stop" aria-label="Stopp">■</button></div>
     <div id="land-sheet" hidden><div class="ls-head"><b>Takte</b><button type="button" id="ls-close" aria-label="Schliessen">✕</button></div><div id="ls-body"></div></div>
   </div>
@@ -663,6 +678,17 @@ const b64e = u8 => btoa(String.fromCharCode(...u8));
 const b64d = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
 async function decryptWith(key, buf) { return crypto.subtle.decrypt({ name: "AES-GCM", iv: new Uint8Array(buf, 0, 12) }, key, new Uint8Array(buf, 12)); }
 function prepSong(s) {
+  s.gid = s.gid || s.id;
+  if (s.variants) {  // verschiedene Abläufe (z. B. durchspielen oder mit Sprüngen): je eine fertige Fassung
+    const vs = {}, vlist = s.variants.map(v => ({ key: v.key, label: v.label }));
+    s.variants.forEach(v => {
+      const c = Object.assign({}, s, { id: v.id, barnames: v.barnames, audio: v.audio, variants: null, gid: s.id, vkey: v.key,
+        parts: v.parts.map(p => Object.assign({}, s.parts.find(q => q.id === p.id), p)) });
+      vs[v.key] = prepSong(c);
+    });
+    Object.values(vs).forEach(c => { c.vs = vs; c.vlist = vlist; });
+    const d = vs[store.get("abl-" + s.id, s.vdef)] || vs[s.vdef]; return d;
+  }
   const T = { trp: -2, pos: -14, eup: -14, sou: -26 };
   s.real = true;
   s.parts.forEach(p => { p.transpose = T[p.instr]; });
@@ -772,13 +798,14 @@ document.querySelectorAll("[data-go]").forEach(b => b.onclick = () => go(b.datas
 /* ---------- Start ---------- */
 function renderInstr() {
   if (!cur.song) return;
+  ablRender();
   $("vi-crumb").textContent = cur.song.title;
-  const last = store.get("part-" + cur.song.id, null);
+  const last = store.get("part-" + cur.song.gid, null);
   $("instr").innerHTML = "";
   const tuttiPt = cur.song.parts.find(p => p.id === "tutti");
   const addPart = pt => { const ins = INSTR.find(i => i.id === pt.instr); const b = document.createElement("button"); b.type = "button"; b.className = "chip"; b.setAttribute("aria-pressed", pt.id === last);
     b.innerHTML = `${pt.name}<small>${pt.sub || ins.sub}${pt.id === last ? " · zuletzt gespielt" : ""}</small>`;
-    b.onclick = () => { curPart = pt; store.set("part-" + cur.song.id, pt.id); openPart(); }; $("instr").appendChild(b); };
+    b.onclick = () => { curPart = pt; store.set("part-" + cur.song.gid, pt.id); openPart(); }; $("instr").appendChild(b); };
   cur.song.parts.filter(p => p !== tuttiPt).forEach(addPart);
   (cur.song.missing || []).forEach(n => { const b = document.createElement("button"); b.type = "button"; b.className = "chip"; b.disabled = true;
     const [nm, why] = n.split("|");
@@ -860,7 +887,7 @@ function renderSongs() {
   SONGS.forEach((s, i) => { const b = document.createElement("button"); b.className = "row"; b.type = "button";
     const sub = s.real ? `${s.sub} · ${s.parts.filter(p => p.instr !== "tutti" && p.instr !== "drums").length} Stimmen mit Noten` : s.sub;
     b.innerHTML = `<span class="txt"><b class="fit">${s.title}</b><small>${sub}</small></span><span class="num">›</span>`;
-    b.onclick = () => { cur.song = SONGS[i]; go("instr"); }; $("songlist").appendChild(b); });
+    b.onclick = () => { cur.song = s.vs ? (s.vs[store.get("abl-" + s.gid, s.vkey)] || s) : s; go("instr"); }; $("songlist").appendChild(b); });
   requestAnimationFrame(() => fitText($("songlist")));
 }
 const LET = ["C","D","E","F","G","A","B"], SEMI = [0,2,4,5,7,9,11];
@@ -886,8 +913,30 @@ function notePitches(tune, key, bass) {
 const fingOf = (midi) => instrObj().kind === "slide" ? (SLIDE[midi] || "?") : (VALVE[midi] || "?");
 function partAbc() { return curPart.abc.replace(/\n[TQ]:[^\n]*/g, ""); }
 
+// Ablauf wählen (nur bei Liedern mit mehreren Fassungen)
+function ablRender() {
+  const s = cur.song;
+  ["abl-i", "abl-p"].forEach(id => {
+    const box = $(id); if (!box) return;
+    box.hidden = !(s && s.vlist); if (box.hidden) { box.innerHTML = ""; return; }
+    const k = s.vkey, jump = k !== "d", lastJ = store.get("ablj-" + s.gid, "j2");
+    const js = s.vlist.filter(v => v.key !== "d");
+    box.innerHTML = (id === "abl-i" ? '<p class="ttl">Ablauf</p>' : "") +
+      `<div class="modes" role="group" aria-label="Ablauf"><button type="button" data-k="d" aria-pressed="${!jump}">Durchspielen</button><button type="button" data-k="${jump ? k : lastJ}" aria-pressed="${jump}">Mit Sprüngen</button></div>` +
+      (jump ? `<div class="abl-n" role="group" aria-label="Wie oft springen"><span>Wie oft?</span>${js.map(v => `<button type="button" data-k="${v.key}" aria-pressed="${v.key === k}">${v.key.slice(1)}×</button>`).join("")}</div>` : "") +
+      (id === "abl-i" ? `<p class="hint">${jump ? "Nach Takt 62: 4 Takte Schlagzeug, dann 41–48. Das so oft wie gewählt, danach 63 bis Schluss." : "So wie es in den Noten steht: mit der Wiederholung 33–46, ohne Schlagzeug-Sprünge."}</p>` : "");
+    box.querySelectorAll("button").forEach(b => b.onclick = () => setAbl(b.dataset.k, id === "abl-p"));
+  });
+}
+function setAbl(k, inPlayer) {
+  const s = cur.song, nv = s.vs && s.vs[k]; if (!nv || nv === s) return;
+  store.set("abl-" + s.gid, k); if (k !== "d") store.set("ablj-" + s.gid, k);
+  if (inPlayer) { stopAll(true); cur.song = nv; curPart = nv.parts.find(p => p.id === curPart.id) || nv.parts[0]; P.tracks = []; openPart(); }
+  else { cur.song = nv; renderInstr(); }
+}
 function openPart() {
   const ins = instrObj();
+  ablRender();
   $("jp-n").value = barName(1);
   $("sg-title").textContent = cur.song.title; $("sg-crumb").textContent = curPart.name;
   $("showv-l").textContent = ins.kind === "slide" ? "Zugpositionen zeigen" : "Ventilzahlen zeigen";
@@ -897,7 +946,7 @@ function openPart() {
   if (tutti && cur.song.real) {
     const opts = cur.song.parts.filter(p => p.instr !== "tutti" && p.instr !== "drums");
     $("tv").innerHTML = opts.map(p => `<option value="${p.id}">${p.name}</option>`).join("");
-    const keep = store.get("tv-" + cur.song.id, null); setTuttiVoice(opts.find(p => p.id === keep) ? keep : opts[0].id, false);
+    const keep = store.get("tv-" + cur.song.gid, null); setTuttiVoice(opts.find(p => p.id === keep) ? keep : opts[0].id, false);
   }
   $("tutti-hint").hidden = !tutti;
   if (!cur.song.real) $("tutti-hint").textContent = "Alle Stimmen zusammen mit Schlagzeug (Drum-and-Bass-Beat). Die Noten oben zeigen die Melodie (Trompete 1. Stimme).";
@@ -1049,7 +1098,7 @@ function preparePlayer() {
   const fill = (sel, val) => { const old = sel.value; sel.innerHTML = ""; for (let i = 1; i <= P.bars; i++) { const o = document.createElement("option"); o.value = i; o.textContent = barShort(i); sel.appendChild(o); } sel.value = old && +old <= P.bars ? old : val; };
   fill($("lp-a"), 1); fill($("lp-b"), Math.min(20, P.bars));
   lpSync();
-  $("seek").max = Math.max(1, P.end); seekUI(0, true); XMAP = null; FXS = null; seekTicks();
+  $("seek").max = Math.max(1, P.end); seekUI(0, true); XMAP = null; FXS = null; seekTicks(); seekTop();
   P.pos = 0;
 }
 // Schleife: zwei Regler (Anfang und Ende) auf einer Leiste, je ein Takt
@@ -1148,6 +1197,32 @@ function seekTicks() {
     const x = f * w; if (k.n % every || x - lastX < 18) continue; lastX = x;
     const l = document.createElement("b"); l.textContent = k.n; l.style.left = pos; box.appendChild(l);
   }
+}
+// Oben am Balken: Klammern (1. / 2. Ausgang) und Schlagzeug-Teile
+function seekTop() {
+  const box = $("seek-top"); if (!box) return; box.innerHTML = "";
+  const nm = cur.song && cur.song.barnames, end = P.end, bb = P.barBeats;
+  if (!nm || !end || !bb) { box.classList.remove("on"); return; }
+  const vol = cur.song.voltas || {}, L = f => `calc(var(--th) + (100% - 2 * var(--th)) * ${Math.min(1, f).toFixed(5)})`;
+  const W = (a, b) => `calc((100% - 2 * var(--th)) * ${((b - a) * bb / end).toFixed(5)})`;
+  let any = false, v1len = 6; const seen = {};
+  for (let k = 0; k < nm.length; k++) {
+    const n = nm[k];
+    if (typeof n === "string" && n[0] === "S" && !(k > 0 && typeof nm[k - 1] === "string")) {
+      let e = k; while (e + 1 < nm.length && typeof nm[e + 1] === "string") e++;
+      const d = document.createElement("div"); d.className = "dr"; d.style.left = L(k * bb / end); d.style.width = W(k, e + 1);
+      d.innerHTML = "<b>🥁</b>"; box.appendChild(d); any = true;
+    }
+    const lab = vol[n] || vol[String(n)];
+    if (lab && !seen[lab]) {
+      seen[lab] = true;
+      let e = k; while (e + 1 < nm.length && nm[e + 1] === nm[e] + 1 && e - k + 1 < v1len) e++;
+      if (lab === "1.") v1len = e - k + 1;
+      const d = document.createElement("div"); d.className = "vo"; d.style.left = L(k * bb / end); d.style.width = W(k, e + 1);
+      d.textContent = lab; box.appendChild(d); any = true;
+    }
+  }
+  box.classList.toggle("on", any);
 }
 function seekUI(b, force) { if (seekDrag && !force) return; $("seek").value = Math.max(0, b); $("seek-t").textContent = barLabel(barAt(Math.max(0, b))); }
 function seekTo(b) {
@@ -1413,7 +1488,7 @@ function recTick() {
 function setTuttiVoice(id, redraw) {
   const src = cur.song.parts.find(p => p.id === id); if (!src) return;
   Object.assign(curPart, { abc: src.abc, fing: src.fing, pages: src.pages, melody: src.name, vkind: src.instr === "pos" ? "slide" : "valve" });
-  $("tv").value = id; store.set("tv-" + cur.song.id, id);
+  $("tv").value = id; store.set("tv-" + cur.song.gid, id);
   $("tutti-hint").textContent = curPart.id === "drums" ? `Für Schlagzeug und Pauken gibt es noch keine eigenen Noten. Zur Orientierung zeigen die Noten oben ${src.name}.` : `Die ganze Gugge zusammen. Die Noten oben zeigen ${src.name}.`;
   $("showv-l").textContent = src.instr === "pos" ? "Zugpositionen zeigen" : "Ventilzahlen zeigen";
   if (redraw) { stopAll(true); renderScore(); showOrig(); }
@@ -1489,7 +1564,7 @@ function landUpd() {
   if (lastEls.length) setTimeout(() => scrollToEl(lastEls[0]), 60);
 }
 LANDQ.addEventListener ? LANDQ.addEventListener("change", landUpd) : LANDQ.addListener(landUpd);
-window.addEventListener("resize", () => { clearTimeout(landUpd.t); landUpd.t = setTimeout(() => { landUpd(); seekTicks(); }, 150); });
+window.addEventListener("resize", () => { clearTimeout(landUpd.t); landUpd.t = setTimeout(() => { landUpd(); seekTicks(); seekTop(); }, 150); });
 $("l-play").onclick = () => $("play").click();
 // Querformat: "Takte" öffnet Ab-Takt und Schleife in einem kleinen Fenster (dieselben Bedienelemente, nur verschoben)
 var LS = { marks: null };
