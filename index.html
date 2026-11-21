@@ -192,6 +192,13 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
 }
 /* Die Seite darf nie breiter als der Bildschirm werden (nach dem Drehen blieb sie sonst seitlich verschoben) */
 html, body { overflow-x: hidden; overflow-x: clip; max-width: 100% }
+.land-ctrl .l-pill { width: auto; padding: 0 18px; border-radius: 24px; font-size: 1rem }
+#land-sheet { position: fixed; z-index: 950; left: max(12px, env(safe-area-inset-left)); right: max(12px, env(safe-area-inset-right)); bottom: 68px; max-width: 620px; margin: 0 auto;
+  background: var(--card); color: var(--fg); border: 1.5px solid var(--line); border-radius: 16px; padding: 10px 14px 12px; box-shadow: 0 8px 30px rgba(0,0,0,.35); max-height: calc(100% - 84px); overflow-y: auto }
+#land-sheet .ls-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px }
+#land-sheet .ls-head button { width: 36px; height: 36px; border-radius: 50%; border: 1.5px solid var(--line); background: var(--bg); color: var(--fg); font-weight: 800; cursor: pointer }
+#land-sheet .jump { margin: 0 0 8px }
+#land-sheet #loopgrp { display: flex; flex-direction: column; gap: 6px }
 </style>
 <style>
 html { -webkit-text-size-adjust: 100% }
@@ -298,7 +305,7 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
     <button class="tile" id="go-tuner"><div><b>Stimmgerät</b><span>Instrument stimmen über das Mikrofon</span></div><i>›</i></button>
     <button class="tile" id="go-theory"><div><b>Musiktheorie</b><span>Notenwerte, Pausen, Zeichen – mit Quiz</span></div><i>›</i></button>
   </div>
-  <p class="ver" id="ver">Version 76</p>
+  <p class="ver" id="ver">Version 77</p>
   <div class="card" id="lt" hidden>
     <div hidden>
     <b>Startlogo einstellen</b>
@@ -448,7 +455,8 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
     <div class="scroller" id="scroller"><div id="paper"></div></div>
     <div class="ln-zone" aria-hidden="true"></div>
     <div class="seek" id="seek-box"><input type="range" id="seek" min="0" max="1" step="0.25" value="0" aria-label="Stelle im Lied"><span id="seek-t">Takt 1</span></div>
-    <div class="land-ctrl"><button type="button" id="l-zm" aria-label="Noten kleiner">−</button><button type="button" id="l-zp" aria-label="Noten grösser">+</button><button type="button" id="l-play" aria-label="Abspielen oder Pause">▶</button><button type="button" id="l-stop" aria-label="Stopp">■</button></div>
+    <div class="land-ctrl"><button type="button" id="l-takte" class="l-pill" aria-expanded="false">Takte</button><button type="button" id="l-play" aria-label="Abspielen oder Pause">▶</button><button type="button" id="l-stop" aria-label="Stopp">■</button></div>
+    <div id="land-sheet" hidden><div class="ls-head"><b>Takte</b><button type="button" id="ls-close" aria-label="Schliessen">✕</button></div><div id="ls-body"></div></div>
   </div>
 
   <div id="p-learn" class="card" style="margin-top:10px" hidden>
@@ -481,6 +489,7 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
       <label class="switch" id="sound-l"><input type="checkbox" id="sound" checked> Töne vorspielen</label>
     </div>
     <div class="tempo"><span class="small muted">Tempo</span><input type="range" id="tempo" min="40" max="120" step="5" value="100" aria-label="Tempo in Prozent"><output id="tempo-o">100 %</output></div>
+    <div id="loopgrp">
     <div class="loopbox">
       <label class="switch"><input type="checkbox" id="loop"> Schleife</label>
       <span class="lp-t" id="lp-t">Takt 1 bis 20</span>
@@ -494,6 +503,7 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
     <div class="lp-fine">
       <span>Anfang</span><button type="button" data-f="a-1" aria-label="Anfang einen Takt früher">−</button><button type="button" data-f="a1" aria-label="Anfang einen Takt später">+</button>
       <span style="margin-left:auto">Ende</span><button type="button" data-f="b-1" aria-label="Ende einen Takt früher">−</button><button type="button" data-f="b1" aria-label="Ende einen Takt später">+</button>
+    </div>
     </div>
     <div class="loopbox" id="tv-box" hidden><span class="small muted">Noten anzeigen von</span><select id="tv" aria-label="Welche Stimme in den Noten angezeigt wird"></select></div>
     <p class="small muted" id="tutti-hint" hidden>Alle Stimmen zusammen mit Schlagzeug (Drum-and-Bass-Beat). Die Noten oben zeigen die Melodie (Trompete 1. Stimme).</p>
@@ -1084,6 +1094,7 @@ function jumpSet(v) {
   $("jp-n").value = Math.max(lo, Math.min(hi, Math.round(+v || lo)));
 }
 function jumpGo() {
+  if (window.LS && LS.marks) sheetOpen(false);
   if (!P.tracks.length) preparePlayer();
   jumpSet($("jp-n").value);
   const i = jumpNames().indexOf(+$("jp-n").value); if (i < 0) return;
@@ -1443,6 +1454,7 @@ function landUpd() {
   XMAP = null; FXS = null;
   const on = LANDQ.matches && !$("s-song").hidden && cur.mode === "play" && $("viewer").hidden;
   document.body.classList.toggle("landplay", on);
+  if (!on && LS.marks) sheetOpen(false);
   const pa = $("paper"); pa.style.zoom = "";
   // zurück im Hochformat: Seite wieder ganz links (sonst bleibt sie seitlich verschoben stehen)
   if (!on && window.scrollX) window.scrollTo(0, window.scrollY);
@@ -1453,8 +1465,21 @@ function landUpd() {
 LANDQ.addEventListener ? LANDQ.addEventListener("change", landUpd) : LANDQ.addListener(landUpd);
 window.addEventListener("resize", () => { clearTimeout(landUpd.t); landUpd.t = setTimeout(landUpd, 150); });
 $("l-play").onclick = () => $("play").click();
-$("l-zm").onclick = () => landZoom(-0.1);
-$("l-zp").onclick = () => landZoom(0.1);
+// Querformat: "Takte" öffnet Ab-Takt und Schleife in einem kleinen Fenster (dieselben Bedienelemente, nur verschoben)
+var LS = { marks: null };
+function sheetOpen(open) {
+  const body = $("ls-body"), parts = [document.querySelector(".jump"), $("loopgrp")];
+  if (open && !LS.marks) {
+    LS.marks = parts.map(el => { const m = document.createComment("platz"); el.parentNode.insertBefore(m, el); body.appendChild(el); return m; });
+  } else if (!open && LS.marks) {
+    parts.forEach((el, i) => LS.marks[i].parentNode.insertBefore(el, LS.marks[i]));
+    LS.marks.forEach(m => m.remove()); LS.marks = null;
+  }
+  $("land-sheet").hidden = !open; $("l-takte").setAttribute("aria-expanded", open);
+  if (typeof lpSync === "function") try { lpSync(); } catch (e) {}
+}
+$("l-takte").onclick = () => sheetOpen($("land-sheet").hidden);
+$("ls-close").onclick = () => sheetOpen(false);
 $("l-stop").onclick = () => $("stop").click();
 new MutationObserver(() => { $("l-play").textContent = playing ? "❚❚" : "▶"; }).observe($("play"), { childList: true, characterData: true, subtree: true });
 
