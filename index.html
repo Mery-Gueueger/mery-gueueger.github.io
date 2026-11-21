@@ -267,8 +267,13 @@ body.learning .scroller { scroll-behavior: auto }
 .tbv .scale span { position: absolute; left: 0; width: 28px; height: 24px; margin-top: -12px; text-align: center; font-family: var(--f-display); font-weight: 900; font-size: 1.15rem; line-height: 24px; color: var(--muted) }
 .tbv .scale span.on { color: var(--accent) }
 .seek { display: flex; align-items: center; gap: 10px; padding: 4px 12px 0 }
-.seek input { flex: 1; min-width: 0; accent-color: var(--accent); height: 36px }
-.seek span { font-size: .85rem; color: var(--muted); font-weight: 700; min-width: 4.8em; text-align: right; font-variant-numeric: tabular-nums }
+.seek-w { flex: 1; min-width: 0; position: relative; --th: 9px }
+@supports (-webkit-touch-callout: none) { .seek-w { --th: 14px } }
+.seek input { width: 100%; display: block; accent-color: var(--accent); height: 36px; margin: 0 }
+#seek-ticks { position: relative; height: 17px; margin-top: -9px; pointer-events: none }
+#seek-ticks i { position: absolute; top: 0; width: 1.5px; height: 5px; background: var(--muted); transform: translateX(-50%); opacity: .8 }
+#seek-ticks b { position: absolute; top: 7px; transform: translateX(-50%); font-size: .62rem; line-height: 1; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums }
+.seek span { align-self: flex-start; line-height: 36px; font-size: .85rem; color: var(--muted); font-weight: 700; min-width: 4.8em; text-align: right; font-variant-numeric: tabular-nums }
 body.landplay .scorecard { flex-direction: column; justify-content: center }
 body.landplay .seek { width: 100%; padding-right: 250px }
 body.landplay .scorecard { position: fixed; inset: 0; z-index: 900; margin: 0 !important; border-radius: 0; border: 0; padding: 6px 0; display: flex; align-items: center }
@@ -305,7 +310,7 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
     <button class="tile" id="go-tuner"><div><b>Stimmgerät</b><span>Instrument stimmen über das Mikrofon</span></div><i>›</i></button>
     <button class="tile" id="go-theory"><div><b>Musiktheorie</b><span>Notenwerte, Pausen, Zeichen – mit Quiz</span></div><i>›</i></button>
   </div>
-  <p class="ver" id="ver">Version 77</p>
+  <p class="ver" id="ver">Version 78</p>
   <div class="card" id="lt" hidden>
     <div hidden>
     <b>Startlogo einstellen</b>
@@ -454,7 +459,7 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
   <div class="card scorecard" style="margin-top:10px">
     <div class="scroller" id="scroller"><div id="paper"></div></div>
     <div class="ln-zone" aria-hidden="true"></div>
-    <div class="seek" id="seek-box"><input type="range" id="seek" min="0" max="1" step="0.25" value="0" aria-label="Stelle im Lied"><span id="seek-t">Takt 1</span></div>
+    <div class="seek" id="seek-box"><div class="seek-w"><input type="range" id="seek" min="0" max="1" step="0.25" value="0" aria-label="Stelle im Lied"><div id="seek-ticks" aria-hidden="true"></div></div><span id="seek-t">Takt 1</span></div>
     <div class="land-ctrl"><button type="button" id="l-takte" class="l-pill" aria-expanded="false">Takte</button><button type="button" id="l-play" aria-label="Abspielen oder Pause">▶</button><button type="button" id="l-stop" aria-label="Stopp">■</button></div>
     <div id="land-sheet" hidden><div class="ls-head"><b>Takte</b><button type="button" id="ls-close" aria-label="Schliessen">✕</button></div><div id="ls-body"></div></div>
   </div>
@@ -1044,7 +1049,7 @@ function preparePlayer() {
   const fill = (sel, val) => { const old = sel.value; sel.innerHTML = ""; for (let i = 1; i <= P.bars; i++) { const o = document.createElement("option"); o.value = i; o.textContent = barShort(i); sel.appendChild(o); } sel.value = old && +old <= P.bars ? old : val; };
   fill($("lp-a"), 1); fill($("lp-b"), Math.min(20, P.bars));
   lpSync();
-  $("seek").max = Math.max(1, P.end); seekUI(0, true); XMAP = null; FXS = null;
+  $("seek").max = Math.max(1, P.end); seekUI(0, true); XMAP = null; FXS = null; seekTicks();
   P.pos = 0;
 }
 // Schleife: zwei Regler (Anfang und Ende) auf einer Leiste, je ein Takt
@@ -1123,6 +1128,27 @@ function barName(i) { const n = cur.song && cur.song.barnames; return n && n[i -
 const barLabel = i => { const n = barName(i); return typeof n === "string" ? "Schlagzeug " + n.slice(1) : "Takt " + n; };
 const barShort = i => { const n = barName(i); return typeof n === "string" ? "Schlagz. " + n.slice(1) : String(n); };
 function barAt(b) { const ev = P.tracks[0] && P.tracks[0].events; if (!ev || !ev.length) return 1; let m = ev[0].m || 0; for (const e of ev) { if (e.b > b + 1e-6) break; m = e.m; } return (m || 0) + 1; }
+// Zehner-Markierungen unter dem Balken (Takt 10, 20, 30 …), an jeder Stelle, wo der Takt gespielt wird
+function seekTicks() {
+  const box = $("seek-ticks"); if (!box) return; box.innerHTML = "";
+  const ev = P.tracks && P.tracks[0] && P.tracks[0].events, end = P.end; if (!ev || !ev.length || !end) return;
+  const marks = []; let lastM = null;
+  for (const e of ev) {
+    if (e.m == null || e.m === lastM) continue; lastM = e.m;
+    const n = barName(e.m + 1); if (typeof n !== "number" || n % 10) continue;
+    marks.push({ n, b: Math.floor(e.b / P.barBeats + 1e-6) * P.barBeats });
+  }
+  const w = box.clientWidth || 300;
+  let gap = Infinity; for (let i = 1; i < marks.length; i++) gap = Math.min(gap, (marks[i].b - marks[i - 1].b) / end * w);
+  const every = gap < 16 ? 50 : gap < 24 ? 20 : 10;
+  let lastX = -99;
+  for (const k of marks) {
+    const f = Math.min(1, k.b / end), pos = `calc(var(--th) + (100% - 2 * var(--th)) * ${f.toFixed(5)})`;
+    const t = document.createElement("i"); t.style.left = pos; box.appendChild(t);
+    const x = f * w; if (k.n % every || x - lastX < 18) continue; lastX = x;
+    const l = document.createElement("b"); l.textContent = k.n; l.style.left = pos; box.appendChild(l);
+  }
+}
 function seekUI(b, force) { if (seekDrag && !force) return; $("seek").value = Math.max(0, b); $("seek-t").textContent = barLabel(barAt(Math.max(0, b))); }
 function seekTo(b) {
   b = Math.max(0, Math.min(P.end - 0.01, Math.floor(b / P.barBeats + 1e-6) * P.barBeats));
@@ -1463,7 +1489,7 @@ function landUpd() {
   if (lastEls.length) setTimeout(() => scrollToEl(lastEls[0]), 60);
 }
 LANDQ.addEventListener ? LANDQ.addEventListener("change", landUpd) : LANDQ.addListener(landUpd);
-window.addEventListener("resize", () => { clearTimeout(landUpd.t); landUpd.t = setTimeout(landUpd, 150); });
+window.addEventListener("resize", () => { clearTimeout(landUpd.t); landUpd.t = setTimeout(() => { landUpd(); seekTicks(); }, 150); });
 $("l-play").onclick = () => $("play").click();
 // Querformat: "Takte" öffnet Ab-Takt und Schleife in einem kleinen Fenster (dieselben Bedienelemente, nur verschoben)
 var LS = { marks: null };
