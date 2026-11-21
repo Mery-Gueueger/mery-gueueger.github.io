@@ -190,6 +190,8 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
   #print-pages img { display: block; width: 100%; height: auto; max-height: 100vh; object-fit: contain; break-after: page; page-break-after: always }
   #print-pages img:last-child { break-after: auto; page-break-after: auto }
 }
+/* Die Seite darf nie breiter als der Bildschirm werden (nach dem Drehen blieb sie sonst seitlich verschoben) */
+html, body { overflow-x: hidden; overflow-x: clip; max-width: 100% }
 </style>
 <style>
 html { -webkit-text-size-adjust: 100% }
@@ -261,7 +263,7 @@ body.learning .scroller { scroll-behavior: auto }
 .seek input { flex: 1; min-width: 0; accent-color: var(--accent); height: 36px }
 .seek span { font-size: .85rem; color: var(--muted); font-weight: 700; min-width: 4.8em; text-align: right; font-variant-numeric: tabular-nums }
 body.landplay .scorecard { flex-direction: column; justify-content: center }
-body.landplay .seek { width: 100%; padding-right: 130px }
+body.landplay .seek { width: 100%; padding-right: 250px }
 body.landplay .scorecard { position: fixed; inset: 0; z-index: 900; margin: 0 !important; border-radius: 0; border: 0; padding: 6px 0; display: flex; align-items: center }
 body.landplay .scorecard .scroller { width: 100% }
 body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(10px, env(safe-area-inset-right)); bottom: 10px; z-index: 901 }
@@ -296,7 +298,7 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
     <button class="tile" id="go-tuner"><div><b>Stimmgerät</b><span>Instrument stimmen über das Mikrofon</span></div><i>›</i></button>
     <button class="tile" id="go-theory"><div><b>Musiktheorie</b><span>Notenwerte, Pausen, Zeichen – mit Quiz</span></div><i>›</i></button>
   </div>
-  <p class="ver" id="ver">Version 75</p>
+  <p class="ver" id="ver">Version 76</p>
   <div class="card" id="lt" hidden>
     <div hidden>
     <b>Startlogo einstellen</b>
@@ -1435,13 +1437,15 @@ $("v-out").onclick = () => vZoom(1 / 1.4);
 
 /* Querformat beim Mitspielen: Noten über den ganzen Bildschirm */
 const LANDQ = matchMedia("(orientation: landscape) and (max-height: 560px)");
-const LZ = { f: +store.get("land-zoom2", 0.95) || 0.95 };
-function landZoom(d) { LZ.f = Math.max(0.35, Math.min(1.3, Math.round((LZ.f + d) * 100) / 100)); store.set("land-zoom2", LZ.f); landUpd(); }
+const LZ = { f: +store.get("land-zoom3", 1.15) || 1.15 };
+function landZoom(d) { LZ.f = Math.max(0.35, Math.min(1.8, Math.round((LZ.f + d) * 100) / 100)); store.set("land-zoom3", LZ.f); landUpd(); }
 function landUpd() {
   XMAP = null; FXS = null;
   const on = LANDQ.matches && !$("s-song").hidden && cur.mode === "play" && $("viewer").hidden;
   document.body.classList.toggle("landplay", on);
   const pa = $("paper"); pa.style.zoom = "";
+  // zurück im Hochformat: Seite wieder ganz links (sonst bleibt sie seitlich verschoben stehen)
+  if (!on && window.scrollX) window.scrollTo(0, window.scrollY);
   // Quer: Notenzeile in angenehmer Grösse (nicht ganze Höhe), mit − und + anpassbar, wird gemerkt
   if (on) { const sv = pa.querySelector("svg"); if (sv) { const hh = sv.getBoundingClientRect().height; if (hh > 0) pa.style.zoom = Math.max(0.5, Math.min(3, (innerHeight - 24) / hh * LZ.f)); } }
   if (lastEls.length) setTimeout(() => scrollToEl(lastEls[0]), 60);
