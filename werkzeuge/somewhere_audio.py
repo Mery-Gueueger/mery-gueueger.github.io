@@ -1,6 +1,6 @@
 """Somewhere Only We Know in Gugge-Ablauf schneiden:
 Einzählen + Takt 1–52, 33–46, 53–62 (mit Wiederholung) · 4 Takte Schlagzeug (Euphonium-Auftakt im 4.) · 41–48 ·
-4 Takte Schlagzeug · 41–48 · 62 bis Schluss."""
+4 Takte Schlagzeug · 41–48 · 63 bis Schluss."""
 import numpy as np, subprocess, json, sys
 from concurrent.futures import ThreadPoolExecutor
 SRC = sys.argv[1]; OUT = sys.argv[2]; SR = 44100
@@ -70,12 +70,12 @@ def build(item):
     gd, ge = {"drums": (1, 0), "tutti": (1, 1.8), "eup": (0.7, 1.8)}.get(pid, (0.7, 0))  # Euphonium-Auftakt kräftig
     D = drum_block(gd, ge)
     # bis und mit Takt 62 (Position 75), dann Schlagzeug
-    parts = [seg(x, 0, t(76), 0, 0.05), D, seg(x, t(40), t(48)), D, seg(x, t(40), t(48)), seg(x, t(75), len(x) / SR, 0.012, 0.3)]
+    parts = [seg(x, 0, t(76), 0, 0.05), D, seg(x, t(40), t(48)), D, seg(x, t(40), t(48)), seg(x, t(76), len(x) / SR, 0.012, 0.3)]  # zum Schluss ab Takt 63
     y = np.clip(np.concatenate(parts), -1, 1).astype(np.float32)
-    out = OUT + f"sowk5-{pid}.mp3"
+    out = OUT + f"sowk6-{pid}.mp3"
     subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "f32le", "-ar", str(SR), "-ac", "2", "-i", "-", "-b:a", "96k", out], input=y.tobytes(), check=True)
     return pid, round(len(y) / SR, 2)
 audio = json.loads(sys.argv[3])
 with ThreadPoolExecutor(8) as ex:
     for r in ex.map(build, audio.items()): print(r)
-print("erwartet mind.", round(off + 106 * BL, 2))
+print("erwartet mind.", round(off + 105 * BL, 2))
