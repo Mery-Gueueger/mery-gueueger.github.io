@@ -323,7 +323,7 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
     <button class="tile" id="go-tuner"><div><b>Stimmgerät</b><span>Instrument stimmen über das Mikrofon</span></div><i>›</i></button>
     <button class="tile" id="go-theory"><div><b>Musiktheorie</b><span>Notenwerte, Pausen, Zeichen – mit Quiz</span></div><i>›</i></button>
   </div>
-  <p class="ver" id="ver">Version 81</p>
+  <p class="ver" id="ver">Version 82</p>
   <div class="card" id="lt" hidden>
     <div hidden>
     <b>Startlogo einstellen</b>
@@ -1343,25 +1343,123 @@ $("play").onclick = async () => {
 /* Aufnahmen (verschlüsselt geladen, Tempo ohne Tonhöhenänderung) */
 let SRC = store.get("src", "mine");
 const AUD = {};
-const R = { el: new Audio(), on: false, raf: 0, clicks: [] };
-(function diagAudio() {
-  const el = R.el, f = x => (x == null || isNaN(x)) ? "-" : (+x).toFixed(2);
+/* Ersatz-Abspieler über Web Audio: für iPhones, bei denen Safari in Aufnahmen nicht springen kann
+   (Länge fällt beim Springen auf 0, sofort «ended», Fehlerprotokolle 24.11.). Bietet dieselben Teile wie ein
+   <audio>-Element, die die App braucht. Langsameres Tempo ohne Tonhöhenänderung per WSOLA-Zeitdehnung. */
+function stretchBuf(buf, rate) {
+  const C = buf.numberOfChannels, len = buf.length, N = 2048, Hs = N / 2, Ha = Hs * rate, D = 512;
+  const outLen = Math.ceil(len / rate), out = actx.createBuffer(C, outLen, buf.sampleRate);
+  const xs = [], ys = []; for (let c = 0; c < C; c++) { xs.push(buf.getChannelData(c)); ys.push(out.getChannelData(c)); }
+  const mono = C > 1 ? xs[0].map((v, i) => v + xs[1][i]) : xs[0];
+  const w = new Float32Array(N); for (let i = 0; i < N; i++) w[i] = 0.5 - 0.5 * Math.cos(2 * Math.PI * i / N);
+  let prev = 0;
+  for (let k = 0; k * Hs < outLen; k++) {
+    let pos = Math.round(k * Ha);
+    if (k > 0) {
+      const nat = prev + Hs; let best = -Infinity, bp = pos;
+      if (nat + N < len) for (let c = Math.max(0, pos - D); c <= pos + D && c + N < len; c += 4) {
+        let sc = 0; for (let i = 0; i < 512; i += 8) sc += mono[c + i] * mono[nat + i];
+        if (sc > best) { best = sc; bp = c; }
+      }
+      pos = bp;
+    }
+    prev = pos; const o = k * Hs;
+    for (let ch = 0; ch < C; ch++) { const x = xs[ch], y = ys[ch]; for (let i = 0; i < N && o + i < outLen && pos + i < len; i++) y[o + i] += x[pos + i] * w[i]; }
+  }
+  return out;
+}
+class WAPlayer {
+  constructor() { this.ls = {}; this.dataset = {}; this.buf = null; this.sb = null; this.sbRate = 1; this._rate = 1; this._muted = false; this._paused = true; this._off = 0; this._t0 = 0; this.node = null; this.gain = null; this.src = ""; this.readyState = 0; this.seeking = false; this.ended = false; this.error = null; this.wa = true; }
+  addEventListener(t, f, o) { (this.ls[t] = this.ls[t] || []).push({ f, once: !!(o && o.once) }); }
+  removeEventListener(t, f) { this.ls[t] = (this.ls[t] || []).filter(x => x.f !== f); }
+  _emit(t) { const l = (this.ls[t] || []).slice(); this.ls[t] = (this.ls[t] || []).filter(x => !x.once); l.forEach(x => { try { x.f.call(this, { type: t }); } catch (e) { console.error(e); } }); }
+  get duration() { return this.buf ? this.buf.duration : NaN; }
+  get paused() { return this._paused; }
+  get currentTime() { if (this._paused || !this.node) return this._off; return Math.min(this.duration, this._off + (actx.currentTime - this._t0) * this._rate); }
+  set currentTime(t) { this._off = Math.max(0, Math.min(+t || 0, this.duration || 0)); this.ended = false; if (!this._paused) this._start(); this._emit("seeking"); setTimeout(() => this._emit("seeked"), 0); }
+  get muted() { return this._muted; }
+  set muted(m) { m = !!m; if (m === this._muted) return; this._muted = m; if (this.gain) this.gain.gain.setValueAtTime(m ? 0 : 1, actx.currentTime); this._emit("volumechange"); }
+  get playbackRate() { return this._want || this._rate; }
+  set playbackRate(r) {
+    r = Math.max(0.25, Math.min(2, +r || 1)); this._want = r; clearTimeout(this._rt);
+    const apply = () => { if (this._want == null) return; const t = this.currentTime; this._rate = this._want; this._want = null; this._off = t; if (!this._paused) this._start(); this._emit("ratechange"); };
+    if (this._paused) apply(); else this._rt = setTimeout(apply, 300);
+  }
+  _bufFor(r) {
+    if (Math.abs(r - 1) < 0.001) return this.buf;
+    if (this.sb && this.sbRate === r) return this.sb;
+    const t = performance.now(); this.sb = stretchBuf(this.buf, r); this.sbRate = r;
+    dlog(`Tempo ${Math.round(r * 100)} % vorbereitet in ${Math.round(performance.now() - t)} ms`); return this.sb;
+  }
+  _start() {
+    if (this.node) { this.node.onended = null; try { this.node.stop(); } catch (e) {} }
+    const a = ctx(); if (!this.gain) { this.gain = a.createGain(); this.gain.connect(a.destination); }
+    this.gain.gain.setValueAtTime(this._muted ? 0 : 1, a.currentTime);
+    const b = this._bufFor(this._rate), n = a.createBufferSource(); n.buffer = b; n.connect(this.gain);
+    this._t0 = a.currentTime; n.start(0, Math.min(this._off / this._rate, Math.max(0, b.duration - 0.01)));
+    n.onended = () => { if (n !== this.node) return; this._off = this.duration; this._paused = true; this.node = null; this.ended = true; this._emit("pause"); this._emit("ended"); };
+    this.node = n;
+  }
+  play() {
+    if (!this.buf) return Promise.reject(new Error("Aufnahme nicht geladen"));
+    if (this._off >= this.duration - 0.01) this._off = 0;
+    if (this._paused) { this._paused = false; this.ended = false; this._start(); this._emit("play"); setTimeout(() => this._emit("playing"), 0); }
+    return Promise.resolve();
+  }
+  pause() { if (this._paused) return; this._off = this.currentTime; this._paused = true; if (this.node) { this.node.onended = null; try { this.node.stop(); } catch (e) {} this.node = null; } this._emit("pause"); }
+  load() {
+    this.pause(); this.buf = null; this.sb = null; this.readyState = 0; this._off = 0; this._emit("emptied");
+    const src = this.src, a = ctx();
+    fetch(src).then(r => r.arrayBuffer()).then(ab => new Promise((ok, ko) => { const p = a.decodeAudioData(ab, ok, ko); if (p && p.catch) p.catch(ko); }))
+      .then(b => { if (src !== this.src) return; this.buf = b; this.readyState = 4; dlog("Web-Audio: Aufnahme bereit, " + b.duration.toFixed(1) + " s"); this._emit("loadedmetadata"); })
+      .catch(e => { this.error = { code: 0, message: String(e) }; this._emit("error"); });
+  }
+}
+const R = { el: store.get("wa-audio", 0) ? new WAPlayer() : new Audio(), on: false, raf: 0, clicks: [] };
+function diagAudio(el) {
+  const f = x => (x == null || isNaN(x)) ? "-" : (+x).toFixed(2);
   const st = () => `t=${f(el.currentTime)} b=${typeof bOf === "function" && P && P.barBeats ? f(bOf(el.currentTime)) : "-"} paused=${el.paused} muted=${el.muted} seeking=${el.seeking} rs=${el.readyState} rate=${f(el.playbackRate)} dur=${f(el.duration)}`;
   ["play", "playing", "pause", "seeking", "seeked", "waiting", "stalled", "suspend", "ended", "emptied", "loadedmetadata", "canplay", "volumechange", "ratechange"].forEach(ev =>
     el.addEventListener(ev, () => { if (ev === "suspend" || ev === "canplay") return; dlog("Audio " + ev + " · " + st()); }));
   el.addEventListener("error", () => dlog("Audio FEHLER " + (el.error ? el.error.code + " " + el.error.message : "")));
-  const play0 = HTMLMediaElement.prototype.play;
+  const play0 = el.play;
   el.play = function () {
     dlog("play() aufgerufen · " + st());
     const p = play0.call(this);
     if (p && p.then) p.then(() => dlog("play() ok"), e => dlog("play() FEHLER " + e.name + ": " + e.message));
     return p;
   };
-  const pause0 = HTMLMediaElement.prototype.pause;
+  const pause0 = el.pause;
   el.pause = function () { dlog("pause() aufgerufen · " + st()); return pause0.call(this); };
   R.diagSt = st;
-})();
-R.el.preload = "auto"; R.el.preservesPitch = true; R.el.mozPreservesPitch = true; R.el.webkitPreservesPitch = true;
+}
+function recInit(el) {
+  diagAudio(el);
+  el.preload = "auto"; el.preservesPitch = true; el.mozPreservesPitch = true; el.webkitPreservesPitch = true;
+  // Sicherheitsnetz: Safari meldet mitten im Lied "ended" → an derselben Stelle weiterspielen
+  el.addEventListener("ended", () => {
+    if (el !== R.el) return;
+    if (!el.wa && R.on && !(el.duration > 1)) { waSwitch(); return; }
+    if (!R.on || !(el.duration - el.currentTime > 2) || (R.endFix = (R.endFix || 0) + 1) > 3) return;
+    dlog(`Zu frühes Ende bei t=${el.currentTime.toFixed(2)} (Dauer ${el.duration.toFixed(2)}) → weiterspielen, Versuch ${R.endFix}`);
+    const t = el.currentTime; el.muted = R.unmuteAt != null; playThenSeek(el, t);
+  });
+  if (!el.wa) el.addEventListener("seeked", () => { if (el === R.el && R.on && !(el.duration > 1)) waSwitch(); });
+  if (el.wa) dlog("Abspieler: Web Audio");
+}
+// Safari kann in dieser Aufnahme nicht springen → auf Web Audio umstellen (für dieses Handy merken) und neu starten
+function waSwitch() {
+  if (R.el.wa || R.switching) return; R.switching = true;
+  dlog("Springen klappt nicht (Länge " + R.el.duration + ") → Umstellung auf Web Audio");
+  store.set("wa-audio", 1);
+  setTimeout(() => {
+    const keep = P.pos; stopAll(); const old = R.el; old.muted = false;
+    try { old.removeAttribute("src"); old.load(); } catch (e) {}
+    R.el = new WAPlayer(); recInit(R.el); P.pos = keep; R.switching = false;
+    playRec();
+  }, 0);
+}
+recInit(R.el);
 const spbSong = () => 60 / cur.song.qpm;
 const tOf = b => cur.song.offset + b * spbSong();
 const bOf = t => (t - cur.song.offset) / spbSong();
@@ -1461,13 +1559,6 @@ function playThenSeek(el, target) {
   el.addEventListener("playing", jump); setTimeout(jump, 1200);
   el.play().catch(e => dlog("play() FEHLER beim Sprung " + e.name));
 }
-// Sicherheitsnetz: Safari meldet mitten im Lied "ended" → an derselben Stelle weiterspielen
-R.el.addEventListener("ended", () => {
-  const el = R.el;
-  if (!R.on || !(el.duration - el.currentTime > 2) || (R.endFix = (R.endFix || 0) + 1) > 3) return;
-  dlog(`Zu frühes Ende bei t=${el.currentTime.toFixed(2)} (Dauer ${el.duration.toFixed(2)}) → weiterspielen, Versuch ${R.endFix}`);
-  const t = el.currentTime; el.muted = R.unmuteAt != null; playThenSeek(el, t);
-});
 function recTick() {
   if (!R.on) return;
   const el = R.el, b = bOf(el.currentTime);
