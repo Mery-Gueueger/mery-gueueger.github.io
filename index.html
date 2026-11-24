@@ -323,7 +323,7 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
     <button class="tile" id="go-tuner"><div><b>Stimmgerät</b><span>Instrument stimmen über das Mikrofon</span></div><i>›</i></button>
     <button class="tile" id="go-theory"><div><b>Musiktheorie</b><span>Notenwerte, Pausen, Zeichen – mit Quiz</span></div><i>›</i></button>
   </div>
-  <p class="ver" id="ver">Version 80</p>
+  <p class="ver" id="ver">Version 81</p>
   <div class="card" id="lt" hidden>
     <div hidden>
     <b>Startlogo einstellen</b>
@@ -1386,11 +1386,23 @@ function srcUI() {
   if (rk) loadAudio(rk).catch(() => {});
 }
 $("src").querySelectorAll("button").forEach(b => b.onclick = () => { stopAll(true); SRC = b.dataset.src; store.set("src", SRC); srcUI(); });
+if (window.caches) caches.delete("mg-hoeren").catch(() => {});
 async function loadAudio(pid) {
   const k = cur.song.id + "/" + pid; if (AUD[k]) return AUD[k];
   if (!AUD["p" + k]) AUD["p" + k] = (async () => {
     const r = await fetch("daten/" + cur.song.audio[pid]); if (!r.ok) throw new Error("net");
     const plain = await decryptWith(GUGGE.key, await r.arrayBuffer());
+    // Bevorzugt über den Service Worker als «echte» Datei mit Range-Antworten: Safari kann in Blob-Aufnahmen
+    // teils nicht springen (Länge fällt auf die Sprungstelle, sofort «ended»)
+    try {
+      if (navigator.serviceWorker && navigator.serviceWorker.controller && window.caches) {
+        const u = new URL("hoeren/" + cur.song.audio[pid].replace(/\.bin$/, ".mp3"), location.href).href;
+        await (await caches.open("mg-hoeren")).put(u, new Response(plain, { headers: { "Content-Type": "audio/mpeg" } }));
+        const t = await fetch(u, { headers: { Range: "bytes=0-1" } });
+        if (t.status === 206) { dlog("Aufnahme über Service Worker: " + pid); return AUD[k] = u; }
+      }
+    } catch (e) { dlog("Service-Worker-Weg nicht möglich: " + e); }
+    dlog("Aufnahme als Blob: " + pid);
     return AUD[k] = URL.createObjectURL(new Blob([plain], { type: "audio/mpeg" }));
   })().catch(e => { delete AUD["p" + k]; throw e; });
   return AUD["p" + k];
