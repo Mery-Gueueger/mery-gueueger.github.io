@@ -342,7 +342,7 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
     <button class="tile sq" id="go-tuner"><div><b>Stimmgerät</b><span>Instrument stimmen über das Mikrofon</span></div><i>›</i></button>
     <button class="tile sq" id="go-theory"><div><b>Musiktheorie</b><span>Notenwerte, Pausen, Zeichen – mit Quiz</span></div><i>›</i></button>
   </div>
-  <p class="ver" id="ver">Version 90</p>
+  <p class="ver" id="ver">Version 91</p>
   <div class="card" id="lt" hidden>
     <div hidden>
     <b>Startlogo einstellen</b>
@@ -812,7 +812,7 @@ const BX = { list: null, busy: false, i: -1, el: new Audio(), url: null, shuf: !
 BX.el.preload = "auto";
 async function bxLoad() {
   if (!GUGGE.key || BX.list || BX.busy) return; BX.busy = true;
-  try { const r = await fetch("daten/archiv.bin", { cache: "no-cache" }); if (r.ok) BX.list = JSON.parse(new TextDecoder().decode(await decryptWith(GUGGE.key, await r.arrayBuffer()))); }
+  try { const r = await fetch("daten/archiv.bin?t=" + Date.now(), { cache: "no-store" }); if (r.ok) BX.list = JSON.parse(new TextDecoder().decode(await decryptWith(GUGGE.key, await r.arrayBuffer()))); }
   catch (e) { dlog("Musikbox laden: " + e); }
   BX.busy = false; if (!$("s-box").hidden) bxRender();
 }
