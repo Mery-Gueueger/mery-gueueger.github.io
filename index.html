@@ -67,7 +67,24 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
 .chip { border: 2px solid var(--line); background: var(--card); border-radius: 14px; padding: 14px 16px; font-size: 1.1rem; font-family: var(--f-display); font-weight: 800; cursor: pointer; text-align: left; font-weight: 700 }
 .chip small { display: block; font-family: var(--f-body); font-weight: 400; color: var(--muted); font-size: .8rem }
 .chip[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft) }
-.tiles { display: grid; gap: 10px }
+.tiles { display: grid; gap: 10px; grid-template-columns: 1fr 1fr }
+.tile.red { grid-column: 1 / -1 }
+.tile.sq { aspect-ratio: 1; flex-direction: column; align-items: flex-start; justify-content: space-between; padding: 16px; min-width: 0 }
+.tile.sq b { font-size: 1.2rem }
+.tile.sq span { display: block; font-size: .82rem; margin-top: 4px; line-height: 1.3 }
+.tile.sq i { align-self: flex-end; line-height: 1 }
+/* Musikbox */
+.bx-now { align-items: stretch }
+.bx-now .ttl { font-family: var(--f-display); font-weight: 900; font-size: 1.3rem; line-height: 1.2 }
+.bx-now .sub { color: var(--muted); font-size: .9rem; margin-top: -8px }
+.bx-time { display: flex; align-items: center; gap: 10px; font-size: .8rem; color: var(--muted); font-variant-numeric: tabular-nums }
+.bx-time input { flex: 1; min-width: 0; accent-color: var(--accent) }
+.bx-ctl { display: flex; gap: 10px; align-items: center; justify-content: center }
+.bx-ctl button { font: inherit; border: 2px solid var(--line); background: var(--card); color: var(--fg); border-radius: 50%; width: 56px; height: 56px; font-size: 1.3rem; cursor: pointer; display: grid; place-items: center }
+.bx-ctl button.big { width: 76px; height: 76px; background: var(--accent); border-color: var(--accent); color: var(--accent-fg); font-size: 1.8rem }
+.bx-list .row.on { border-color: var(--accent); border-width: 2px }
+.bx-list .row.on .num { color: var(--accent) }
+.bx-list .row .num { font-size: .95rem; width: 22px }
 .tile { border: 0; border-radius: 18px; padding: 18px; text-align: left; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 12px; background: var(--fg); color: var(--bg) }
 .tile.red { background: var(--accent); color: var(--accent-fg) }
 .tile b { font-family: var(--f-display); font-weight: 900; font-size: 1.35rem; display: block }
@@ -319,11 +336,12 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
   </div>
   <div class="tiles" style="margin-top:14px">
     <button class="tile red" id="go-songs"><div><b>Lieder üben</b><span>Mitspielen, Originalnoten und Ventil-Spiel</span></div><i>›</i></button>
-    <button class="tile" id="go-metro"><div><b>Metronom</b><span>Den Takt halten üben</span></div><i>›</i></button>
-    <button class="tile" id="go-tuner"><div><b>Stimmgerät</b><span>Instrument stimmen über das Mikrofon</span></div><i>›</i></button>
-    <button class="tile" id="go-theory"><div><b>Musiktheorie</b><span>Notenwerte, Pausen, Zeichen – mit Quiz</span></div><i>›</i></button>
+    <button class="tile sq" id="go-box"><div><b>Musikbox</b><span>Alte Lieder einfach laufen lassen</span></div><i>›</i></button>
+    <button class="tile sq" id="go-metro"><div><b>Metronom</b><span>Den Takt halten üben</span></div><i>›</i></button>
+    <button class="tile sq" id="go-tuner"><div><b>Stimmgerät</b><span>Instrument stimmen über das Mikrofon</span></div><i>›</i></button>
+    <button class="tile sq" id="go-theory"><div><b>Musiktheorie</b><span>Notenwerte, Pausen, Zeichen – mit Quiz</span></div><i>›</i></button>
   </div>
-  <p class="ver" id="ver">Version 84</p>
+  <p class="ver" id="ver">Version 85</p>
   <div class="card" id="lt" hidden>
     <div hidden>
     <b>Startlogo einstellen</b>
@@ -435,6 +453,39 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
     <button class="main" id="q-next" hidden>Weiter</button>
   </div>
   <div class="card" id="q-done" hidden></div>
+</section>
+
+<!-- MUSIKBOX -->
+<section id="s-box" hidden>
+  <div class="top"><button class="back" data-go="home">‹ Start</button><span class="crumb">Musikbox</span></div>
+  <h2>Musikbox</h2>
+  <p class="muted" style="margin-top:-6px">Lieder, die wir früher gespielt haben – die ganze Gugge. Einfach laufen lassen.</p>
+  <div class="card lock" id="bx-lock" style="margin:10px 0 12px" hidden>
+    <b>Musikbox freischalten</b>
+    <p class="small muted" style="margin:0">Nur für Mitglieder. Gib das Gugge-Passwort einmal ein, danach merkt sich dein Handy das.</p>
+    <input type="password" id="bx-pw" autocomplete="current-password" placeholder="Gugge-Passwort" aria-label="Gugge-Passwort">
+    <button class="main" id="bx-pw-go">Freischalten</button>
+    <p class="err" id="bx-pw-err" aria-live="polite"></p>
+  </div>
+  <p class="loading" id="bx-load"></p>
+  <div id="bx-main" hidden>
+    <div class="card bx-now">
+      <div class="ttl" id="bx-t">–</div>
+      <div class="sub" id="bx-s"></div>
+      <div class="bx-time"><span id="bx-c">0:00</span><input type="range" id="bx-seek" min="0" max="1" step="0.5" value="0" aria-label="Stelle im Lied"><span id="bx-d">0:00</span></div>
+      <div class="bx-ctl">
+        <button type="button" id="bx-prev" aria-label="Vorheriges Lied">⏮</button>
+        <button type="button" class="big" id="bx-play" aria-label="Abspielen">▶</button>
+        <button type="button" id="bx-next" aria-label="Nächstes Lied">⏭</button>
+      </div>
+      <div class="modes" role="group" aria-label="Reihenfolge">
+        <button type="button" id="bx-ord" aria-pressed="true">Der Reihe nach</button>
+        <button type="button" id="bx-shuf" aria-pressed="false">Zufall</button>
+      </div>
+    </div>
+    <h3 style="margin:18px 0 8px">Alle Lieder</h3>
+    <div class="list bx-list" id="bx-list"></div>
+  </div>
 </section>
 
 <!-- LIEDER: Liste -->
@@ -705,6 +756,7 @@ async function guggeOpen(raw) {
   const plain = await decryptWith(key, await r.arrayBuffer());
   const list = JSON.parse(new TextDecoder().decode(plain));
   GUGGE.key = key; GUGGE.ok = true;
+  bxLoad();
   for (let i = SONGS.length - 1; i >= 0; i--) if (SONGS[i].real) SONGS.splice(i, 1);
   SONGS.unshift(...list.map(prepSong));
 }
@@ -715,22 +767,25 @@ async function guggeStored() {
   catch (e) { if (e && e.name === "OperationError") store.set("gk", null); }
   GUGGE.busy = false;
   if (!$("s-songs").hidden) renderSongs();
+  if (!$("s-box").hidden) bxRender();
 }
-async function guggeUnlock() {
-  const pw = $("pw").value; if (!pw) { $("pw-err").textContent = "Bitte das Passwort eingeben."; return; }
-  if (!window.crypto || !crypto.subtle) { $("pw-err").textContent = "Dein Browser kann die Lieder nicht entschlüsseln."; return; }
-  $("pw-go").disabled = true; $("pw-err").textContent = ""; $("sl-load").textContent = "Wird geprüft …";
+async function guggeUnlock(pre) {
+  pre = typeof pre === "string" ? pre : "";  // "" = Lieder üben, "bx-" = Musikbox
+  const id = x => pre ? pre + x : (x === "load" ? "sl-load" : x);
+  const pw = $(id("pw")).value; if (!pw) { $(id("pw-err")).textContent = "Bitte das Passwort eingeben."; return; }
+  if (!window.crypto || !crypto.subtle) { $(id("pw-err")).textContent = "Dein Browser kann die Lieder nicht entschlüsseln."; return; }
+  $(id("pw-go")).disabled = true; $(id("pw-err")).textContent = ""; $(id("load")).textContent = "Wird geprüft …";
   try {
     const meta = await (await fetch("daten/schluessel.json", { cache: "no-cache" })).json();
     const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(pw.normalize("NFC")), "PBKDF2", false, ["deriveBits"]);
     const raw = new Uint8Array(await crypto.subtle.deriveBits({ name: "PBKDF2", salt: b64d(meta.salt), iterations: meta.iter, hash: "SHA-256" }, base, 256));
     await guggeOpen(raw);
-    store.set("gk", b64e(raw)); $("pw").value = "";
+    store.set("gk", b64e(raw)); $(id("pw")).value = "";
   } catch (e) {
-    $("pw-err").textContent = e && e.name === "OperationError" ? "Das Passwort stimmt nicht. Achte auf Gross- und Kleinschreibung." : "Keine Verbindung. Versuche es mit Internet nochmals.";
+    $(id("pw-err")).textContent = e && e.name === "OperationError" ? "Das Passwort stimmt nicht. Achte auf Gross- und Kleinschreibung." : "Keine Verbindung. Versuche es mit Internet nochmals.";
   }
-  $("pw-go").disabled = false; $("sl-load").textContent = "";
-  renderSongs();
+  $(id("pw-go")).disabled = false; $(id("load")).textContent = "";
+  renderSongs(); bxRender();
 }
 
 /* ---------- Hilfen ---------- */
@@ -751,8 +806,109 @@ function drawAbc(el, abc, scale) {
   if (sv) { const r = sv.getBoundingClientRect(); let hh = r.height; try { const bb = sv.getBBox(); if (bb.height > 0) hh = Math.min(hh, (bb.y + bb.height) * sc + 8); } catch (e) {} inner.style.height = Math.ceil(hh) + "px"; inner.style.width = Math.ceil(r.width) + "px"; inner.style.overflow = "visible"; inner.style.margin = "0 auto"; }
 }
 
+/* ---------- Musikbox: alte Lieder (nur Tutti), der Reihe nach oder zufällig ---------- */
+const BX = { list: null, busy: false, i: -1, el: new Audio(), url: null, shuf: !!store.get("bx-shuf", false), order: [], loading: false, drag: false };
+BX.el.preload = "auto";
+async function bxLoad() {
+  if (!GUGGE.key || BX.list || BX.busy) return; BX.busy = true;
+  try { const r = await fetch("daten/archiv.bin", { cache: "no-cache" }); if (r.ok) BX.list = JSON.parse(new TextDecoder().decode(await decryptWith(GUGGE.key, await r.arrayBuffer()))); }
+  catch (e) { dlog("Musikbox laden: " + e); }
+  BX.busy = false; if (!$("s-box").hidden) bxRender();
+}
+const bxFmt = s => { s = Math.max(0, Math.floor(s || 0)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); };
+function bxMakeOrder() {
+  const n = BX.list ? BX.list.length : 0, o = [...Array(n).keys()];
+  if (BX.shuf) for (let i = n - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [o[i], o[j]] = [o[j], o[i]]; }
+  if (BX.shuf && BX.i >= 0) { o.splice(o.indexOf(BX.i), 1); o.unshift(BX.i); }  // laufendes Lied bleibt vorne
+  BX.order = o;
+}
+function bxRender() {
+  const ok = GUGGE.ok;
+  $("bx-lock").hidden = ok || GUGGE.busy;
+  if (ok && !BX.list && !BX.busy) bxLoad();
+  $("bx-load").textContent = GUGGE.busy || BX.busy ? "Lieder werden geladen …" : ok && BX.list && !BX.list.length ? "Noch keine Lieder in der Musikbox." : "";
+  $("bx-main").hidden = !(ok && BX.list && BX.list.length);
+  if ($("bx-main").hidden) return;
+  if (BX.order.length !== BX.list.length) bxMakeOrder();
+  $("bx-ord").setAttribute("aria-pressed", !BX.shuf); $("bx-shuf").setAttribute("aria-pressed", BX.shuf);
+  const s = BX.list[BX.i];
+  $("bx-t").textContent = s ? s.t : "Bereit"; $("bx-s").textContent = s ? (s.s || "") : `${BX.list.length} Lieder – Play drücken`;
+  bxUI();
+  const box = $("bx-list"); box.innerHTML = "";
+  BX.list.forEach((x, i) => {
+    const b = document.createElement("button"); b.type = "button"; b.className = "row" + (i === BX.i ? " on" : "");
+    b.innerHTML = `<span class="num">${i === BX.i && !BX.el.paused ? "♪" : i + 1}</span><span class="txt"><b>${x.t}</b><small>${[x.s, bxFmt(x.d)].filter(Boolean).join(" · ")}</small></span>`;
+    b.onclick = () => bxPlayIdx(i); box.appendChild(b);
+  });
+}
+function bxUI() {
+  const el = BX.el, d = el.duration || (BX.list && BX.list[BX.i] && BX.list[BX.i].d) || 0;
+  $("bx-play").textContent = BX.loading ? "…" : el.paused ? "▶" : "⏸";
+  $("bx-play").setAttribute("aria-label", el.paused ? "Abspielen" : "Pause");
+  $("bx-d").textContent = bxFmt(d); $("bx-seek").max = Math.max(1, d);
+  if (!BX.drag) { $("bx-seek").value = el.currentTime || 0; $("bx-c").textContent = bxFmt(el.currentTime); }
+}
+async function bxPlayIdx(i) {
+  if (!BX.list || !BX.list[i]) return;
+  stopAll(); BX.i = i; BX.loading = true; bxRender();
+  const x = BX.list[i], el = BX.el;
+  try {
+    const r = await fetch("daten/" + x.f); if (!r.ok) throw new Error("Netz " + r.status);
+    const plain = await decryptWith(GUGGE.key, await r.arrayBuffer());
+    if (BX.i !== i) return;
+    let url = null;
+    try {  // wie bei den Übungs-Aufnahmen: über den Service Worker (iPhone kann sonst nicht springen)
+      if (navigator.serviceWorker && navigator.serviceWorker.controller && window.caches) {
+        const u = new URL("hoeren/box-" + x.f.replace(/\.bin$/, ".mp3"), location.href).href;
+        await (await caches.open("mg-hoeren")).put(u, new Response(plain, { headers: { "Content-Type": "audio/mpeg" } }));
+        if ((await fetch(u, { headers: { Range: "bytes=0-1" } })).status === 206) url = u;
+      }
+    } catch (e) {}
+    if (!url) url = URL.createObjectURL(new Blob([plain], { type: "audio/mpeg" }));
+    if (BX.url && BX.url.startsWith("blob:")) URL.revokeObjectURL(BX.url);
+    BX.url = url; el.src = url; el.load();
+    await el.play();
+  } catch (e) { dlog("Musikbox abspielen: " + e); $("bx-s").textContent = "Konnte nicht geladen werden – Internet prüfen."; }
+  BX.loading = false; bxRender(); bxMedia();
+}
+function bxStep(dir) {
+  if (!BX.list || !BX.list.length) return;
+  if (BX.order.length !== BX.list.length) bxMakeOrder();
+  let k = BX.order.indexOf(BX.i) + dir;
+  if (k >= BX.order.length) { if (BX.shuf) { BX.i = -1; bxMakeOrder(); k = 0; } else k = 0; }
+  if (k < 0) k = BX.order.length - 1;
+  bxPlayIdx(BX.order[k]);
+}
+function bxPause() { if (!BX.el.paused) BX.el.pause(); }
+$("bx-play").onclick = () => {
+  if (BX.loading) return;
+  if (BX.i < 0) { bxMakeOrder(); bxPlayIdx(BX.order[0]); return; }
+  if (BX.el.paused) { stopAll(); BX.el.play().catch(e => dlog("Musikbox: " + e)); } else BX.el.pause();
+};
+$("bx-next").onclick = () => bxStep(1);
+$("bx-prev").onclick = () => { if (BX.el.currentTime > 4) BX.el.currentTime = 0; else bxStep(-1); };
+$("bx-ord").onclick = () => { BX.shuf = false; store.set("bx-shuf", false); bxMakeOrder(); bxRender(); };
+$("bx-shuf").onclick = () => { BX.shuf = true; store.set("bx-shuf", true); bxMakeOrder(); bxRender(); };
+$("bx-seek").addEventListener("input", () => { BX.drag = true; $("bx-c").textContent = bxFmt(+$("bx-seek").value); });
+$("bx-seek").addEventListener("change", () => { BX.el.currentTime = +$("bx-seek").value; BX.drag = false; });
+["play", "pause", "loadedmetadata", "durationchange"].forEach(ev => BX.el.addEventListener(ev, () => { if (!$("s-box").hidden) bxRender(); }));
+BX.el.addEventListener("timeupdate", () => { if (!$("s-box").hidden) bxUI(); });
+BX.el.addEventListener("ended", () => bxStep(1));
+// Steuerung auf dem Sperrbildschirm
+function bxMedia() {
+  if (!("mediaSession" in navigator) || !BX.list || !BX.list[BX.i]) return;
+  const x = BX.list[BX.i];
+  try {
+    navigator.mediaSession.metadata = new MediaMetadata({ title: x.t, artist: "Mery-Güüger", album: "Musikbox", artwork: [{ src: "icon-512.png", sizes: "512x512", type: "image/png" }] });
+    navigator.mediaSession.setActionHandler("play", () => BX.el.play());
+    navigator.mediaSession.setActionHandler("pause", () => BX.el.pause());
+    navigator.mediaSession.setActionHandler("nexttrack", () => bxStep(1));
+    navigator.mediaSession.setActionHandler("previoustrack", () => bxStep(-1));
+  } catch (e) {}
+}
+
 /* ---------- Navigation ---------- */
-const SCREENS = ["home", "metro", "tuner", "instr", "theory", "lesson", "quiz", "songs", "song"];
+const SCREENS = ["home", "metro", "tuner", "instr", "theory", "lesson", "quiz", "songs", "song", "box"];
 // Verlauf, damit die Zurück-Taste des Handys eine Seite zurück geht statt die App zu schliessen
 const navStack = ["home"];
 // Titel auf eine Zeile bringen: Schrift verkleinern, bis er passt
@@ -766,6 +922,7 @@ function fitText(root) {
 window.addEventListener("resize", () => fitText());
 function show(s) {
   if (s !== "song") stopAll();
+  if (s === "song" && typeof bxPause === "function") bxPause();
   if (s !== "metro" && typeof mtStop === "function") mtStop();
   if (s !== "tuner" && typeof tnStop === "function") tnStop();
   SCREENS.forEach(n => $("s-" + n).hidden = n !== s);
@@ -774,6 +931,7 @@ function show(s) {
   window.scrollTo(0, 0);
   if (s === "theory") renderLessons();
   if (s === "songs") renderSongs();
+  if (s === "box") bxRender();
   if (s === "instr") renderInstr();
 }
 function go(s) {
@@ -812,6 +970,7 @@ function renderInstr() {
   if (tuttiPt) addPart(tuttiPt);
 }
 $("go-theory").onclick = () => go("theory");
+$("go-box").onclick = () => go("box");
 $("go-metro").onclick = () => go("metro");
 $("go-tuner").onclick = () => go("tuner");
 $("logo-home").onclick = () => go("home");
@@ -1962,7 +2121,9 @@ document.addEventListener("keydown", e => {
 document.addEventListener("keyup", e => { LN.held.delete(e.key); });
 
 /* ---------- Start ---------- */
-$("pw-go").onclick = guggeUnlock;
+$("pw-go").onclick = () => guggeUnlock("");
+$("bx-pw-go").onclick = () => guggeUnlock("bx-");
+$("bx-pw").addEventListener("keydown", e => { if (e.key === "Enter") guggeUnlock("bx-"); });
 $("pw").addEventListener("keydown", e => { if (e.key === "Enter") guggeUnlock(); });
 guggeStored();
 renderInstr();
