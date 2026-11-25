@@ -81,7 +81,8 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
 .bx-time input { flex: 1; min-width: 0; accent-color: var(--accent) }
 .bx-ctl { display: flex; gap: 10px; align-items: center; justify-content: center }
 .bx-ctl button { font: inherit; border: 2px solid var(--line); background: var(--card); color: var(--fg); border-radius: 50%; width: 56px; height: 56px; font-size: 1.3rem; cursor: pointer; display: grid; place-items: center }
-.bx-ctl button.big { width: 76px; height: 76px; background: var(--accent); border-color: var(--accent); color: var(--accent-fg); font-size: 1.8rem }
+.bx-ctl button.big { width: 76px; height: 76px; background: var(--accent); border-color: var(--accent); color: var(--accent-fg) }
+.bx-ctl button svg { display: block }
 .bx-list .row.on { border-color: var(--accent); border-width: 2px }
 .bx-list .row.on .num { color: var(--accent) }
 .bx-list .row .num { font-size: .95rem; width: 22px }
@@ -341,7 +342,7 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
     <button class="tile sq" id="go-tuner"><div><b>Stimmgerät</b><span>Instrument stimmen über das Mikrofon</span></div><i>›</i></button>
     <button class="tile sq" id="go-theory"><div><b>Musiktheorie</b><span>Notenwerte, Pausen, Zeichen – mit Quiz</span></div><i>›</i></button>
   </div>
-  <p class="ver" id="ver">Version 85</p>
+  <p class="ver" id="ver">Version 86</p>
   <div class="card" id="lt" hidden>
     <div hidden>
     <b>Startlogo einstellen</b>
@@ -459,7 +460,7 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
 <section id="s-box" hidden>
   <div class="top"><button class="back" data-go="home">‹ Start</button><span class="crumb">Musikbox</span></div>
   <h2>Musikbox</h2>
-  <p class="muted" style="margin-top:-6px">Lieder, die wir früher gespielt haben – die ganze Gugge. Einfach laufen lassen.</p>
+  <p class="muted" style="margin-top:-6px">Lieder, die wir früher gespielt haben. Einfach laufen lassen.</p>
   <div class="card lock" id="bx-lock" style="margin:10px 0 12px" hidden>
     <b>Musikbox freischalten</b>
     <p class="small muted" style="margin:0">Nur für Mitglieder. Gib das Gugge-Passwort einmal ein, danach merkt sich dein Handy das.</p>
@@ -474,9 +475,9 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
       <div class="sub" id="bx-s"></div>
       <div class="bx-time"><span id="bx-c">0:00</span><input type="range" id="bx-seek" min="0" max="1" step="0.5" value="0" aria-label="Stelle im Lied"><span id="bx-d">0:00</span></div>
       <div class="bx-ctl">
-        <button type="button" id="bx-prev" aria-label="Vorheriges Lied">⏮</button>
-        <button type="button" class="big" id="bx-play" aria-label="Abspielen">▶</button>
-        <button type="button" id="bx-next" aria-label="Nächstes Lied">⏭</button>
+        <button type="button" id="bx-prev" aria-label="Vorheriges Lied"><svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" aria-hidden="true"><rect x="4" y="5" width="3" height="14" rx="1"/><path d="M20 5.5v13a1 1 0 0 1-1.5.87L8 12.87a1 1 0 0 1 0-1.74L18.5 4.63A1 1 0 0 1 20 5.5z"/></svg></button>
+        <button type="button" class="big" id="bx-play" aria-label="Abspielen"></button>
+        <button type="button" id="bx-next" aria-label="Nächstes Lied"><svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" aria-hidden="true"><rect x="17" y="5" width="3" height="14" rx="1"/><path d="M4 5.5v13a1 1 0 0 0 1.5.87L16 12.87a1 1 0 0 0 0-1.74L5.5 4.63A1 1 0 0 0 4 5.5z"/></svg></button>
       </div>
       <div class="modes" role="group" aria-label="Reihenfolge">
         <button type="button" id="bx-ord" aria-pressed="true">Der Reihe nach</button>
@@ -841,9 +842,14 @@ function bxRender() {
     b.onclick = () => bxPlayIdx(i); box.appendChild(b);
   });
 }
+const BX_IC = {
+  play: '<svg viewBox="0 0 24 24" width="34" height="34" fill="currentColor" aria-hidden="true"><path d="M8 4.8v14.4a1 1 0 0 0 1.52.85l11.5-7.2a1 1 0 0 0 0-1.7L9.52 3.95A1 1 0 0 0 8 4.8z"/></svg>',
+  pause: '<svg viewBox="0 0 24 24" width="34" height="34" fill="currentColor" aria-hidden="true"><rect x="5" y="4" width="5" height="16" rx="1.5"/><rect x="14" y="4" width="5" height="16" rx="1.5"/></svg>',
+  load: '<svg viewBox="0 0 24 24" width="34" height="34" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2.2"/><circle cx="12" cy="12" r="2.2"/><circle cx="19" cy="12" r="2.2"/></svg>' };
 function bxUI() {
   const el = BX.el, d = el.duration || (BX.list && BX.list[BX.i] && BX.list[BX.i].d) || 0;
-  $("bx-play").textContent = BX.loading ? "…" : el.paused ? "▶" : "⏸";
+  const ic = BX.loading ? "load" : el.paused ? "play" : "pause";
+  if ($("bx-play").dataset.ic !== ic) { $("bx-play").dataset.ic = ic; $("bx-play").innerHTML = BX_IC[ic]; }
   $("bx-play").setAttribute("aria-label", el.paused ? "Abspielen" : "Pause");
   $("bx-d").textContent = bxFmt(d); $("bx-seek").max = Math.max(1, d);
   if (!BX.drag) { $("bx-seek").value = el.currentTime || 0; $("bx-c").textContent = bxFmt(el.currentTime); }
