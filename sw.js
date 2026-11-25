@@ -1,6 +1,6 @@
 // Offline-Unterstützung: Dateien der App zwischenspeichern.
 // Bei jeder neuen Version VERSION erhöhen, damit alle Handys die neuen Dateien holen.
-const VERSION = "v89";
+const VERSION = "v90";
 // Verschlüsselte Aufnahmen ändern sich nie (neue Aufnahme = neuer Dateiname), darum eigener, dauerhafter Speicher
 const DATEN = "mg-daten-1";
 // Entschlüsselte Aufnahmen für die laufende Sitzung (die App legt sie hier ab). Das iPhone springt in Aufnahmen
@@ -28,7 +28,7 @@ self.addEventListener("fetch", e => {
   if (url.origin !== location.origin) return;
   if (url.pathname.includes("/hoeren/")) { e.respondWith(hoeren(e.request)); return; }
   // Aufnahmen: zuerst aus dem Speicher (spart Daten), sonst laden und merken
-  if (url.pathname.includes("/daten/") && url.pathname.endsWith(".bin") && !url.pathname.endsWith("lieder.bin")) {
+  if (url.pathname.includes("/daten/") && url.pathname.endsWith(".bin") && !url.pathname.endsWith("lieder.bin") && !url.pathname.endsWith("archiv.bin")) {
     e.respondWith(caches.open(DATEN).then(c => c.match(e.request).then(m => m || fetch(e.request).then(r => { if (r.ok) c.put(e.request, r.clone()); return r; }))));
     return;
   }
