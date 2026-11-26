@@ -342,7 +342,7 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
     <button class="tile sq" id="go-tuner"><div><b>Stimmgerät</b><span>Instrument stimmen über das Mikrofon</span></div><i>›</i></button>
     <button class="tile sq" id="go-theory"><div><b>Musiktheorie</b><span>Notenwerte, Pausen, Zeichen – mit Quiz</span></div><i>›</i></button>
   </div>
-  <p class="ver" id="ver">Version 94</p>
+  <p class="ver" id="ver">Version 95</p>
   <div class="card" id="lt" hidden>
     <div hidden>
     <b>Startlogo einstellen</b>
@@ -856,6 +856,7 @@ function bxUI() {
 }
 async function bxPlayIdx(i) {
   if (!BX.list || !BX.list[i]) return;
+  clearTimeout(BX.wait); BX.wait = null;
   stopAll(); BX.i = i; BX.loading = true; bxRender();
   const x = BX.list[i], el = BX.el;
   try {
@@ -885,10 +886,11 @@ function bxStep(dir) {
   if (k < 0) k = BX.order.length - 1;
   bxPlayIdx(BX.order[k]);
 }
-function bxPause() { if (!BX.el.paused) BX.el.pause(); }
+function bxPause() { clearTimeout(BX.wait); BX.wait = null; if (!BX.el.paused) BX.el.pause(); }
 $("bx-play").onclick = () => {
   if (BX.loading) return;
   if (BX.i < 0) { bxMakeOrder(); bxPlayIdx(BX.order[0]); return; }
+  if (BX.wait) { bxPause(); return; }  // in der Pause zwischen zwei Liedern: anhalten
   if (BX.el.paused) { stopAll(); BX.el.play().catch(e => dlog("Musikbox: " + e)); } else BX.el.pause();
 };
 $("bx-next").onclick = () => bxStep(1);
@@ -899,7 +901,7 @@ $("bx-seek").addEventListener("input", () => { BX.drag = true; $("bx-c").textCon
 $("bx-seek").addEventListener("change", () => { BX.el.currentTime = +$("bx-seek").value; BX.drag = false; });
 ["play", "pause", "loadedmetadata", "durationchange"].forEach(ev => BX.el.addEventListener(ev, () => { if (!$("s-box").hidden) bxRender(); }));
 BX.el.addEventListener("timeupdate", () => { if (!$("s-box").hidden) bxUI(); });
-BX.el.addEventListener("ended", () => bxStep(1));
+BX.el.addEventListener("ended", () => { clearTimeout(BX.wait); BX.wait = setTimeout(() => { BX.wait = null; bxStep(1); }, 2000); });  // 2 s Pause zwischen den Liedern
 // Steuerung auf dem Sperrbildschirm
 function bxMedia() {
   if (!("mediaSession" in navigator) || !BX.list || !BX.list[BX.i]) return;
