@@ -1,6 +1,6 @@
 """Musikbox (alte Lieder, nur Tutti): Lied hinzufügen oder ersetzen.
 Aufruf: GUGGE_PW=… python3 archiv.py DATEI.mp3 "Titel" ["Untertitel"]
-Legt die Aufnahme verschlüsselt in daten/ ab und ergänzt daten/archiv.bin (Liste der Lieder)."""
+Hängt 2 s Stille an (Pause bis zum nächsten Lied). Legt die Aufnahme verschlüsselt in daten/ ab und ergänzt daten/archiv.bin (Liste der Lieder)."""
 import os, sys, re, json, base64, hashlib, unicodedata, secrets, subprocess, tempfile
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 dd = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "daten")
@@ -14,7 +14,7 @@ lst = json.loads(dec(open(ab, "rb").read())) if os.path.exists(ab) else []
 slug = re.sub(r"[^a-z0-9]+", "-", unicodedata.normalize("NFKD", title.lower()).encode("ascii", "ignore").decode()).strip("-")
 with tempfile.TemporaryDirectory() as td:
     out = os.path.join(td, "a.mp3")
-    subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", src, "-map", "0:a", "-map_metadata", "-1", "-ac", "2", "-ar", "44100", "-b:a", "128k", out], check=True)
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", src, "-map", "0:a", "-map_metadata", "-1", "-af", "apad=pad_dur=2", "-ac", "2", "-ar", "44100", "-b:a", "128k", out], check=True)
     dur = float(subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", out], capture_output=True, text=True).stdout)
     raw = open(out, "rb").read()
 ver = hashlib.sha256(raw).hexdigest()[:8]  # neue Datei bei geänderter Aufnahme (Zwischenspeicher)

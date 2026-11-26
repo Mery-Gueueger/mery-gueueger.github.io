@@ -342,7 +342,7 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
     <button class="tile sq" id="go-tuner"><div><b>Stimmgerät</b><span>Instrument stimmen über das Mikrofon</span></div><i>›</i></button>
     <button class="tile sq" id="go-theory"><div><b>Musiktheorie</b><span>Notenwerte, Pausen, Zeichen – mit Quiz</span></div><i>›</i></button>
   </div>
-  <p class="ver" id="ver">Version 97</p>
+  <p class="ver" id="ver">Version 98</p>
   <div class="card" id="lt" hidden>
     <div hidden>
     <b>Startlogo einstellen</b>
@@ -854,29 +854,43 @@ function bxUI() {
   $("bx-d").textContent = bxFmt(d); $("bx-seek").max = Math.max(1, d);
   if (!BX.drag) { $("bx-seek").value = el.currentTime || 0; $("bx-c").textContent = bxFmt(el.currentTime); }
 }
+// Aufnahme entschlüsseln und abspielbereit machen (für das nächste Lied schon während des laufenden)
+BX.urls = {};
+async function bxUrl(i) {
+  if (BX.urls[i]) return BX.urls[i];
+  const x = BX.list[i];
+  const r = await fetch("daten/" + x.f); if (!r.ok) throw new Error("Netz " + r.status);
+  const plain = await decryptWith(GUGGE.key, await r.arrayBuffer());
+  let url = null;
+  try {  // wie bei den Übungs-Aufnahmen: über den Service Worker (iPhone kann sonst nicht springen)
+    if (navigator.serviceWorker && navigator.serviceWorker.controller && window.caches) {
+      const u = new URL("hoeren/box-" + x.f.replace(/\.bin$/, ".mp3"), location.href).href;
+      await (await caches.open("mg-hoeren")).put(u, new Response(plain, { headers: { "Content-Type": "audio/mpeg" } }));
+      if ((await fetch(u, { headers: { Range: "bytes=0-1" } })).status === 206) url = u;
+    }
+  } catch (e) {}
+  if (!url) url = URL.createObjectURL(new Blob([plain], { type: "audio/mpeg" }));
+  for (const k of Object.keys(BX.urls)) if (+k !== BX.i && +k !== i) { if (BX.urls[k].startsWith("blob:")) URL.revokeObjectURL(BX.urls[k]); delete BX.urls[k]; }
+  return BX.urls[i] = url;
+}
+function bxNextIdx() {
+  if (!BX.list || !BX.list.length) return -1;
+  const k = BX.order.indexOf(BX.i) + 1;
+  return k < BX.order.length ? BX.order[k] : BX.shuf ? -1 : BX.order[0];
+}
 async function bxPlayIdx(i) {
   if (!BX.list || !BX.list[i]) return;
-  clearTimeout(BX.wait); BX.wait = null;
-  stopAll(); BX.i = i; BX.loading = true; bxRender();
-  const x = BX.list[i], el = BX.el;
+  stopAll(); BX.i = i; const el = BX.el;
+  if (!BX.urls[i]) { BX.loading = true; bxRender(); }
   try {
-    const r = await fetch("daten/" + x.f); if (!r.ok) throw new Error("Netz " + r.status);
-    const plain = await decryptWith(GUGGE.key, await r.arrayBuffer());
+    const url = await bxUrl(i);
     if (BX.i !== i) return;
-    let url = null;
-    try {  // wie bei den Übungs-Aufnahmen: über den Service Worker (iPhone kann sonst nicht springen)
-      if (navigator.serviceWorker && navigator.serviceWorker.controller && window.caches) {
-        const u = new URL("hoeren/box-" + x.f.replace(/\.bin$/, ".mp3"), location.href).href;
-        await (await caches.open("mg-hoeren")).put(u, new Response(plain, { headers: { "Content-Type": "audio/mpeg" } }));
-        if ((await fetch(u, { headers: { Range: "bytes=0-1" } })).status === 206) url = u;
-      }
-    } catch (e) {}
-    if (!url) url = URL.createObjectURL(new Blob([plain], { type: "audio/mpeg" }));
-    if (BX.url && BX.url.startsWith("blob:")) URL.revokeObjectURL(BX.url);
-    BX.url = url; el.src = url; el.load();
+    el.src = url; el.load();
     await el.play();
-  } catch (e) { dlog("Musikbox abspielen: " + e); $("bx-s").textContent = "Konnte nicht geladen werden – Internet prüfen."; }
+    dlog("Musikbox spielt: " + BX.list[i].t);
+  } catch (e) { dlog("Musikbox abspielen: " + e); $("bx-s").textContent = e && e.name === "NotAllowedError" ? "Bitte auf Play tippen." : "Konnte nicht geladen werden – Internet prüfen."; }
   BX.loading = false; bxRender(); bxMedia();
+  const n = bxNextIdx(); if (n >= 0) bxUrl(n).catch(() => {});  // nächstes Lied vorbereiten
 }
 function bxStep(dir) {
   if (!BX.list || !BX.list.length) return;
@@ -886,11 +900,10 @@ function bxStep(dir) {
   if (k < 0) k = BX.order.length - 1;
   bxPlayIdx(BX.order[k]);
 }
-function bxPause() { clearTimeout(BX.wait); BX.wait = null; if (!BX.el.paused) BX.el.pause(); }
+function bxPause() { if (!BX.el.paused) BX.el.pause(); }
 $("bx-play").onclick = () => {
   if (BX.loading) return;
   if (BX.i < 0) { bxMakeOrder(); bxPlayIdx(BX.order[0]); return; }
-  if (BX.wait) { bxPause(); return; }  // in der Pause zwischen zwei Liedern: anhalten
   if (BX.el.paused) { stopAll(); BX.el.play().catch(e => dlog("Musikbox: " + e)); } else BX.el.pause();
 };
 $("bx-next").onclick = () => bxStep(1);
@@ -901,7 +914,7 @@ $("bx-seek").addEventListener("input", () => { BX.drag = true; $("bx-c").textCon
 $("bx-seek").addEventListener("change", () => { BX.el.currentTime = +$("bx-seek").value; BX.drag = false; });
 ["play", "pause", "loadedmetadata", "durationchange"].forEach(ev => BX.el.addEventListener(ev, () => { if (!$("s-box").hidden) bxRender(); }));
 BX.el.addEventListener("timeupdate", () => { if (!$("s-box").hidden) bxUI(); });
-BX.el.addEventListener("ended", () => { clearTimeout(BX.wait); BX.wait = setTimeout(() => { BX.wait = null; bxStep(1); }, 2000); });  // 2 s Pause zwischen den Liedern
+BX.el.addEventListener("ended", () => { dlog("Musikbox: Lied fertig → nächstes"); bxStep(1); });  // die 2 s Pause ist am Ende jeder Aufnahme schon drin
 // Steuerung auf dem Sperrbildschirm
 function bxMedia() {
   if (!("mediaSession" in navigator) || !BX.list || !BX.list[BX.i]) return;
