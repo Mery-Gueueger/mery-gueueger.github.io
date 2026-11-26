@@ -89,7 +89,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
 /* kleine Nötchen, die beim laufenden Lied rechts aufsteigen */
 .bx-notes { position: relative; width: 44px; height: 38px; flex: none; color: var(--accent); pointer-events: none }
 .bx-notes > * { position: absolute; bottom: 0; font-style: normal; font-weight: 700; line-height: 1; opacity: 0; animation: bxNote 2.4s ease-in-out forwards }
-.bx-notes img { width: 28px; height: auto; filter: var(--logo-filter) }
+.bx-notes b.lg { width: 20px; height: 19px; background: var(--accent); -webkit-mask: url(logo.png) center / contain no-repeat; mask: url(logo.png) center / contain no-repeat }
 @keyframes bxNote {
   0% { transform: translate(0, 4px) rotate(-12deg) scale(.6); opacity: 0 }
   20% { opacity: 1 }
@@ -361,7 +361,7 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
     <button class="tile sq" id="go-tuner"><div><b>Stimmgerät</b><span>Instrument stimmen über das Mikrofon</span></div><i>›</i></button>
     <button class="tile sq" id="go-theory"><div><b>Musiktheorie</b><span>Notenwerte, Pausen, Zeichen – mit Quiz</span></div><i>›</i></button>
   </div>
-  <p class="ver" id="ver">Version 100</p>
+  <p class="ver" id="ver">Version 101</p>
   <div class="card" id="lt" hidden>
     <div hidden>
     <b>Startlogo einstellen</b>
@@ -915,9 +915,9 @@ async function bxPlayIdx(i) {
 BX.nc = 0;
 setInterval(() => {
   const box = document.querySelector("#bx-list .bx-notes"); if (!box || document.hidden) return;
-  BX.nc++; const n = BX.nc % 15 === 0 ? document.createElement("img") : document.createElement("i");
-  if (n.tagName === "IMG") { n.src = "logo.png"; n.alt = ""; } else { n.textContent = BX.nc % 3 === 2 ? "♫" : "♪"; n.style.fontSize = (BX.nc % 3 === 2 ? 1.25 : 1.05) + "rem"; }
-  n.style.left = [2, 16, 28][BX.nc % 3] + "px"; if (n.tagName === "IMG") n.style.left = "10px";
+  BX.nc++; const lg = BX.nc % 15 === 0, n = document.createElement(lg ? "b" : "i");
+  if (lg) n.className = "lg"; else { n.textContent = BX.nc % 3 === 2 ? "♫" : "♪"; n.style.fontSize = (BX.nc % 3 === 2 ? 1.25 : 1.05) + "rem"; }
+  n.style.left = [2, 16, 28][BX.nc % 3] + "px"; if (lg) n.style.left = "12px";
   n.addEventListener("animationend", () => n.remove()); box.appendChild(n);
   while (box.children.length > 6) box.firstChild.remove();
 }, 800);
