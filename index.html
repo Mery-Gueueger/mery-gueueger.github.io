@@ -86,6 +86,20 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
 .bx-list .row.on { border-color: var(--accent); border-width: 2px }
 .bx-list .row.on .num { color: var(--accent) }
 .bx-list .row .num { font-size: .95rem; width: 22px }
+/* kleine Nötchen, die beim laufenden Lied rechts aufsteigen */
+.bx-notes { position: relative; width: 40px; height: 36px; flex: none; color: var(--accent); pointer-events: none }
+.bx-notes i { position: absolute; bottom: 0; font-style: normal; font-weight: 700; font-size: 1.05rem; line-height: 1; opacity: 0; animation: bxNote 2.4s ease-in-out infinite }
+.bx-notes i:nth-child(1) { left: 2px; animation-delay: 0s }
+.bx-notes i:nth-child(2) { left: 15px; font-size: 1.25rem; animation-delay: .8s }
+.bx-notes i:nth-child(3) { left: 27px; animation-delay: 1.6s }
+@keyframes bxNote {
+  0% { transform: translate(0, 4px) rotate(-12deg) scale(.6); opacity: 0 }
+  20% { opacity: 1 }
+  50% { transform: translate(4px, -12px) rotate(10deg) scale(1) }
+  80% { opacity: .9 }
+  100% { transform: translate(-2px, -26px) rotate(-8deg) scale(.85); opacity: 0 }
+}
+@media (prefers-reduced-motion: reduce) { .bx-notes i { animation: none; opacity: 1; bottom: 8px } }
 .tile { border: 0; border-radius: 18px; padding: 18px; text-align: left; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 12px; background: var(--fg); color: var(--bg) }
 .tile.red { background: var(--accent); color: var(--accent-fg) }
 .tile b { font-family: var(--f-display); font-weight: 900; font-size: 1.35rem; display: block }
@@ -342,7 +356,7 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
     <button class="tile sq" id="go-tuner"><div><b>Stimmgerät</b><span>Instrument stimmen über das Mikrofon</span></div><i>›</i></button>
     <button class="tile sq" id="go-theory"><div><b>Musiktheorie</b><span>Notenwerte, Pausen, Zeichen – mit Quiz</span></div><i>›</i></button>
   </div>
-  <p class="ver" id="ver">Version 98</p>
+  <p class="ver" id="ver">Version 99</p>
   <div class="card" id="lt" hidden>
     <div hidden>
     <b>Startlogo einstellen</b>
@@ -838,7 +852,7 @@ function bxRender() {
   const box = $("bx-list"); box.innerHTML = "";
   BX.list.forEach((x, i) => {
     const b = document.createElement("button"); b.type = "button"; b.className = "row" + (i === BX.i ? " on" : "");
-    b.innerHTML = `<span class="num">${i === BX.i && !BX.el.paused ? "♪" : i + 1}</span><span class="txt"><b>${x.t}</b><small>${[x.s, bxFmt(x.d)].filter(Boolean).join(" · ")}</small></span>`;
+    b.innerHTML = `<span class="num">${i + 1}</span><span class="txt"><b>${x.t}</b><small>${[x.s, bxFmt(x.d)].filter(Boolean).join(" · ")}</small></span>${i === BX.i && !BX.el.paused && !BX.loading ? '<span class="bx-notes" aria-label="läuft"><i>♪</i><i>♫</i><i>♪</i></span>' : ""}`;
     b.onclick = () => bxPlayIdx(i); box.appendChild(b);
   });
 }
