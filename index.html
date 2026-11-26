@@ -402,7 +402,7 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
     <button class="tile sq" id="go-tuner"><div><b>Stimmgerät</b><span>Instrument stimmen über das Mikrofon</span></div><i>›</i></button>
     <button class="tile sq" id="go-theory"><div><b>Musiktheorie</b><span>Notenwerte, Pausen, Zeichen – mit Quiz</span></div><i>›</i></button>
   </div>
-  <p class="ver" id="ver">Version 108</p>
+  <p class="ver" id="ver">Version 109</p>
   <div class="card" id="lt" hidden>
     <div hidden>
     <b>Startlogo einstellen</b>
@@ -918,7 +918,7 @@ function tmTile() {
   if (!GUGGE.ok || !TM.data) { el.textContent = "Auftritte, Proben, Joker-Einsätze, Jahresprogramm"; return; }
   const today = tmToday(), all = TM.data.termine, on = d => all.filter(x => x.d <= d && (x.d2 || x.d) >= d);
   // bei Joker-Einsätzen die Eingeteilten klein darunter
-  const line = x => tmEsc(tmTime(x) + tmShort(x)) + (x.k === "einsatz" && x.leute && x.leute.length ? `<small>${x.leute.map(tmEsc).join(", ")}</small>` : x.info ? `<small>${tmEsc(x.info)}</small>` : "");
+  const line = x => tmEsc(tmTime(x) + tmShort(x)) + (x.k === "einsatz" && x.leute && x.leute.length ? `<small>${x.chef ? "Chef: " + tmEsc(x.chef) + " · " : ""}${x.leute.map(tmEsc).join(", ")}</small>` : x.info ? `<small>${tmEsc(x.info)}</small>` : "");
   const list = (arr, n) => arr.slice(0, n).map(line).join("<br>") + (arr.length > n ? `<small>+ ${arr.length - n} weitere</small>` : "");
   const t = on(today);
   if (t.length) { bd.hidden = false; bd.textContent = "Heute"; el.innerHTML = list(t, 2); return; }
