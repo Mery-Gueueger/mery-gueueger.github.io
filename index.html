@@ -86,6 +86,8 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
 .bx-list .row.on { border-color: var(--accent); border-width: 2px }
 .bx-list .row.on .num { color: var(--accent) }
 .bx-list .row .num { font-size: .95rem; width: 22px }
+.bx-yr { font-family: var(--f-display); font-weight: 900; font-size: 1rem; color: var(--muted); margin: 14px 0 2px; letter-spacing: .04em }
+.bx-yr:first-child { margin-top: 0 }
 /* kleine Nötchen, die beim laufenden Lied rechts aufsteigen */
 .bx-notes { position: relative; width: 44px; height: 38px; flex: none; color: var(--accent); pointer-events: none }
 .bx-notes > * { position: absolute; bottom: 0; font-style: normal; font-weight: 700; line-height: 1; opacity: 0; animation: bxNote 2.4s ease-in-out forwards }
@@ -361,7 +363,7 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
     <button class="tile sq" id="go-tuner"><div><b>Stimmgerät</b><span>Instrument stimmen über das Mikrofon</span></div><i>›</i></button>
     <button class="tile sq" id="go-theory"><div><b>Musiktheorie</b><span>Notenwerte, Pausen, Zeichen – mit Quiz</span></div><i>›</i></button>
   </div>
-  <p class="ver" id="ver">Version 101</p>
+  <p class="ver" id="ver">Version 102</p>
   <div class="card" id="lt" hidden>
     <div hidden>
     <b>Startlogo einstellen</b>
@@ -855,9 +857,12 @@ function bxRender() {
   $("bx-t").textContent = s ? s.t : "Bereit"; $("bx-s").textContent = s ? (s.s || "") : `${BX.list.length} Lieder – Play drücken`;
   bxUI();
   const box = $("bx-list"); box.innerHTML = "";
+  let yr = null;
   BX.list.forEach((x, i) => {
+    const ly = x.y && x.y.length ? Math.max(...x.y) : null;
+    if (ly !== yr) { yr = ly; const h = document.createElement("h4"); h.className = "bx-yr"; h.textContent = ly || "Ohne Jahr"; box.appendChild(h); }
     const b = document.createElement("button"); b.type = "button"; b.className = "row" + (i === BX.i ? " on" : "");
-    b.innerHTML = `<span class="num">${i + 1}</span><span class="txt"><b>${x.t}</b><small>${[x.s, bxFmt(x.d)].filter(Boolean).join(" · ")}</small></span>${i === BX.i && !BX.el.paused && !BX.loading ? '<span class="bx-notes" aria-label="läuft"></span>' : ""}`;
+    b.innerHTML = `<span class="num">${i + 1}</span><span class="txt"><b>${x.t}</b><small>${[x.s, x.y && x.y.length > 1 ? "auch " + x.y.filter(v => v !== Math.max(...x.y)).sort().join(", ") : "", bxFmt(x.d)].filter(Boolean).join(" · ")}</small></span>${i === BX.i && !BX.el.paused && !BX.loading ? '<span class="bx-notes" aria-label="läuft"></span>' : ""}`;
     b.onclick = () => bxPlayIdx(i); box.appendChild(b);
   });
 }

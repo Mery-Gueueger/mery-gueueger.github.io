@@ -2,7 +2,7 @@ import subprocess, os, glob, sys
 sys.path.insert(0, "/home/claude/work"); from musikbox_klicks import start
 M = {"0dcf49a3":("You're The Voice","John Farnham"),"48e7eb55":("Save Tonight","Eagle-Eye Cherry"),"b91d5a1d":("Katchi","Ofenbach"),
 "0a7f18ff":("Push It",""),"15f69a78":("She Wolf",""),"c3573932":("Stand By Me","Oasis"),"74a4f50a":("Unconditionally","Katy Perry"),
-"576af5e9":("Breakdown Tuesday",""),"a05888a7":("Danger Zone","Kenny Loggins"),"70566056":("All Star","Smash Mouth"),"21de505d":("Song 2","Blur"),
+"576af5e9":("Breakdown Tuesday","Pedestrians"),"a05888a7":("Danger Zone","Kenny Loggins"),"70566056":("All Star","Smash Mouth"),"21de505d":("Song 2","Blur"),
 "0727b5ca":("Just Can't Get Enough","Depeche Mode"),"c928acd2":("Freed From Desire","Gala"),"2aca8a2a":("The Middle",""),"12438f2b":("Don't Look Back In Anger","Oasis"),
 "c445155b":("Dancing With Tears In My Eyes","Ultravox"),"73be0c78":("Titanium","David Guetta feat. Sia"),"4ff8935e":("Don't Stop Believin'","Journey"),
 "cbc449f4":("Don't Bring Me Down","Electric Light Orchestra"),"8b20d26a":("Crying At The Discoteque","Alcazar"),"9ae6147b":("Wheels",""),
