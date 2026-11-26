@@ -1,6 +1,6 @@
 // Offline-Unterstützung: Dateien der App zwischenspeichern.
 // Bei jeder neuen Version VERSION erhöhen, damit alle Handys die neuen Dateien holen.
-const VERSION = "v105";
+const VERSION = "v106";
 // Verschlüsselte Aufnahmen ändern sich nie (neue Aufnahme = neuer Dateiname), darum eigener, dauerhafter Speicher
 const DATEN = "mg-daten-1";
 // Entschlüsselte Aufnahmen für die laufende Sitzung (die App legt sie hier ab). Das iPhone springt in Aufnahmen

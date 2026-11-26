@@ -88,6 +88,8 @@ html.theme-fade, html.theme-fade * { transition: background-color .9s ease, colo
 .tm-mon:first-child { margin-top: 4px }
 .tm-it { display: flex; gap: 12px; border: 1px solid var(--line); background: var(--card); border-radius: 14px; padding: 12px 14px; margin-bottom: 8px; border-left: 6px solid var(--accent) }
 .tm-it.einsatz { border-left-color: var(--muted) }
+.tm-it.verein { border-left-color: var(--fg) }
+.tm-it.verein .tag { color: var(--fg) }
 .tm-it.past { opacity: .55 }
 .tm-z { font-family: var(--f-display); font-weight: 900; font-size: 1.05rem; width: 58px; flex: none; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; line-height: 1.25 }
 .tm-z small { display: block; font-family: inherit; font-weight: 700; font-size: .72rem; color: var(--muted) }
@@ -389,13 +391,13 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
   </div>
   <div class="tiles" style="margin-top:14px">
     <button class="tile red" id="go-songs"><div><b>Lieder üben</b><span>Mitspielen, Originalnoten und Ventil-Spiel</span></div><i>›</i></button>
-    <button class="tile wide" id="go-termine"><div><b>Termine <em class="tm-badge" id="tm-badge" hidden>Heute</em></b><span id="tm-tile">Auftritte und Joker-Einsätze</span></div><i>›</i></button>
+    <button class="tile wide" id="go-termine"><div><b>Termine <em class="tm-badge" id="tm-badge" hidden>Heute</em></b><span id="tm-tile">Auftritte, Joker-Einsätze, Jahresprogramm</span></div><i>›</i></button>
     <button class="tile sq" id="go-box"><div><b>Musikbox</b><span>Alte Lieder hören</span></div><i>›</i></button>
     <button class="tile sq" id="go-metro"><div><b>Metronom</b><span>Den Takt halten üben</span></div><i>›</i></button>
     <button class="tile sq" id="go-tuner"><div><b>Stimmgerät</b><span>Instrument stimmen über das Mikrofon</span></div><i>›</i></button>
     <button class="tile sq" id="go-theory"><div><b>Musiktheorie</b><span>Notenwerte, Pausen, Zeichen – mit Quiz</span></div><i>›</i></button>
   </div>
-  <p class="ver" id="ver">Version 105</p>
+  <p class="ver" id="ver">Version 106</p>
   <div class="card" id="lt" hidden>
     <div hidden>
     <b>Startlogo einstellen</b>
@@ -513,7 +515,7 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
 <section id="s-termine" hidden>
   <div class="top"><button class="back" data-go="home">‹ Start</button><span class="crumb">Termine</span></div>
   <h2>Termine</h2>
-  <p class="muted" style="margin:8px 0 14px">Auftritte an der Fasnacht und Arbeitseinsätze für den Joker.</p>
+  <p class="muted" style="margin:8px 0 14px">Auftritte an der Fasnacht, Arbeitseinsätze für den Joker und das Jahresprogramm.</p>
   <div class="card lock" id="tm-lock" style="margin:10px 0 12px" hidden>
     <b>Termine freischalten</b>
     <p class="small muted" style="margin:0">Nur für Mitglieder. Gib das Gugge-Passwort einmal ein, danach merkt sich dein Handy das.</p>
@@ -526,7 +528,8 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
     <div class="modes tm-filter" role="group" aria-label="Was zeigen">
       <button type="button" data-f="alle" aria-pressed="true">Alle</button>
       <button type="button" data-f="auftritt" aria-pressed="false">Auftritte</button>
-      <button type="button" data-f="einsatz" aria-pressed="false">Joker-Einsätze</button>
+      <button type="button" data-f="einsatz" aria-pressed="false">Joker</button>
+      <button type="button" data-f="verein" aria-pressed="false">Verein</button>
     </div>
     <button type="button" class="ghost tm-more" id="tm-past"></button>
     <div id="tm-list"></div>
@@ -906,14 +909,14 @@ const tmTime = x => x.z && /^\d/.test(x.z) ? x.z.slice(0, 5) + " " : "";
 function tmTile() {
   const el = $("tm-tile"), bd = $("tm-badge"); if (!el) return;
   bd.hidden = true;
-  if (!GUGGE.ok || !TM.data) { el.textContent = "Auftritte und Joker-Einsätze"; return; }
-  const today = tmToday(), all = TM.data.termine, on = d => all.filter(x => x.d === d);
+  if (!GUGGE.ok || !TM.data) { el.textContent = "Auftritte, Joker-Einsätze, Jahresprogramm"; return; }
+  const today = tmToday(), all = TM.data.termine, on = d => all.filter(x => x.d <= d && (x.d2 || x.d) >= d);
   const list = (arr, n) => arr.slice(0, n).map(x => tmTime(x) + tmShort(x)).join("\n") + (arr.length > n ? `\n+ ${arr.length - n} weitere` : "");
   const t = on(today);
   if (t.length) { bd.hidden = false; bd.textContent = "Heute"; el.textContent = list(t, 2); return; }
   const m = on(tmAdd(today, 1));
   if (m.length) { bd.hidden = false; bd.textContent = "Morgen"; el.textContent = list(m, 2); return; }
-  const nx = all.find(x => x.d > today);
+  const nx = all.find(x => x.d > today && x.d > tmAdd(today, 1));
   if (!nx) { el.textContent = "Keine weiteren Termine"; return; }
   const d = tmDate(nx.d);
   el.textContent = `Nächster: ${TM_WT[d.getDay()]} ${d.getDate()}. ${TM_MON[d.getMonth()].slice(0, 3)}. · ${tmShort(nx)}`;
@@ -927,10 +930,11 @@ function tmRender() {
   document.querySelectorAll(".tm-filter button").forEach(b => b.setAttribute("aria-pressed", b.dataset.f === TM.f));
   const today = tmToday(), tomorrow = tmAdd(today, 1);
   const sel = TM.data.termine.filter(x => TM.f === "alle" || x.k === TM.f);
-  const nPast = sel.filter(x => x.d < today).length;
+  const end = x => x.d2 || x.d;
+  const nPast = sel.filter(x => end(x) < today).length;
   $("tm-past").hidden = !nPast;
   $("tm-past").textContent = TM.past ? "Vergangene ausblenden" : `${nPast} vergangene Termine anzeigen`;
-  const show = sel.filter(x => TM.past || x.d >= today);
+  const show = sel.filter(x => TM.past || end(x) >= today);
   const box = $("tm-list"); let h = "", mon = "", day = "";
   if (!show.length) h = '<p class="muted">Keine Termine.</p>';
   for (const x of show) {
@@ -940,11 +944,13 @@ function tmRender() {
       day = x.d; const rel = x.d === today ? "Heute" : x.d === tomorrow ? "Morgen" : "";
       h += `<div class="tm-day${x.d === today ? " today" : ""}" ${x.d === today ? 'id="tm-heute"' : ""}>${TM_WTL[d.getDay()]}, ${d.getDate()}. ${TM_MON[d.getMonth()]}${rel ? ` <em class="tm-badge">${rel}</em>` : ""}</div>`;
     }
-    const tz = x.z && /^\d/.test(x.z) ? `${tmEsc(x.z.slice(0, 5))}${x.z.length > 5 ? `<small>${tmEsc(x.z.slice(5).replace(/^\s*·?\s*/, ""))}</small>` : ""}` : `<small>${tmEsc(x.z) || "Zeit offen"}</small>`;
-    const body = x.k === "einsatz"
+    const d2 = x.d2 ? tmDate(x.d2) : null;
+    const tz = d2 ? `<small>bis ${TM_WT[d2.getDay()]} ${d2.getDate()}.${d2.getMonth() + 1}.</small>` : x.k === "verein" && !x.z ? "" : x.z && /^\d/.test(x.z) ? `${tmEsc(x.z.slice(0, 5))}${x.z.length > 5 ? `<small>${tmEsc(x.z.slice(5).replace(/^\s*·?\s*/, ""))}</small>` : ""}` : `<small>${tmEsc(x.z) || "Zeit offen"}</small>`;
+    const body = x.k === "verein" ? `<span class="tag">Verein</span><b>${tmEsc(x.t)}</b>${x.ort ? `<div class="sub">${tmEsc(x.ort)}</div>` : ""}`
+      : x.k === "einsatz"
       ? `<span class="tag">Joker-Einsatz</span><b>${tmEsc(x.t)}</b><div class="sub">${tmEsc(x.ort)}</div><div class="who"><span>Chef:</span> ${tmEsc(x.chef)}<br><span>Eingeteilt:</span> ${(x.leute || []).map(tmEsc).join(", ")}</div>`
       : `<span class="tag">Auftritt</span><b>${tmEsc(x.t)}</b><div class="sub">${[x.wer, x.ort].filter(Boolean).map(tmEsc).join(" · ")}</div>${x.info ? `<div class="info">${tmEsc(x.info)}</div>` : ""}`;
-    h += `<div class="tm-it ${x.k}${x.d < today ? " past" : ""}"><div class="tm-z">${tz}</div><div class="tm-b">${body}</div></div>`;
+    h += `<div class="tm-it ${x.k}${end(x) < today ? " past" : ""}">${tz ? `<div class="tm-z">${tz}</div>` : ""}<div class="tm-b">${body}</div></div>`;
   }
   box.innerHTML = h;
   $("tm-hint").textContent = TM.f !== "auftritt" && TM.data.hinweis ? TM.data.hinweis : "";
