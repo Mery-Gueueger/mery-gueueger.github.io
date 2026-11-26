@@ -26,6 +26,6 @@ for x in old:
     if x["f"] != nm and os.path.exists(os.path.join(dd, x["f"])): os.remove(os.path.join(dd, x["f"]))
 if years is None: years = old[0].get("y", []) if old else []
 lst = [x for x in lst if x["id"] != slug] + [dict(id=slug, t=title, s=sub, f=nm, d=round(dur, 1), y=years)]
-lst.sort(key=lambda x: (-max(x.get("y") or [0]), x["t"].lower()))  # neueste Jahre zuerst
+lst.sort(key=lambda x: (-min(x.get("y") or [0]), x["t"].lower()))  # nach dem ersten Jahr, neueste zuerst
 open(ab, "wb").write(enc(json.dumps(lst, ensure_ascii=False).encode()))
 print(len(lst), "Lieder:", ", ".join(x["t"] for x in lst))

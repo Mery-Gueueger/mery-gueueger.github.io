@@ -363,7 +363,7 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
     <button class="tile sq" id="go-tuner"><div><b>Stimmgerät</b><span>Instrument stimmen über das Mikrofon</span></div><i>›</i></button>
     <button class="tile sq" id="go-theory"><div><b>Musiktheorie</b><span>Notenwerte, Pausen, Zeichen – mit Quiz</span></div><i>›</i></button>
   </div>
-  <p class="ver" id="ver">Version 102</p>
+  <p class="ver" id="ver">Version 103</p>
   <div class="card" id="lt" hidden>
     <div hidden>
     <b>Startlogo einstellen</b>
@@ -859,10 +859,10 @@ function bxRender() {
   const box = $("bx-list"); box.innerHTML = "";
   let yr = null;
   BX.list.forEach((x, i) => {
-    const ly = x.y && x.y.length ? Math.max(...x.y) : null;
+    const ly = x.y && x.y.length ? Math.min(...x.y) : null;  // eingeordnet beim ersten Jahr
     if (ly !== yr) { yr = ly; const h = document.createElement("h4"); h.className = "bx-yr"; h.textContent = ly || "Ohne Jahr"; box.appendChild(h); }
     const b = document.createElement("button"); b.type = "button"; b.className = "row" + (i === BX.i ? " on" : "");
-    b.innerHTML = `<span class="num">${i + 1}</span><span class="txt"><b>${x.t}</b><small>${[x.s, x.y && x.y.length > 1 ? "auch " + x.y.filter(v => v !== Math.max(...x.y)).sort().join(", ") : "", bxFmt(x.d)].filter(Boolean).join(" · ")}</small></span>${i === BX.i && !BX.el.paused && !BX.loading ? '<span class="bx-notes" aria-label="läuft"></span>' : ""}`;
+    b.innerHTML = `<span class="num">${i + 1}</span><span class="txt"><b>${x.t}</b><small>${[x.s, x.y && x.y.length > 1 ? "auch " + x.y.filter(v => v !== Math.min(...x.y)).sort().join(", ") : "", bxFmt(x.d)].filter(Boolean).join(" · ")}</small></span>${i === BX.i && !BX.el.paused && !BX.loading ? '<span class="bx-notes" aria-label="läuft"></span>' : ""}`;
     b.onclick = () => bxPlayIdx(i); box.appendChild(b);
   });
 }
