@@ -68,7 +68,29 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
 .chip small { display: block; font-family: var(--f-body); font-weight: 400; color: var(--muted); font-size: .8rem }
 .chip[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft) }
 .tiles { display: grid; gap: 10px; grid-template-columns: 1fr 1fr }
-.tile.red { grid-column: 1 / -1 }
+.tile.red, .tile.wide { grid-column: 1 / -1 }
+.tm-badge { font-style: normal; font-family: var(--f-body, inherit); font-size: .72rem; font-weight: 800; background: var(--accent); color: var(--accent-fg); border-radius: 999px; padding: 2px 9px; margin-left: 6px; vertical-align: middle; letter-spacing: .02em }
+#tm-tile { display: block; white-space: pre-line }
+/* Termine */
+.tm-filter { margin: 4px 0 12px }
+.tm-day { font-family: var(--f-display); font-weight: 900; font-size: 1rem; margin: 18px 0 6px; display: flex; align-items: center; gap: 8px }
+.tm-day.today { color: var(--accent) }
+.tm-mon { font-family: var(--f-display); font-weight: 900; font-size: 1.35rem; margin: 26px 0 0 }
+.tm-mon:first-child { margin-top: 4px }
+.tm-it { display: flex; gap: 12px; border: 1px solid var(--line); background: var(--card); border-radius: 14px; padding: 12px 14px; margin-bottom: 8px; border-left: 6px solid var(--accent) }
+.tm-it.einsatz { border-left-color: var(--muted) }
+.tm-it.past { opacity: .55 }
+.tm-z { font-family: var(--f-display); font-weight: 900; font-size: 1.05rem; width: 58px; flex: none; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; line-height: 1.25 }
+.tm-z small { display: block; font-family: inherit; font-weight: 700; font-size: .72rem; color: var(--muted) }
+.tm-b { flex: 1; min-width: 0 }
+.tm-b b { display: block; font-size: 1.02rem }
+.tm-b .sub { color: var(--muted); font-size: .9rem }
+.tm-b .tag { display: inline-block; font-size: .7rem; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: var(--accent); margin-bottom: 2px }
+.tm-it.einsatz .tag { color: var(--muted) }
+.tm-b .who { font-size: .85rem; margin-top: 6px; line-height: 1.45 }
+.tm-b .who span { color: var(--muted) }
+.tm-b .info { font-weight: 800; color: var(--accent); font-size: .9rem; margin-top: 4px }
+.tm-more { width: 100%; margin: 6px 0 14px }
 .tile.sq { aspect-ratio: 1; flex-direction: column; align-items: flex-start; justify-content: space-between; padding: 16px; min-width: 0 }
 .tile.sq b { font-size: 1.2rem }
 .tile.sq span { display: block; font-size: .82rem; margin-top: 4px; line-height: 1.3 }
@@ -358,12 +380,13 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
   </div>
   <div class="tiles" style="margin-top:14px">
     <button class="tile red" id="go-songs"><div><b>Lieder üben</b><span>Mitspielen, Originalnoten und Ventil-Spiel</span></div><i>›</i></button>
+    <button class="tile wide" id="go-termine"><div><b>Termine <em class="tm-badge" id="tm-badge" hidden>Heute</em></b><span id="tm-tile">Auftritte und Joker-Einsätze</span></div><i>›</i></button>
     <button class="tile sq" id="go-box"><div><b>Musikbox</b><span>Alte Lieder hören</span></div><i>›</i></button>
     <button class="tile sq" id="go-metro"><div><b>Metronom</b><span>Den Takt halten üben</span></div><i>›</i></button>
     <button class="tile sq" id="go-tuner"><div><b>Stimmgerät</b><span>Instrument stimmen über das Mikrofon</span></div><i>›</i></button>
     <button class="tile sq" id="go-theory"><div><b>Musiktheorie</b><span>Notenwerte, Pausen, Zeichen – mit Quiz</span></div><i>›</i></button>
   </div>
-  <p class="ver" id="ver">Version 103</p>
+  <p class="ver" id="ver">Version 104</p>
   <div class="card" id="lt" hidden>
     <div hidden>
     <b>Startlogo einstellen</b>
@@ -475,6 +498,31 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
     <button class="main" id="q-next" hidden>Weiter</button>
   </div>
   <div class="card" id="q-done" hidden></div>
+</section>
+
+<!-- TERMINE -->
+<section id="s-termine" hidden>
+  <div class="top"><button class="back" data-go="home">‹ Start</button><span class="crumb">Termine</span></div>
+  <h2>Termine</h2>
+  <p class="muted" style="margin:8px 0 14px">Auftritte an der Fasnacht und Arbeitseinsätze für den Joker.</p>
+  <div class="card lock" id="tm-lock" style="margin:10px 0 12px" hidden>
+    <b>Termine freischalten</b>
+    <p class="small muted" style="margin:0">Nur für Mitglieder. Gib das Gugge-Passwort einmal ein, danach merkt sich dein Handy das.</p>
+    <input type="password" id="tm-pw" autocomplete="current-password" placeholder="Gugge-Passwort" aria-label="Gugge-Passwort">
+    <button class="main" id="tm-pw-go">Freischalten</button>
+    <p class="err" id="tm-pw-err" aria-live="polite"></p>
+  </div>
+  <p class="loading" id="tm-load"></p>
+  <div id="tm-main" hidden>
+    <div class="modes tm-filter" role="group" aria-label="Was zeigen">
+      <button type="button" data-f="alle" aria-pressed="true">Alle</button>
+      <button type="button" data-f="auftritt" aria-pressed="false">Auftritte</button>
+      <button type="button" data-f="einsatz" aria-pressed="false">Joker-Einsätze</button>
+    </div>
+    <button type="button" class="ghost tm-more" id="tm-past"></button>
+    <div id="tm-list"></div>
+    <p class="small muted" id="tm-hint" style="margin-top:14px"></p>
+  </div>
 </section>
 
 <!-- MUSIKBOX -->
@@ -778,7 +826,7 @@ async function guggeOpen(raw) {
   const plain = await decryptWith(key, await r.arrayBuffer());
   const list = JSON.parse(new TextDecoder().decode(plain));
   GUGGE.key = key; GUGGE.ok = true;
-  bxLoad();
+  bxLoad(); tmLoad();
   for (let i = SONGS.length - 1; i >= 0; i--) if (SONGS[i].real) SONGS.splice(i, 1);
   SONGS.unshift(...list.map(prepSong));
 }
@@ -790,6 +838,7 @@ async function guggeStored() {
   GUGGE.busy = false;
   if (!$("s-songs").hidden) renderSongs();
   if (!$("s-box").hidden) bxRender();
+  if (!$("s-termine").hidden) tmRender();
 }
 async function guggeUnlock(pre) {
   pre = typeof pre === "string" ? pre : "";  // "" = Lieder üben, "bx-" = Musikbox
@@ -807,7 +856,7 @@ async function guggeUnlock(pre) {
     $(id("pw-err")).textContent = e && e.name === "OperationError" ? "Das Passwort stimmt nicht. Achte auf Gross- und Kleinschreibung." : "Keine Verbindung. Versuche es mit Internet nochmals.";
   }
   $(id("pw-go")).disabled = false; $(id("load")).textContent = "";
-  renderSongs(); bxRender();
+  renderSongs(); bxRender(); tmRender();
 }
 
 /* ---------- Hilfen ---------- */
@@ -827,6 +876,75 @@ function drawAbc(el, abc, scale) {
   const sv = inner.querySelector("svg");
   if (sv) { const r = sv.getBoundingClientRect(); let hh = r.height; try { const bb = sv.getBBox(); if (bb.height > 0) hh = Math.min(hh, (bb.y + bb.height) * sc + 8); } catch (e) {} inner.style.height = Math.ceil(hh) + "px"; inner.style.width = Math.ceil(r.width) + "px"; inner.style.overflow = "visible"; inner.style.margin = "0 auto"; }
 }
+
+/* ---------- Termine: Auftritte und Joker-Einsätze (verschlüsselt, hinter dem Gugge-Passwort) ---------- */
+const TM = { data: null, busy: false, f: "alle", past: false };
+const TM_WT = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"], TM_WTL = ["Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"];
+const TM_MON = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
+const tmToday = () => { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
+const tmDate = iso => { const [y, m, d] = iso.split("-").map(Number); return new Date(y, m - 1, d); };
+const tmAdd = (iso, n) => { const d = tmDate(iso); d.setDate(d.getDate() + n); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
+const tmEsc = t => String(t || "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+async function tmLoad() {
+  if (!GUGGE.key || TM.data || TM.busy) return; TM.busy = true;
+  try { const r = await fetch("daten/termine.bin?t=" + Date.now(), { cache: "no-store" }); if (r.ok) TM.data = JSON.parse(new TextDecoder().decode(await decryptWith(GUGGE.key, await r.arrayBuffer()))); }
+  catch (e) { dlog("Termine laden: " + e); }
+  TM.busy = false; tmTile(); if (!$("s-termine").hidden) tmRender();
+}
+const tmShort = x => (x.k === "einsatz" ? "Joker-Einsatz " + x.t : x.t) + (x.ort ? " · " + x.ort : "");
+const tmTime = x => x.z && /^\d/.test(x.z) ? x.z.slice(0, 5) + " " : "";
+// Kachel auf der Startseite: was heute ansteht, sonst morgen, sonst der nächste Termin
+function tmTile() {
+  const el = $("tm-tile"), bd = $("tm-badge"); if (!el) return;
+  bd.hidden = true;
+  if (!GUGGE.ok || !TM.data) { el.textContent = "Auftritte und Joker-Einsätze"; return; }
+  const today = tmToday(), all = TM.data.termine, on = d => all.filter(x => x.d === d);
+  const list = (arr, n) => arr.slice(0, n).map(x => tmTime(x) + tmShort(x)).join("\n") + (arr.length > n ? `\n+ ${arr.length - n} weitere` : "");
+  const t = on(today);
+  if (t.length) { bd.hidden = false; bd.textContent = "Heute"; el.textContent = list(t, 2); return; }
+  const m = on(tmAdd(today, 1));
+  if (m.length) { bd.hidden = false; bd.textContent = "Morgen"; el.textContent = list(m, 2); return; }
+  const nx = all.find(x => x.d > today);
+  if (!nx) { el.textContent = "Keine weiteren Termine"; return; }
+  const d = tmDate(nx.d);
+  el.textContent = `Nächster: ${TM_WT[d.getDay()]} ${d.getDate()}. ${TM_MON[d.getMonth()].slice(0, 3)}. · ${tmShort(nx)}`;
+}
+function tmRender() {
+  const ok = GUGGE.ok;
+  $("tm-lock").hidden = ok || GUGGE.busy;
+  if (ok && !TM.data && !TM.busy) tmLoad();
+  $("tm-load").textContent = GUGGE.busy || TM.busy ? "Termine werden geladen …" : "";
+  $("tm-main").hidden = !(ok && TM.data); if ($("tm-main").hidden) return;
+  document.querySelectorAll(".tm-filter button").forEach(b => b.setAttribute("aria-pressed", b.dataset.f === TM.f));
+  const today = tmToday(), tomorrow = tmAdd(today, 1);
+  const sel = TM.data.termine.filter(x => TM.f === "alle" || x.k === TM.f);
+  const nPast = sel.filter(x => x.d < today).length;
+  $("tm-past").hidden = !nPast;
+  $("tm-past").textContent = TM.past ? "Vergangene ausblenden" : `${nPast} vergangene Termine anzeigen`;
+  const show = sel.filter(x => TM.past || x.d >= today);
+  const box = $("tm-list"); let h = "", mon = "", day = "";
+  if (!show.length) h = '<p class="muted">Keine Termine.</p>';
+  for (const x of show) {
+    const d = tmDate(x.d), mk = x.d.slice(0, 7);
+    if (mk !== mon) { mon = mk; h += `<h3 class="tm-mon">${TM_MON[d.getMonth()]} ${d.getFullYear()}</h3>`; day = ""; }
+    if (x.d !== day) {
+      day = x.d; const rel = x.d === today ? "Heute" : x.d === tomorrow ? "Morgen" : "";
+      h += `<div class="tm-day${x.d === today ? " today" : ""}" ${x.d === today ? 'id="tm-heute"' : ""}>${TM_WTL[d.getDay()]}, ${d.getDate()}. ${TM_MON[d.getMonth()]}${rel ? ` <em class="tm-badge">${rel}</em>` : ""}</div>`;
+    }
+    const tz = x.z && /^\d/.test(x.z) ? `${tmEsc(x.z.slice(0, 5))}${x.z.length > 5 ? `<small>${tmEsc(x.z.slice(5).replace(/^\s*·?\s*/, ""))}</small>` : ""}` : `<small>${tmEsc(x.z) || "Zeit offen"}</small>`;
+    const body = x.k === "einsatz"
+      ? `<span class="tag">Joker-Einsatz</span><b>${tmEsc(x.t)}</b><div class="sub">${tmEsc(x.ort)}</div><div class="who"><span>Chef:</span> ${tmEsc(x.chef)}<br><span>Eingeteilt:</span> ${(x.leute || []).map(tmEsc).join(", ")}</div>`
+      : `<span class="tag">Auftritt</span><b>${tmEsc(x.t)}</b><div class="sub">${[x.wer, x.ort].filter(Boolean).map(tmEsc).join(" · ")}</div>${x.info ? `<div class="info">${tmEsc(x.info)}</div>` : ""}`;
+    h += `<div class="tm-it ${x.k}${x.d < today ? " past" : ""}"><div class="tm-z">${tz}</div><div class="tm-b">${body}</div></div>`;
+  }
+  box.innerHTML = h;
+  $("tm-hint").textContent = TM.f !== "auftritt" && TM.data.hinweis ? TM.data.hinweis : "";
+}
+document.querySelectorAll(".tm-filter button").forEach(b => b.onclick = () => { TM.f = b.dataset.f; tmRender(); });
+$("tm-past").onclick = () => { TM.past = !TM.past; tmRender(); };
+// um Mitternacht und beim Zurückkommen in die App die Kachel nachführen
+document.addEventListener("visibilitychange", () => { if (!document.hidden) tmTile(); });
+setInterval(tmTile, 60000);
 
 /* ---------- Musikbox: alte Lieder (nur Tutti), der Reihe nach oder zufällig ---------- */
 const BX = { list: null, busy: false, i: -1, el: new Audio(), url: null, shuf: !!store.get("bx-shuf", false), order: [], loading: false, drag: false };
@@ -963,7 +1081,7 @@ function bxMedia() {
 }
 
 /* ---------- Navigation ---------- */
-const SCREENS = ["home", "metro", "tuner", "instr", "theory", "lesson", "quiz", "songs", "song", "box"];
+const SCREENS = ["home", "metro", "tuner", "instr", "theory", "lesson", "quiz", "songs", "song", "box", "termine"];
 // Verlauf, damit die Zurück-Taste des Handys eine Seite zurück geht statt die App zu schliessen
 const navStack = ["home"];
 // Titel auf eine Zeile bringen: Schrift verkleinern, bis er passt
@@ -987,6 +1105,8 @@ function show(s) {
   if (s === "theory") renderLessons();
   if (s === "songs") renderSongs();
   if (s === "box") bxRender();
+  if (s === "termine") tmRender();
+  if (s === "home") tmTile();
   if (s === "instr") renderInstr();
 }
 function go(s) {
@@ -1026,6 +1146,7 @@ function renderInstr() {
 }
 $("go-theory").onclick = () => go("theory");
 $("go-box").onclick = () => go("box");
+$("go-termine").onclick = () => go("termine");
 $("go-metro").onclick = () => go("metro");
 $("go-tuner").onclick = () => go("tuner");
 $("logo-home").onclick = () => go("home");
@@ -2178,6 +2299,8 @@ document.addEventListener("keyup", e => { LN.held.delete(e.key); });
 /* ---------- Start ---------- */
 $("pw-go").onclick = () => guggeUnlock("");
 $("bx-pw-go").onclick = () => guggeUnlock("bx-");
+$("tm-pw-go").onclick = () => guggeUnlock("tm-");
+$("tm-pw").addEventListener("keydown", e => { if (e.key === "Enter") guggeUnlock("tm-"); });
 $("bx-pw").addEventListener("keydown", e => { if (e.key === "Enter") guggeUnlock("bx-"); });
 $("pw").addEventListener("keydown", e => { if (e.key === "Enter") guggeUnlock(); });
 guggeStored();
