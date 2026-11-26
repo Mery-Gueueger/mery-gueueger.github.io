@@ -106,10 +106,11 @@ html.theme-fade, html.theme-fade * { transition: background-color .9s ease, colo
 .tm-b .who span { color: var(--muted) }
 .tm-b .info { font-weight: 800; color: var(--accent); font-size: .9rem; margin-top: 4px }
 .tm-more { width: 100%; margin: 6px 0 14px }
-.tile.sq { aspect-ratio: 1; flex-direction: column; align-items: flex-start; justify-content: space-between; padding: 16px; min-width: 0 }
+.tile.sq { min-height: 108px; flex-direction: column; align-items: flex-start; justify-content: space-between; padding: 14px 16px 12px; gap: 4px; min-width: 0 }
 .tile.sq b { font-size: 1.2rem }
 .tile.sq span { display: block; font-size: .82rem; margin-top: 4px; line-height: 1.3 }
-.tile.sq i { align-self: flex-end; line-height: 1 }
+.tile.sq i { align-self: flex-end; line-height: 1; margin-top: -14px }
+.tile.red, .tile.wide { padding-block: 14px }
 /* Musikbox */
 .bx-now { align-items: stretch }
 .bx-now .ttl { font-family: var(--f-display); font-weight: 900; font-size: 1.3rem; line-height: 1.2 }
@@ -401,7 +402,7 @@ body.landplay .land-ctrl { display: flex; gap: 8px; position: fixed; right: max(
     <button class="tile sq" id="go-tuner"><div><b>Stimmgerät</b><span>Instrument stimmen über das Mikrofon</span></div><i>›</i></button>
     <button class="tile sq" id="go-theory"><div><b>Musiktheorie</b><span>Notenwerte, Pausen, Zeichen – mit Quiz</span></div><i>›</i></button>
   </div>
-  <p class="ver" id="ver">Version 107</p>
+  <p class="ver" id="ver">Version 108</p>
   <div class="card" id="lt" hidden>
     <div hidden>
     <b>Startlogo einstellen</b>
